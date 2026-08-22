@@ -31,6 +31,7 @@ class ConnectionHealthPresentationSourceTest {
         assertTrue(screen.contains("R.string.status_reauthentication_required"))
         assertTrue(screen.contains("ConnectionHealth.OFFLINE"))
         assertTrue(screen.contains("R.string.status_offline"))
+        assertTrue(screen.contains("R.string.status_verification_pending"))
     }
 
     private fun source(path: String): String {

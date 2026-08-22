@@ -111,6 +111,7 @@
     <string name="status_offline">オフライン</string>
     <string name="status_provider_error">サービス側のエラー</string>
     <string name="status_not_connected">未接続</string>
+    <string name="status_verification_pending">保存済み・確認待ち</string>
     <string name="status_quota_hidden">使用枠を非表示</string>
     <string name="status_hidden">非表示</string>
     <string name="extra_usage_summary">%1$s: %2$s / %3$s（%4$s）</string>

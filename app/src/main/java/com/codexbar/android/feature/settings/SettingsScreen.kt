@@ -321,7 +321,9 @@ fun ConnectionsScreen(
         categoryFilter = providerCategory,
         serviceStates = uiState.serviceStates
     )
-    val connectedCount = uiState.serviceStates.values.count(ServiceCredentialState::isConnected)
+    val connectedCount = uiState.serviceStates.values.count {
+        it.isVerifiedConnected
+    }
 
     LaunchedEffect(initialGeminiPairingUri) {
         if (initialGeminiPairingUri != null) {
@@ -966,7 +968,8 @@ private fun ServiceCredentialSection(
                     state.connectionHealth == ConnectionHealth.OFFLINE -> {
                         MaterialTheme.colorScheme.tertiary
                     }
-                    else -> visualStyle.accent
+                    state.connectionHealth == ConnectionHealth.CONNECTED -> visualStyle.accent
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 val statusLabel = when {
                     !state.isConnected -> R.string.status_not_connected
@@ -974,7 +977,8 @@ private fun ServiceCredentialSection(
                         R.string.status_reauthentication_required
                     }
                     state.connectionHealth == ConnectionHealth.OFFLINE -> R.string.status_offline
-                    else -> R.string.status_connected
+                    state.connectionHealth == ConnectionHealth.CONNECTED -> R.string.status_connected
+                    else -> R.string.status_verification_pending
                 }
                 Surface(
                     shape = MaterialTheme.shapes.small,

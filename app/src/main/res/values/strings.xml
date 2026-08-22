@@ -111,6 +111,7 @@
     <string name="status_offline">Offline</string>
     <string name="status_provider_error">Provider error</string>
     <string name="status_not_connected">Not connected</string>
+    <string name="status_verification_pending">Saved · verification pending</string>
     <string name="status_quota_hidden">Quota hidden</string>
     <string name="status_hidden">Hidden</string>
     <string name="extra_usage_summary">%1$s: %2$s / %3$s (%4$s)</string>
