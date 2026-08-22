@@ -17,6 +17,7 @@ import com.codexbar.android.core.presentation.PrivacyPresentation
 import com.codexbar.android.core.presentation.QuotaPresentationMapper
 import com.codexbar.android.core.presentation.QuotaPresentationSnapshot
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.security.ConnectionHealthStore
 import com.codexbar.android.core.widget.QuotaGlanceWidget
 import com.codexbar.android.core.widget.WidgetPrefsManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +34,7 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val repositoryRegistry: QuotaRepositoryRegistry,
     private val prefsManager: EncryptedPrefsManager,
+    private val connectionHealthStore: ConnectionHealthStore,
     private val quotaHistoryStore: QuotaHistoryStore,
     private val monitoringSessionStore: MonitoringSessionStore,
     private val notificationService: QuotaNotificationService,
@@ -84,6 +86,7 @@ class DashboardViewModel @Inject constructor(
                 val errors = mutableMapOf<AiService, AppError>()
 
                 for ((service, result) in results) {
+                    connectionHealthStore.record(service, result)
                     when (result) {
                         is Result.Success -> {
                             successfulQuotas.add(result.value)

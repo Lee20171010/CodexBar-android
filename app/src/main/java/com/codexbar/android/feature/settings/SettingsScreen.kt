@@ -107,6 +107,7 @@ import com.codexbar.android.core.domain.model.ProviderAuthMode
 import com.codexbar.android.core.domain.model.ProviderCategory
 import com.codexbar.android.core.domain.model.providerMetadata
 import com.codexbar.android.core.security.PrivacySettings
+import com.codexbar.android.core.security.ConnectionHealth
 import com.codexbar.android.core.workmanager.RefreshIntervalPolicy
 import com.codexbar.android.ui.components.providerIcon
 import com.codexbar.android.ui.theme.providerVisualStyle
@@ -940,23 +941,30 @@ private fun ServiceCredentialSection(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                val statusColor = if (state.isConnected) {
-                    visualStyle.accent
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                val statusColor = when {
+                    !state.isConnected -> MaterialTheme.colorScheme.onSurfaceVariant
+                    state.connectionHealth == ConnectionHealth.NEEDS_REAUTHENTICATION -> {
+                        MaterialTheme.colorScheme.error
+                    }
+                    state.connectionHealth == ConnectionHealth.OFFLINE -> {
+                        MaterialTheme.colorScheme.tertiary
+                    }
+                    else -> visualStyle.accent
+                }
+                val statusLabel = when {
+                    !state.isConnected -> R.string.status_not_connected
+                    state.connectionHealth == ConnectionHealth.NEEDS_REAUTHENTICATION -> {
+                        R.string.status_reauthentication_required
+                    }
+                    state.connectionHealth == ConnectionHealth.OFFLINE -> R.string.status_offline
+                    else -> R.string.status_connected
                 }
                 Surface(
                     shape = MaterialTheme.shapes.small,
                     color = statusColor.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = stringResource(
-                            if (state.isConnected) {
-                                R.string.status_connected
-                            } else {
-                                R.string.status_not_connected
-                            }
-                        ),
+                        text = stringResource(statusLabel),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = statusColor

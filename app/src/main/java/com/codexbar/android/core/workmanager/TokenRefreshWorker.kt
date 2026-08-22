@@ -13,6 +13,8 @@ import com.codexbar.android.core.network.codex.CodexDto
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
 import com.codexbar.android.core.network.RetryAfter
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.security.ConnectionHealth
+import com.codexbar.android.core.security.ConnectionHealthStore
 import com.codexbar.android.core.security.TokenRefreshAttemptDecision
 import com.codexbar.android.core.security.TokenRefreshCoordinator
 import com.codexbar.android.core.security.TokenRefreshRetryPolicy
@@ -31,6 +33,7 @@ class TokenRefreshWorker @AssistedInject constructor(
     private val claudeTokenRefreshService: ClaudeTokenRefreshService,
     private val codexTokenRefreshService: CodexTokenRefreshService,
     private val prefsManager: EncryptedPrefsManager,
+    private val connectionHealthStore: ConnectionHealthStore,
     private val tokenRefreshCoordinator: TokenRefreshCoordinator,
     private val tokenRefreshStateStore: TokenRefreshStateStore
 ) : CoroutineWorker(context, workerParams) {
@@ -84,6 +87,9 @@ class TokenRefreshWorker @AssistedInject constructor(
                                 )
                             )
                         )
+                        if (outcome is RefreshOutcome.Success) {
+                            connectionHealthStore.update(service, ConnectionHealth.CONNECTED)
+                        }
                         RefreshRunResult.Succeeded
                     }
 
@@ -97,6 +103,14 @@ class TokenRefreshWorker @AssistedInject constructor(
                                 terminal = outcome.terminal,
                                 retryAtMillis = outcome.retryAtMillis
                             )
+                        )
+                        connectionHealthStore.update(
+                            service,
+                            if (outcome.terminal) {
+                                ConnectionHealth.NEEDS_REAUTHENTICATION
+                            } else {
+                                ConnectionHealth.OFFLINE
+                            }
                         )
                         RefreshRunResult(shouldRetryWork = !outcome.terminal)
                     }

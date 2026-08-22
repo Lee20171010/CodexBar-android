@@ -63,6 +63,12 @@ class BackupRulesTest {
         assertTrue(
             excludes.any { exclude ->
                 exclude.getAttribute("domain") == "sharedpref" &&
+                    exclude.getAttribute("path") == ConnectionHealthStore.BACKUP_PATH
+            }
+        )
+        assertTrue(
+            excludes.any { exclude ->
+                exclude.getAttribute("domain") == "sharedpref" &&
                     exclude.getAttribute("path") == MonitoringSessionStore.BACKUP_PATH
             }
         )
