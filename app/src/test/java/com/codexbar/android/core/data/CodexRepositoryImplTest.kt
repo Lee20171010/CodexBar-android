@@ -17,6 +17,7 @@ import com.codexbar.android.core.network.codex.telemetry.CodexTelemetryClient
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.security.TokenRefreshCoordinator
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -31,6 +32,7 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.`when`
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.mockingDetails
 import retrofit2.Retrofit
 import java.time.Instant
 
@@ -176,6 +178,57 @@ class CodexRepositoryImplTest {
         assertTrue(result is Result.Failure)
         val error = (result as Result.Failure).error
         assertTrue(error is AppError.AuthError)
+    }
+
+    @Test
+    fun `expired Codex token refresh uses the official minimal request and preserves credential on server failure`() = runTest {
+        val expiredCredential = testCredential.copy(expiresAt = Instant.now().minusSeconds(60))
+        `when`(prefsManager.loadCredential(AiService.CODEX)).thenReturn(expiredCredential)
+        mockWebServer.enqueue(MockResponse().setResponseCode(503))
+
+        val result = repository.fetchQuota()
+
+        assertTrue(result is Result.Failure)
+        assertTrue((result as Result.Failure).error is AppError.NetworkError)
+        val refreshRequest = mockWebServer.takeRequest()
+        val refreshJson = json.parseToJsonElement(refreshRequest.body.readUtf8()).jsonObject
+        assertEquals(
+            setOf("client_id", "grant_type", "refresh_token"),
+            refreshJson.keys
+        )
+        verify(prefsManager, never()).deleteCredential(AiService.CODEX)
+    }
+
+    @Test
+    fun `successful proactive refresh stores rotated token expiry before usage request`() = runTest {
+        val expiredCredential = testCredential.copy(expiresAt = Instant.now().minusSeconds(60))
+        `when`(prefsManager.loadCredential(AiService.CODEX)).thenReturn(expiredCredential)
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"access_token":"rotated-access","refresh_token":"rotated-refresh","expires_in":3600}"""
+            )
+        )
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"rate_limit":{"primary_window":{"used_percent":10,"limit_window_seconds":18000}}}"""
+            )
+        )
+        mockWebServer.enqueue(resetCreditsResponse())
+
+        val result = repository.fetchQuota()
+
+        assertTrue(result is Result.Success)
+        val saveInvocation = mockingDetails(prefsManager).invocations.first {
+            it.method.name == "saveCredential"
+        }
+        assertEquals(AiService.CODEX, saveInvocation.arguments[0])
+        val saved = saveInvocation.arguments[1] as Credential.CodexCredential
+        assertEquals("rotated-access", saved.accessToken)
+        assertEquals("rotated-refresh", saved.refreshToken)
+        assertTrue(saved.expiresAt?.isAfter(Instant.now().plusSeconds(3_500)) == true)
+        mockWebServer.takeRequest()
+        val usageRequest = mockWebServer.takeRequest()
+        assertEquals("Bearer rotated-access", usageRequest.getHeader("Authorization"))
     }
 
     @Test

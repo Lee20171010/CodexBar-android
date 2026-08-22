@@ -121,6 +121,9 @@ class EncryptedPrefsManager @Inject constructor(
                     credential.accountId?.let {
                         prefs.putEncryptedString("${prefix}_account_id", it)
                     }
+                    credential.expiresAt?.let {
+                        prefs[longPreferencesKey("${prefix}_expires_at")] = it.epochSecond
+                    }
                 }
 
                 is Credential.GeminiCompanionCredential -> {
@@ -360,10 +363,14 @@ class EncryptedPrefsManager @Inject constructor(
                 val accessToken = prefs.getEncryptedString("${prefix}_access_token") ?: return null
                 val refreshToken = prefs.getEncryptedString("${prefix}_refresh_token") ?: return null
                 val accountId = prefs.getEncryptedString("${prefix}_account_id")
+                val expiresAt = prefs[longPreferencesKey("${prefix}_expires_at")]
+                    ?.takeIf { it > 0 }
+                    ?.let { Instant.ofEpochSecond(it) }
                 Credential.CodexCredential(
                     accessToken = accessToken,
                     refreshToken = refreshToken,
-                    accountId = accountId
+                    accountId = accountId,
+                    expiresAt = expiresAt
                 )
             }
 

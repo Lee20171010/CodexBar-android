@@ -17,7 +17,8 @@ sealed class Credential {
     data class CodexCredential(
         override val accessToken: String,
         override val refreshToken: String,
-        val accountId: String? = null
+        val accountId: String? = null,
+        val expiresAt: Instant? = null
     ) : Credential()
 
     /**

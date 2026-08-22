@@ -7,6 +7,9 @@ import com.codexbar.android.core.network.oauth.DeviceAuthDto
 import com.codexbar.android.core.network.oauth.GitHubDeviceAuthService
 import java.io.IOException
 import java.net.UnknownHostException
+import java.nio.charset.StandardCharsets
+import java.time.Instant
+import java.util.Base64
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
@@ -34,6 +37,9 @@ class AccountLinkManagerTest {
 
     @Test
     fun `codex device-code flow exchanges authorization code for credential`() = runTest {
+        val idToken = jwt(
+            """{"chatgpt_account_id":"account-from-id-token"}"""
+        )
         `when`(codexDeviceAuthService.requestUserCode(DeviceAuthDto.CodexUserCodeRequest(CODEX_CLIENT_ID)))
             .thenReturn(
                 Response.success(
@@ -65,8 +71,10 @@ class AccountLinkManagerTest {
         ).thenReturn(
             Response.success(
                 DeviceAuthDto.CodexTokenExchangeResponse(
+                    idToken = idToken,
                     accessToken = "access-token",
-                    refreshToken = "refresh-token"
+                    refreshToken = "refresh-token",
+                    expiresIn = 3_600
                 )
             )
         )
@@ -78,6 +86,8 @@ class AccountLinkManagerTest {
         credential as Credential.CodexCredential
         assertEquals("access-token", credential.accessToken)
         assertEquals("refresh-token", credential.refreshToken)
+        assertEquals("account-from-id-token", credential.accountId)
+        assertTrue(credential.expiresAt?.isAfter(Instant.now().plusSeconds(3_500)) == true)
     }
 
     @Test
@@ -257,5 +267,12 @@ class AccountLinkManagerTest {
 
     private companion object {
         const val CODEX_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
+
+        fun jwt(payload: String): String {
+            val encoder = Base64.getUrlEncoder().withoutPadding()
+            val header = encoder.encodeToString("{}".toByteArray(StandardCharsets.UTF_8))
+            val claims = encoder.encodeToString(payload.toByteArray(StandardCharsets.UTF_8))
+            return "$header.$claims.signature"
+        }
     }
 }
