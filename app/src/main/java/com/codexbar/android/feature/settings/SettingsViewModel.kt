@@ -17,6 +17,7 @@ import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.providerMetadata
 import com.codexbar.android.core.monitoring.MonitoringSessionStore
 import com.codexbar.android.core.network.gemini.GeminiCompanionPairing
+import com.codexbar.android.core.network.claude.ClaudeCompanionPairing
 import com.codexbar.android.core.network.codex.telemetry.CodexTelemetryClient
 import com.codexbar.android.core.network.codex.telemetry.CodexTelemetryPairing
 import com.codexbar.android.core.notification.QuotaNotificationService
@@ -89,9 +90,7 @@ class SettingsViewModel @Inject constructor(
         for (service in AiService.entries) {
             val credential = prefsManager.loadCredential(service) ?: continue
             val state = when (credential) {
-                is Credential.ClaudeCredential -> ServiceCredentialState(
-                    accessToken = credential.accessToken,
-                    refreshToken = credential.refreshToken ?: "",
+                is Credential.ClaudeCompanionCredential -> ServiceCredentialState(
                     isConnected = true,
                     connectionHealth = connectionHealthStore.current(service)
                 )
@@ -153,13 +152,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun buildCredential(service: AiService, state: ServiceCredentialState): Credential? {
+        if (service == AiService.CLAUDE || service == AiService.GEMINI) return null
         if (state.accessToken.isBlank()) return null
 
         return when {
-            service == AiService.CLAUDE -> Credential.ClaudeCredential(
-                accessToken = state.accessToken.trim(),
-                refreshToken = state.refreshToken.trim().ifBlank { null }
-            )
             service == AiService.CODEX -> {
                 if (state.refreshToken.isBlank()) return null
                 Credential.CodexCredential(
@@ -168,7 +164,6 @@ class SettingsViewModel @Inject constructor(
                     accountId = state.accountId.trim().ifBlank { null }
                 )
             }
-            service == AiService.GEMINI -> null
             service == AiService.COPILOT -> Credential.CopilotCredential(
                 accessToken = state.accessToken
             )
@@ -765,6 +760,135 @@ class SettingsViewModel @Inject constructor(
             )
             is AppError.ServiceUnavailable -> appContext.getString(
                 R.string.validation_service_unavailable
+            )
+        }
+    }
+
+    fun updateClaudePairingCode(value: String) {
+        _uiState.update { state ->
+            val current = state.serviceStates[AiService.CLAUDE] ?: ServiceCredentialState()
+            state.copy(
+                serviceStates = state.serviceStates + (
+                    AiService.CLAUDE to current.copy(
+                        claudePairingCode = value.take(MAX_PAIRING_CODE_LENGTH),
+                        validationResult = null
+                    )
+                )
+            )
+        }
+    }
+
+    fun importClaudePairingCode(value: String) {
+        updateClaudePairingCode(value)
+    }
+
+    fun reportClaudePairingScanFailure() {
+        updateClaudeValidation(
+            isValidating = false,
+            validationResult = ValidationResult.Failure(
+                appContext.getString(R.string.validation_claude_scanner_failed)
+            ),
+            keepExistingConnection = true
+        )
+    }
+
+    fun connectClaudeCompanion() {
+        val state = _uiState.value.serviceStates[AiService.CLAUDE] ?: return
+        val credential = runCatching {
+            ClaudeCompanionPairing.parse(state.claudePairingCode)
+        }.getOrElse { error ->
+            updateClaudeValidation(
+                isValidating = false,
+                validationResult = ValidationResult.Failure(
+                    appContext.getString(
+                        R.string.validation_claude_pairing_invalid,
+                        error.message ?: appContext.getString(R.string.validation_unknown)
+                    )
+                ),
+                keepExistingConnection = true
+            )
+            return
+        }
+
+        updateClaudeValidation(
+            isValidating = true,
+            validationResult = null,
+            keepExistingConnection = true
+        )
+        viewModelScope.launch {
+            val hadPreviousConnection = prefsManager.loadCredential(AiService.CLAUDE) != null
+            val result = repositoryFor(AiService.CLAUDE).validateCredential(credential)
+            when (result) {
+                is Result.Success -> {
+                    prefsManager.saveCredential(AiService.CLAUDE, credential)
+                    connectionHealthStore.update(AiService.CLAUDE, ConnectionHealth.CONNECTED)
+                    updateClaudeValidation(
+                        isValidating = false,
+                        validationResult = ValidationResult.Success,
+                        keepExistingConnection = false,
+                        connected = true,
+                        clearPairingCode = true
+                    )
+                    WorkManagerInitializer.enqueueManualQuotaRefresh(
+                        appContext,
+                        source = "claude_companion_connected"
+                    )
+                }
+                is Result.Failure -> {
+                    updateClaudeValidation(
+                        isValidating = false,
+                        validationResult = ValidationResult.Failure(
+                            appContext.getString(
+                                R.string.validation_claude_companion_failed,
+                                formatAppError(result.error)
+                            )
+                        ),
+                        keepExistingConnection = true,
+                        connected = hadPreviousConnection
+                    )
+                }
+            }
+        }
+    }
+
+    private fun updateClaudeValidation(
+        isValidating: Boolean,
+        validationResult: ValidationResult?,
+        keepExistingConnection: Boolean,
+        connected: Boolean = false,
+        clearPairingCode: Boolean = false
+    ) {
+        _uiState.update { state ->
+            val current = state.serviceStates[AiService.CLAUDE] ?: ServiceCredentialState()
+            state.copy(
+                serviceStates = state.serviceStates + (
+                    AiService.CLAUDE to current.copy(
+                        accessToken = if (clearPairingCode) "" else current.accessToken,
+                        refreshToken = if (clearPairingCode) "" else current.refreshToken,
+                        claudePairingCode = if (clearPairingCode) {
+                            ""
+                        } else {
+                            current.claudePairingCode
+                        },
+                        isValidating = isValidating,
+                        validationResult = validationResult,
+                        isConnected = if (keepExistingConnection) {
+                            current.isConnected || connected
+                        } else {
+                            connected
+                        },
+                        connectionHealth = if (connected) {
+                            ConnectionHealth.CONNECTED
+                        } else {
+                            current.connectionHealth
+                        },
+                        hasUnsavedChanges = if (clearPairingCode) {
+                            false
+                        } else {
+                            current.hasUnsavedChanges
+                        }
+                    )
+                )
             )
         }
     }

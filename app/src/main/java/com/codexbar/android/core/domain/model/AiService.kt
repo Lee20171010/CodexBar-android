@@ -9,7 +9,7 @@ enum class AiService(
     CLAUDE(
         displayName = "Claude",
         brandColor = 0xFFD4A574,
-        baseUrl = "https://api.anthropic.com/",
+        baseUrl = "codexbar://claude-companion/",
         requiresManualCredentials = false
     ),
     CODEX(

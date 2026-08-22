@@ -5,8 +5,6 @@ import com.codexbar.android.BuildConfig
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.network.RetryInterceptor
 import com.codexbar.android.core.network.ResponseSizeLimitInterceptor
-import com.codexbar.android.core.network.claude.ClaudeApiService
-import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
 import com.codexbar.android.core.network.chutes.ChutesApiService
 import com.codexbar.android.core.network.clinepass.ClinePassApiService
 import com.codexbar.android.core.network.codex.CodexApiService
@@ -41,15 +39,7 @@ import javax.inject.Singleton
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
-annotation class ClaudeClient
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
 annotation class CodexClient
-
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class ClaudeTokenClient
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -112,46 +102,6 @@ object NetworkModule {
         redactHeader("Set-Cookie")
         redactHeader("X-Api-Key")
         level = HttpLoggingInterceptor.Level.BASIC
-    }
-
-    // --- Claude ---
-
-    @Provides
-    @Singleton
-    @ClaudeClient
-    fun provideClaudeOkHttpClient(): OkHttpClient = baseOkHttpBuilder(includeDebugLogging = true).build()
-
-    @Provides
-    @Singleton
-    fun provideClaudeApiService(
-        @ClaudeClient client: OkHttpClient,
-        json: Json
-    ): ClaudeApiService {
-        return Retrofit.Builder()
-            .baseUrl(AiService.CLAUDE.baseUrl)
-            .client(client)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(ClaudeApiService::class.java)
-    }
-
-    @Provides
-    @Singleton
-    @ClaudeTokenClient
-    fun provideClaudeTokenOkHttpClient(): OkHttpClient = credentialOkHttpBuilder().build()
-
-    @Provides
-    @Singleton
-    fun provideClaudeTokenRefreshService(
-        @ClaudeTokenClient client: OkHttpClient,
-        json: Json
-    ): ClaudeTokenRefreshService {
-        return Retrofit.Builder()
-            .baseUrl(ClaudeTokenRefreshService.BASE_URL)
-            .client(client)
-            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-            .build()
-            .create(ClaudeTokenRefreshService::class.java)
     }
 
     // --- Codex ---

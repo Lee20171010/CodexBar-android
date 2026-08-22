@@ -172,6 +172,7 @@ dependencies {
     implementation(libs.startup.runtime)
     implementation(libs.datastore.preferences)
     implementation(libs.browser)
+    implementation(libs.play.services.code.scanner)
 
     // Hilt
     implementation(libs.hilt.android)

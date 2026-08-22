@@ -48,10 +48,9 @@ class TokenRefreshStateStore @Inject constructor(
 
     fun fingerprintFor(service: AiService, credential: Credential): String {
         val subject = when (credential) {
-            is Credential.ClaudeCredential -> listOf(
-                credential.refreshToken.orEmpty(),
-                credential.scopes.orEmpty(),
-                credential.rateLimitTier.orEmpty()
+            is Credential.ClaudeCompanionCredential -> listOf(
+                credential.companionId,
+                credential.sharedKeyBase64Url
             )
 
             is Credential.CodexCredential -> listOf(

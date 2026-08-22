@@ -51,6 +51,7 @@ import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -112,6 +113,9 @@ import com.codexbar.android.core.workmanager.RefreshIntervalPolicy
 import com.codexbar.android.ui.components.providerIcon
 import com.codexbar.android.ui.theme.providerVisualStyle
 import com.codexbar.android.ui.theme.LocalCodexBarThemeProfile
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -290,6 +294,13 @@ fun ConnectionsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val themeProfile = LocalCodexBarThemeProfile.current
     val context = LocalContext.current
+    val claudeQrScanner = remember(context) {
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
+        GmsBarcodeScanning.getClient(context, options)
+    }
     var providerSearchQuery by rememberSaveable { mutableStateOf("") }
     var providerFilterName by rememberSaveable {
         mutableStateOf(ProviderConnectionFilter.ALL.name)
@@ -414,14 +425,18 @@ fun ConnectionsScreen(
                                 sensitive = true
                             )
                         },
-                        onCopySetupCommand = { command ->
-                            copyToClipboard(
-                                context = context,
-                                text = command,
-                                labelRes = R.string.clipboard_setup_command,
-                                sensitive = false
-                            )
+                        onClaudePairingCodeChange = viewModel::updateClaudePairingCode,
+                        onScanClaudePairing = {
+                            claudeQrScanner.startScan()
+                                .addOnSuccessListener { barcode ->
+                                    barcode.rawValue?.let(viewModel::importClaudePairingCode)
+                                        ?: viewModel.reportClaudePairingScanFailure()
+                                }
+                                .addOnFailureListener {
+                                    viewModel.reportClaudePairingScanFailure()
+                                }
                         },
+                        onConnectClaudeCompanion = viewModel::connectClaudeCompanion,
                         onGeminiPairingCodeChange = viewModel::updateGeminiPairingCode,
                         onConnectGeminiCompanion = viewModel::connectGeminiCompanion,
                         onCodexTelemetryPairingCodeChange = viewModel::updateCodexTelemetryPairingCode,
@@ -875,7 +890,9 @@ private fun ServiceCredentialSection(
     onStartAccountLink: () -> Unit,
     onOpenAccountLink: (String) -> Unit,
     onCopyAccountCode: (String) -> Unit,
-    onCopySetupCommand: (String) -> Unit,
+    onClaudePairingCodeChange: (String) -> Unit,
+    onScanClaudePairing: () -> Unit,
+    onConnectClaudeCompanion: () -> Unit,
     onGeminiPairingCodeChange: (String) -> Unit,
     onConnectGeminiCompanion: () -> Unit,
     onCodexTelemetryPairingCodeChange: (String) -> Unit,
@@ -887,7 +904,7 @@ private fun ServiceCredentialSection(
 ) {
     val visualStyle = providerVisualStyle(service)
     var showManualSetup by rememberSaveable(service) {
-        mutableStateOf(service.requiresManualCredentials || service == AiService.CLAUDE)
+        mutableStateOf(service.requiresManualCredentials)
     }
     LaunchedEffect(state.hasUnsavedChanges) {
         if (state.hasUnsavedChanges) showManualSetup = true
@@ -991,6 +1008,13 @@ private fun ServiceCredentialSection(
 
             if (expanded) {
                 when {
+                    service == AiService.CLAUDE -> ClaudeCompanionSetup(
+                        state = state,
+                        accent = visualStyle.accent,
+                        onPairingCodeChange = onClaudePairingCodeChange,
+                        onScanPairing = onScanClaudePairing,
+                        onConnect = onConnectClaudeCompanion
+                    )
                     service == AiService.GEMINI -> GeminiCompanionSetup(
                         state = state,
                         accent = visualStyle.accent,
@@ -1005,10 +1029,6 @@ private fun ServiceCredentialSection(
                         onStartAccountLink = onStartAccountLink,
                         onOpenAccountLink = onOpenAccountLink,
                         onCopyAccountCode = onCopyAccountCode
-                    )
-                    service == AiService.CLAUDE -> ClaudeSetupGuide(
-                        accent = visualStyle.accent,
-                        onCopySetupCommand = onCopySetupCommand
                     )
                     service == AiService.CURSOR -> ProviderSecretSetupGuide(
                         title = stringResource(R.string.credential_cursor_setup_title),
@@ -1092,7 +1112,7 @@ private fun ServiceCredentialSection(
                     )
                 }
 
-            if (service != AiService.GEMINI) {
+            if (service != AiService.GEMINI && service != AiService.CLAUDE) {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
@@ -1127,7 +1147,7 @@ private fun ServiceCredentialSection(
 
             HorizontalDivider(color = visualStyle.accent.copy(alpha = 0.2f))
 
-            if (service != AiService.GEMINI) {
+            if (service != AiService.GEMINI && service != AiService.CLAUDE) {
                 TextButton(
                     onClick = { showManualSetup = !showManualSetup },
                     modifier = Modifier.fillMaxWidth()
@@ -1357,11 +1377,13 @@ private fun CodexTelemetryCompanionSetup(
 }
 
 @Composable
-private fun ClaudeSetupGuide(
+private fun ClaudeCompanionSetup(
+    state: ServiceCredentialState,
     accent: Color,
-    onCopySetupCommand: (String) -> Unit
+    onPairingCodeChange: (String) -> Unit,
+    onScanPairing: () -> Unit,
+    onConnect: () -> Unit
 ) {
-    var copied by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -1373,40 +1395,66 @@ private fun ClaudeSetupGuide(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = stringResource(R.string.credential_claude_step_command),
-                style = MaterialTheme.typography.bodySmall
+                text = stringResource(R.string.credential_claude_companion_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = accent
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Text(
+                text = stringResource(R.string.credential_claude_companion_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = stringResource(R.string.credential_claude_companion_steps),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(
+                onClick = onScanPairing,
+                enabled = !state.isValidating,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                SelectionContainer(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = CLAUDE_SETUP_COMMAND,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontFamily = FontFamily.Monospace
-                        ),
-                        color = accent
+                Icon(Icons.Rounded.QrCodeScanner, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.action_scan_claude_pairing))
+            }
+            OutlinedTextField(
+                value = state.claudePairingCode,
+                onValueChange = onPairingCodeChange,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.credential_claude_pairing_code)) },
+                supportingText = {
+                    Text(stringResource(R.string.credential_claude_pairing_hint))
+                },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = secretKeyboardOptions()
+            )
+            Button(
+                onClick = onConnect,
+                enabled = state.claudePairingCode.isNotBlank() && !state.isValidating,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (state.isValidating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-                OutlinedButton(
-                    onClick = {
-                        onCopySetupCommand(CLAUDE_SETUP_COMMAND)
-                        copied = true
-                    }
-                ) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        stringResource(
-                            if (copied) R.string.action_copied else R.string.action_copy_command
-                        )
+                Text(
+                    stringResource(
+                        if (state.isConnected) {
+                            R.string.action_repair_claude_companion
+                        } else {
+                            R.string.action_pair_claude_companion
+                        }
                     )
-                }
+                )
             }
             Text(
-                text = stringResource(R.string.credential_claude_step_paste),
+                text = stringResource(R.string.credential_claude_companion_security),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1474,14 +1522,11 @@ private fun ManualCredentialFields(
             singleLine = true
         )
 
-        if (service == AiService.CLAUDE || service == AiService.CODEX) {
+        if (service == AiService.CODEX) {
             OutlinedTextField(
                 value = state.refreshToken,
                 onValueChange = { onFieldChange("refreshToken", it) },
                 label = { Text(stringResource(R.string.credential_refresh_token)) },
-                supportingText = if (service == AiService.CLAUDE) {
-                    { Text(stringResource(R.string.credential_claude_refresh_support)) }
-                } else null,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = secretKeyboardOptions(),
                 modifier = Modifier.fillMaxWidth(),
@@ -1904,7 +1949,6 @@ private fun copyToClipboard(
     }
 }
 
-private const val CLAUDE_SETUP_COMMAND = "claude setup-token"
 private const val ACCOUNT_GUIDE_BASE_URL =
     "https://github.com/lingmulongtai/CodexBar-android"
 

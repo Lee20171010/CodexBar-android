@@ -8,7 +8,6 @@ import com.codexbar.android.core.auth.codexAccountId
 import com.codexbar.android.core.auth.codexTokenExpiresAt
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.Credential
-import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
 import com.codexbar.android.core.network.codex.CodexDto
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
 import com.codexbar.android.core.network.RetryAfter
@@ -30,7 +29,6 @@ import java.time.Instant
 class TokenRefreshWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
-    private val claudeTokenRefreshService: ClaudeTokenRefreshService,
     private val codexTokenRefreshService: CodexTokenRefreshService,
     private val prefsManager: EncryptedPrefsManager,
     private val connectionHealthStore: ConnectionHealthStore,
@@ -121,38 +119,11 @@ class TokenRefreshWorker @AssistedInject constructor(
 
     private suspend fun refreshIfNeeded(credential: Credential): RefreshOutcome {
         return when (credential) {
-            is Credential.ClaudeCredential -> refreshClaude(credential)
+            is Credential.ClaudeCompanionCredential -> RefreshOutcome.NotNeeded
             is Credential.CodexCredential -> refreshCodex(credential)
             is Credential.GeminiCompanionCredential -> RefreshOutcome.NotNeeded
             is Credential.CopilotCredential -> RefreshOutcome.NotNeeded
             is Credential.ProviderSecretCredential -> RefreshOutcome.NotNeeded
-        }
-    }
-
-    private suspend fun refreshClaude(credential: Credential.ClaudeCredential): RefreshOutcome {
-        val expiresAt = credential.expiresAt ?: return RefreshOutcome.NotNeeded
-        // Refresh if within 10 minutes of expiry
-        if (Instant.now().isBefore(expiresAt.minusSeconds(REFRESH_BUFFER_SECONDS))) return RefreshOutcome.NotNeeded
-
-        val refreshToken = credential.refreshToken ?: return RefreshOutcome.Failure(terminal = true)
-        return try {
-            val response = claudeTokenRefreshService.refreshToken(refreshToken = refreshToken)
-            if (response.isSuccessful) {
-                val body = response.body() ?: return RefreshOutcome.Failure()
-                val newCredential = Credential.ClaudeCredential(
-                    accessToken = body.accessToken,
-                    refreshToken = body.refreshToken ?: refreshToken,
-                    expiresAt = Instant.now().plusSeconds(body.expiresIn.toLong()),
-                    scopes = credential.scopes,
-                    rateLimitTier = credential.rateLimitTier
-                )
-                prefsManager.saveCredential(AiService.CLAUDE, newCredential)
-                RefreshOutcome.Success(newCredential)
-            } else {
-                RefreshOutcome.Failure(terminal = response.code() == 400 || response.code() == 401)
-            }
-        } catch (_: Exception) {
-            RefreshOutcome.Failure()
         }
     }
 
@@ -239,11 +210,7 @@ class TokenRefreshWorker @AssistedInject constructor(
     private fun nextRefreshDueMillis(credential: Credential, nowMillis: Long): Long {
         val minimumDue = nowMillis + MIN_REFRESH_GAP_MILLIS
         return when (credential) {
-            is Credential.ClaudeCredential -> credential.expiresAt
-                ?.minusSeconds(REFRESH_BUFFER_SECONDS)
-                ?.toEpochMilli()
-                ?.coerceAtLeast(minimumDue)
-                ?: (nowMillis + DEFAULT_PROACTIVE_REFRESH_MILLIS)
+            is Credential.ClaudeCompanionCredential -> Long.MAX_VALUE
 
             is Credential.CodexCredential -> {
                 val fallback = nowMillis + DEFAULT_PROACTIVE_REFRESH_MILLIS

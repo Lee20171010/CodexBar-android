@@ -77,7 +77,6 @@ class NetworkModuleTest {
     @Test
     fun `credential clients do not install HTTP logging interceptors`() {
         val tokenClients = listOf(
-            NetworkModule.provideClaudeTokenOkHttpClient(),
             NetworkModule.provideCodexTokenOkHttpClient(),
             NetworkModule.provideCodexDeviceAuthOkHttpClient(),
             NetworkModule.provideGitHubDeviceAuthOkHttpClient(),
@@ -120,8 +119,6 @@ class NetworkModuleTest {
     @Test
     fun `all provider clients enforce a response size limit`() {
         val providerClients = listOf(
-            NetworkModule.provideClaudeOkHttpClient(),
-            NetworkModule.provideClaudeTokenOkHttpClient(),
             NetworkModule.provideCodexOkHttpClient(),
             NetworkModule.provideCodexTokenOkHttpClient(),
             NetworkModule.provideCodexDeviceAuthOkHttpClient(),

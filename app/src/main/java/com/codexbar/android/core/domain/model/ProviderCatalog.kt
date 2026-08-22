@@ -35,7 +35,7 @@ object ProviderCatalog {
     private val metadataByService = mapOf(
         AiService.CLAUDE to ProviderMetadata(
             category = ProviderCategory.CODING,
-            authMode = ProviderAuthMode.ACCESS_TOKEN,
+            authMode = ProviderAuthMode.LOCAL_COMPANION,
             aliases = setOf("anthropic", "claude code"),
             guideAnchor = "claude-anthropic",
             recommended = true
