@@ -146,7 +146,7 @@ Claude does not expose a supported third-party Android device-code flow for this
 2. Enter `/usage` and confirm that **Current session** appears.
 3. Download `CodexBar-Claude-Companion-<version>.zip` from the same Release as the APK and extract it.
 4. On Windows, run `start-windows.cmd`. On macOS or Linux, run `chmod +x start-macos-linux.sh` once and then `./start-macos-linux.sh`.
-5. Keep the phone and computer on the same trusted Wi-Fi. In Claude under **Connections**, tap **Scan QR securely in CodexBar** and scan the displayed QR inside the app. Do not use the system camera. If Google Play services cannot open the scanner, paste the `CBCLAUDE1...` pairing code, then tap **Pair & verify Claude companion**.
+5. Keep the phone and computer on the same trusted Wi-Fi. If the computer firewall prompts, permit Node.js on private networks only. In Claude under **Connections**, tap **Scan QR securely in CodexBar** and scan the displayed QR inside the app. Do not use the system camera. If Google Play services cannot open the scanner, paste the `CBCLAUDE1...` pairing code, then tap **Pair & verify Claude companion**.
 
 The companion keeps one tools-disabled Claude Code terminal alive, requests `/usage` without creating a new session every refresh, waits for loading to finish and the complete view to stabilize, then discards the raw rendering. It encrypts only validated quota labels, percentages, reset times, a known plan label, and freshness for Android. Anthropic access/refresh tokens, setup tokens, prompts, responses, files, email addresses, and session text never leave the computer.
 

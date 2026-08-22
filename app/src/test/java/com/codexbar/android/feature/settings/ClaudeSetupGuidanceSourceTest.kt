@@ -19,6 +19,7 @@ class ClaudeSetupGuidanceSourceTest {
         val readme = File(rootDir, "README.md").readText().replace("\r\n", "\n")
         val manifest = File(appDir, "src/main/AndroidManifest.xml").readText()
         val companionIndex = File(rootDir, "companion/claude/src/index.js").readText()
+        val releaseWorkflow = File(rootDir, ".github/workflows/release.yml").readText()
         val mainSource = File(appDir, "src/main/java")
             .walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
@@ -38,5 +39,7 @@ class ClaudeSetupGuidanceSourceTest {
         assertTrue(companionIndex.contains("CBCLAUDE1"))
         assertTrue(readme.contains("Do **not** paste the result of `claude setup-token`"))
         assertFalse(readme.contains("advanced compatibility path"))
+        assertTrue(releaseWorkflow.contains("package-lock.json scripts src test"))
+        assertTrue(releaseWorkflow.contains("Smoke test packaged Claude companion"))
     }
 }

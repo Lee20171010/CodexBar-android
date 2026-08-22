@@ -36,6 +36,7 @@ jobs:
           node-version: '20'
           cache: npm
           cache-dependency-path: |
+            companion/claude/package-lock.json
             companion/gemini/package-lock.json
             companion/codex/package-lock.json
 
@@ -45,6 +46,15 @@ jobs:
           npm ci
           npm run check
           npm test
+          npm audit --omit=dev
+
+      - name: Verify Claude companion
+        working-directory: companion/claude
+        run: |
+          npm ci
+          npm run check
+          npm test
+          npm run smoke:pty
           npm audit --omit=dev
 
       - name: Verify Codex telemetry companion
@@ -157,6 +167,15 @@ jobs:
           cp app/build/outputs/apk/release/*.apk build/release/
           cp app/build/outputs/bundle/release/*.aab build/release/
           cp app/build/reports/sbom/release-sbom.cdx.json build/release/
+          claude_companion_archive="CodexBar-Claude-Companion-${GITHUB_REF_NAME}.zip"
+          (
+            cd companion/claude
+            zip -r "../../build/release/${claude_companion_archive}" \
+              README.md package.json package-lock.json scripts src test \
+              start-windows.cmd start-macos-linux.sh
+            npm sbom --omit=dev --sbom-format=cyclonedx \
+              > "../../build/release/claude-companion-sbom.cdx.json"
+          )
           companion_archive="CodexBar-Gemini-Companion-${GITHUB_REF_NAME}.zip"
           (
             cd companion/gemini
@@ -190,6 +209,24 @@ jobs:
           }
           EOF
           (cd build/release && sha256sum * > SHA256SUMS)
+
+      - name: Smoke test packaged Claude companion
+        if: github.ref_type == 'tag'
+        run: |
+          set -euo pipefail
+          archive="build/release/CodexBar-Claude-Companion-${GITHUB_REF_NAME}.zip"
+          package_dir="$(mktemp -d)"
+          cleanup() {
+            rm -rf "$package_dir"
+          }
+          trap cleanup EXIT
+          unzip -q "$archive" -d "$package_dir"
+          (
+            cd "$package_dir"
+            npm ci --omit=dev
+            npm run check
+            npm run smoke:pty
+          )
 
       - name: Attest release artifacts
         if: github.ref_type == 'tag'
