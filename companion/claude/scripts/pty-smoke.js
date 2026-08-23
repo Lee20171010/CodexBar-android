@@ -1,5 +1,6 @@
 import process from 'node:process';
 import pty from 'node-pty';
+import { ensureNodePtyHelperExecutable } from '../src/node-pty-runtime.js';
 
 const marker = 'CODEXBAR_PTY_SMOKE';
 const isWindows = process.platform === 'win32';
@@ -7,6 +8,8 @@ const command = isWindows ? (process.env.ComSpec ?? 'cmd.exe') : '/bin/sh';
 const args = isWindows
   ? ['/d', '/s', '/c', `echo ${marker}`]
   : ['-c', `printf ${marker}`];
+
+ensureNodePtyHelperExecutable();
 
 await new Promise((resolve, reject) => {
   let output = '';

@@ -36,6 +36,7 @@ On Android, open CodexBar → **Connections** → **Claude**, tap **Scan QR secu
 
 - If no snapshot is available, run `claude` directly in a terminal, finish sign-in/trust prompts, enter `/usage`, then restart the companion.
 - If Windows installed the npm launcher instead of the native CLI, run `start-windows.cmd --claude-command claude.cmd`.
+- On macOS, the companion verifies and restores the executable bit on the pinned `node-pty` helper before every native PTY launch. If that fixed helper is missing, reinstall the companion dependencies instead of weakening system security settings.
 - The companion prefers the default-route Wi-Fi/Ethernet address and prints the selected interface plus alternatives. If the phone cannot connect, restart with `--address 192.168.x.x` using the listed Wi-Fi address, allow Node.js only on private networks in the computer firewall, and confirm the Wi-Fi does not use client isolation.
 - Keep date and time automatic on both devices; requests outside the two-minute clock-skew window are rejected.
 

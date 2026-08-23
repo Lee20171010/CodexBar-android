@@ -1,5 +1,6 @@
 import os from 'node:os';
 import pty from 'node-pty';
+import { ensureNodePtyHelperExecutable } from './node-pty-runtime.js';
 import { isClaudeUsageLoading, parseClaudeUsageOutput } from './quota-parser.js';
 
 const MAX_CAPTURE_LENGTH = 256 * 1024;
@@ -78,6 +79,7 @@ export class ClaudeUsageSession {
 
   ensureTerminal() {
     if (this.terminal != null) return false;
+    ensureNodePtyHelperExecutable();
     const terminal = this.spawn(this.command, ['--allowed-tools', ''], {
       name: 'xterm-color',
       cols: 120,
