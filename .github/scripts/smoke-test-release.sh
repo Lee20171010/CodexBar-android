@@ -32,3 +32,23 @@ if adb logcat -b crash -d | grep -Fq "Process: $package_name"; then
   adb logcat -b crash -d
   exit 1
 fi
+
+adb logcat -b crash -c
+adb shell am start -W \
+  -a android.intent.action.VIEW \
+  -d 'codexbar://connections' \
+  "$package_name"
+sleep 5
+
+app_pid="$(adb shell pidof "$package_name" || true)"
+app_pid="$(printf '%s' "$app_pid" | tr -d '\r')"
+if [ -z "$app_pid" ]; then
+  printf '::error::Release app process exited after opening Connections.\n'
+  adb logcat -b crash -d
+  exit 1
+fi
+if adb logcat -b crash -d | grep -Fq "Process: $package_name"; then
+  printf '::error::Release app crashed after opening Connections.\n'
+  adb logcat -b crash -d
+  exit 1
+fi
