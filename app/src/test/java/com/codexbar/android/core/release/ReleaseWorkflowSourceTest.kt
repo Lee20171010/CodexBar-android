@@ -57,6 +57,11 @@ class ReleaseWorkflowSourceTest {
         assertTrue(smokeScript.contains("adb shell am start -W"))
         assertTrue(smokeScript.contains("adb shell pidof"))
         assertTrue(smokeScript.contains("adb logcat -b crash -d"))
+        assertTrue(smokeScript.contains("-d 'codexbar://connections'"))
+        assertTrue(
+            smokeScript.contains("Release app process exited after opening Connections.")
+        )
+        assertTrue(smokeScript.contains("Release app crashed after opening Connections."))
         assertTrue(
             workflow.indexOf("- name: Smoke test signed release APK") <
                 workflow.indexOf("- name: Publish GitHub Release")

@@ -20,6 +20,7 @@ class ClaudeSetupGuidanceSourceTest {
         val manifest = File(appDir, "src/main/AndroidManifest.xml").readText()
         val companionIndex = File(rootDir, "companion/claude/src/index.js").readText()
         val releaseWorkflow = File(rootDir, ".github/workflows/release.yml").readText()
+        val proguardRules = File(appDir, "proguard-rules.pro").readText()
         val mainSource = File(appDir, "src/main/java")
             .walkTopDown()
             .filter { it.isFile && it.extension == "kt" }
@@ -34,6 +35,19 @@ class ClaudeSetupGuidanceSourceTest {
         assertFalse(mainSource.contains("api/oauth/usage"))
         assertTrue(mainSource.contains("containsLegacyClaudeTokens"))
         assertTrue(screen.contains("GmsBarcodeScanning.getClient"))
+        assertTrue(screen.contains("private fun startClaudePairingScan("))
+        val connectionsSetup = screen.substring(
+            screen.indexOf("fun ConnectionsScreen("),
+            screen.indexOf("private fun startClaudePairingScan(")
+        )
+        assertFalse(connectionsSetup.contains("GmsBarcodeScanning.getClient"))
+        assertTrue(screen.contains("runCatching {\n        val options = GmsBarcodeScannerOptions.Builder()"))
+        assertTrue(proguardRules.contains("-keep class com.google.mlkit.** { *; }"))
+        assertTrue(
+            proguardRules.contains(
+                "-keep class com.google.android.gms.internal.mlkit_code_scanner.** { *; }"
+            )
+        )
         assertFalse(manifest.contains("claude-pair"))
         assertFalse(companionIndex.contains("codexbar://"))
         assertTrue(companionIndex.contains("CBCLAUDE1"))
