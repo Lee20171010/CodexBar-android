@@ -57,6 +57,13 @@
 -keep class * extends androidx.glance.appwidget.GlanceAppWidgetReceiver { *; }
 -keep class * implements androidx.glance.appwidget.action.ActionCallback { *; }
 
+# ===== Google Code Scanner =====
+# play-services-code-scanner 16.1.0 does not include the consumer rules needed
+# by AGP 9's R8 full mode. Without these, opening Connections crashes while
+# GmsBarcodeScanning constructs its internal ML Kit graph.
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.internal.mlkit_code_scanner.** { *; }
+
 # ===== General Android =====
 -keep class * extends android.service.quicksettings.TileService { *; }
 -keep class * extends android.content.BroadcastReceiver { *; }

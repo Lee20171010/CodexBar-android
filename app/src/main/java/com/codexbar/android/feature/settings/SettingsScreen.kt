@@ -294,13 +294,6 @@ fun ConnectionsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val themeProfile = LocalCodexBarThemeProfile.current
     val context = LocalContext.current
-    val claudeQrScanner = remember(context) {
-        val options = GmsBarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-            .enableAutoZoom()
-            .build()
-        GmsBarcodeScanning.getClient(context, options)
-    }
     var providerSearchQuery by rememberSaveable { mutableStateOf("") }
     var providerFilterName by rememberSaveable {
         mutableStateOf(ProviderConnectionFilter.ALL.name)
@@ -429,14 +422,11 @@ fun ConnectionsScreen(
                         },
                         onClaudePairingCodeChange = viewModel::updateClaudePairingCode,
                         onScanClaudePairing = {
-                            claudeQrScanner.startScan()
-                                .addOnSuccessListener { barcode ->
-                                    barcode.rawValue?.let(viewModel::importClaudePairingCode)
-                                        ?: viewModel.reportClaudePairingScanFailure()
-                                }
-                                .addOnFailureListener {
-                                    viewModel.reportClaudePairingScanFailure()
-                                }
+                            startClaudePairingScan(
+                                context = context,
+                                onPairingCode = viewModel::importClaudePairingCode,
+                                onFailure = viewModel::reportClaudePairingScanFailure
+                            )
                         },
                         onConnectClaudeCompanion = viewModel::connectClaudeCompanion,
                         onGeminiPairingCodeChange = viewModel::updateGeminiPairingCode,
@@ -477,6 +467,29 @@ fun ConnectionsScreen(
             onConfirm = { viewModel.disconnectService(service) },
             onDismiss = { viewModel.dismissDisconnectConfirmDialog() }
         )
+    }
+}
+
+private fun startClaudePairingScan(
+    context: Context,
+    onPairingCode: (String) -> Unit,
+    onFailure: () -> Unit
+) {
+    runCatching {
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .enableAutoZoom()
+            .build()
+        GmsBarcodeScanning.getClient(context, options)
+            .startScan()
+            .addOnSuccessListener { barcode ->
+                barcode.rawValue?.let(onPairingCode) ?: onFailure()
+            }
+            .addOnFailureListener {
+                onFailure()
+            }
+    }.onFailure {
+        onFailure()
     }
 }
 
