@@ -3,6 +3,7 @@ package com.codexbar.android.feature.settings
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.ProviderCategory
 import com.codexbar.android.core.domain.model.providerMetadata
+import com.codexbar.android.core.security.ConnectionHealth
 import java.util.Locale
 
 internal enum class ProviderConnectionFilter {
@@ -30,7 +31,7 @@ internal fun filterProviders(
     return AiService.entries
         .asSequence()
         .filter { service ->
-            val isConnected = serviceStates[service]?.isConnected == true
+            val isConnected = serviceStates[service]?.isVerifiedConnected == true
             when (filter) {
                 ProviderConnectionFilter.ALL -> true
                 ProviderConnectionFilter.CONNECTED -> isConnected
@@ -50,9 +51,13 @@ internal fun filterProviders(
             }.any { it.lowercase(Locale.ROOT).contains(normalizedQuery) }
         }
         .sortedWith(
-            compareByDescending<AiService> { serviceStates[it]?.isConnected == true }
+            compareByDescending<AiService> { serviceStates[it]?.isVerifiedConnected == true }
+                .thenByDescending { serviceStates[it]?.isConnected == true }
                 .thenByDescending { it.providerMetadata.recommended }
                 .thenBy { it.ordinal }
         )
         .toList()
 }
+
+internal val ServiceCredentialState.isVerifiedConnected: Boolean
+    get() = isConnected && connectionHealth == ConnectionHealth.CONNECTED

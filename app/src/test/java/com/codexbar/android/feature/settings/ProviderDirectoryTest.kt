@@ -3,13 +3,18 @@ package com.codexbar.android.feature.settings
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.ProviderCategory
 import com.codexbar.android.core.domain.model.providerMetadata
+import com.codexbar.android.core.security.ConnectionHealth
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProviderDirectoryTest {
     private val states = AiService.entries.associateWith { ServiceCredentialState() } +
-        (AiService.CURSOR to ServiceCredentialState(isConnected = true))
+        (AiService.CURSOR to ServiceCredentialState(
+            isConnected = true,
+            connectionHealth = ConnectionHealth.CONNECTED
+        )) +
+        (AiService.CLAUDE to ServiceCredentialState(isConnected = true))
 
     @Test
     fun `connected providers are pinned before recommended providers`() {
@@ -61,6 +66,7 @@ class ProviderDirectoryTest {
         )
 
         assertEquals(listOf(AiService.CURSOR), connected)
+        assertTrue(AiService.CLAUDE in disconnected)
         assertTrue(AiService.CURSOR !in disconnected)
         assertEquals(AiService.entries.size, connected.size + disconnected.size)
     }
@@ -79,5 +85,11 @@ class ProviderDirectoryTest {
             routers
         )
         assertTrue(states.getValue(AiService.CURSOR).isConnected)
+    }
+
+    @Test
+    fun `saved credentials are not called connected until health is verified`() {
+        assertTrue(states.getValue(AiService.CLAUDE).isConnected)
+        assertTrue(!states.getValue(AiService.CLAUDE).isVerifiedConnected)
     }
 }

@@ -3,6 +3,7 @@ package com.codexbar.android.feature.settings
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppThemeStyle
 import com.codexbar.android.core.security.PrivacySettings
+import com.codexbar.android.core.security.ConnectionHealth
 
 data class SettingsUiState(
     val serviceStates: Map<AiService, ServiceCredentialState> = AiService.entries.associateWith {
@@ -24,6 +25,7 @@ data class ServiceCredentialState(
     val refreshToken: String = "",
     val accountId: String = "", // Codex only
     val accountReference: String = "", // Provider-specific non-secret account selector
+    val claudePairingCode: String = "",
     val geminiPairingCode: String = "",
     val codexTelemetryPairingCode: String = "",
     val isCodexTelemetryConnected: Boolean = false,
@@ -34,6 +36,7 @@ data class ServiceCredentialState(
     val accountLinkPrompt: AccountLinkPrompt? = null,
     val validationResult: ValidationResult? = null,
     val isConnected: Boolean = false,
+    val connectionHealth: ConnectionHealth = ConnectionHealth.UNKNOWN,
     val hasUnsavedChanges: Boolean = false
 )
 

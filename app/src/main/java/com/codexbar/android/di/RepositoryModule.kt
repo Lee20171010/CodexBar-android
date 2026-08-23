@@ -20,8 +20,7 @@ import com.codexbar.android.core.data.ZaiRepositoryImpl
 import com.codexbar.android.core.data.ZenMuxRepositoryImpl
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.repository.QuotaRepository
-import com.codexbar.android.core.network.claude.ClaudeApiService
-import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
+import com.codexbar.android.core.network.claude.ClaudeCompanionClient
 import com.codexbar.android.core.network.chutes.ChutesApiService
 import com.codexbar.android.core.network.clinepass.ClinePassApiService
 import com.codexbar.android.core.network.codex.CodexApiService
@@ -63,10 +62,9 @@ object RepositoryModule {
     @IntoMap
     @AiServiceKey(AiService.CLAUDE)
     fun provideClaudeRepository(
-        apiService: ClaudeApiService,
-        tokenRefreshService: ClaudeTokenRefreshService,
+        companionClient: ClaudeCompanionClient,
         prefsManager: EncryptedPrefsManager
-    ): QuotaRepository = ClaudeRepositoryImpl(apiService, tokenRefreshService, prefsManager)
+    ): QuotaRepository = ClaudeRepositoryImpl(companionClient, prefsManager)
 
     @Provides
     @Singleton

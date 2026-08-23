@@ -23,6 +23,7 @@ import com.codexbar.android.core.presentation.QuotaPresentationSnapshot
 import com.codexbar.android.core.presentation.QuotaPresentationMapper
 import com.codexbar.android.core.presentation.RefreshSourcePresentation
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.security.ConnectionHealthStore
 import com.codexbar.android.core.tile.QuotaTileService
 import com.codexbar.android.core.widget.QuotaGlanceWidget
 import com.codexbar.android.core.widget.QuotaWidgetReceiver
@@ -42,6 +43,7 @@ class QuotaRefreshWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val repositoryRegistry: QuotaRepositoryRegistry,
     private val prefsManager: EncryptedPrefsManager,
+    private val connectionHealthStore: ConnectionHealthStore,
     private val notificationService: QuotaNotificationService,
     private val widgetPrefsManager: WidgetPrefsManager,
     private val quotaHistoryStore: QuotaHistoryStore,
@@ -88,6 +90,7 @@ class QuotaRefreshWorker @AssistedInject constructor(
             val successfulQuotas = mutableListOf<QuotaInfo>()
             val errors = mutableMapOf<AiService, AppError>()
             for ((service, result) in refreshResults) {
+                connectionHealthStore.record(service, result)
                 when (result) {
                     is com.codexbar.android.core.domain.model.Result.Success -> {
                         successfulQuotas.add(result.value)

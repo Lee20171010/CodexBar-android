@@ -4,253 +4,109 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
-import com.codexbar.android.core.network.claude.ClaudeApiService
-import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
+import com.codexbar.android.core.network.claude.ClaudeCompanionAuthenticationException
+import com.codexbar.android.core.network.claude.ClaudeCompanionClient
+import com.codexbar.android.core.network.claude.ClaudeCompanionSnapshot
+import com.codexbar.android.core.network.claude.ClaudeCompanionWindow
 import com.codexbar.android.core.security.EncryptedPrefsManager
-import kotlinx.serialization.json.Json
-import okhttp3.OkHttpClient
-import okhttp3.mockwebserver.MockResponse
-import okhttp3.mockwebserver.MockWebServer
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertTrue
-import org.junit.Before
-import org.junit.Test
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.io.IOException
+import java.time.Instant
 import kotlinx.coroutines.test.runTest
-import okhttp3.MediaType.Companion.toMediaType
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
-import retrofit2.Retrofit
 
 class ClaudeRepositoryImplTest {
-
-    private lateinit var mockWebServer: MockWebServer
-    private lateinit var apiService: ClaudeApiService
-    private lateinit var tokenRefreshService: ClaudeTokenRefreshService
-    private lateinit var prefsManager: EncryptedPrefsManager
-    private lateinit var repository: ClaudeRepositoryImpl
-    private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
-
-    private val testCredential = Credential.ClaudeCredential(
-        accessToken = "test-access-token",
-        refreshToken = "test-refresh-token"
+    private val prefsManager = mock(EncryptedPrefsManager::class.java)
+    private val credential = Credential.ClaudeCompanionCredential(
+        host = "127.0.0.1",
+        port = 43823,
+        companionId = "5b017391-6dc4-4ab7-b0ad-2255dada62d7",
+        sharedKeyBase64Url = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     )
 
-    @Before
-    fun setup() {
-        mockWebServer = MockWebServer()
-        mockWebServer.start()
-
-        val client = OkHttpClient.Builder().build()
-        val contentType = "application/json".toMediaType()
-
-        apiService = Retrofit.Builder()
-            .baseUrl(mockWebServer.url("/"))
-            .client(client)
-            .addConverterFactory(json.asConverterFactory(contentType))
-            .build()
-            .create(ClaudeApiService::class.java)
-
-        tokenRefreshService = Retrofit.Builder()
-            .baseUrl(mockWebServer.url("/"))
-            .client(client)
-            .addConverterFactory(json.asConverterFactory(contentType))
-            .build()
-            .create(ClaudeTokenRefreshService::class.java)
-
-        prefsManager = mock(EncryptedPrefsManager::class.java)
-        runTest {
-            `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(testCredential)
-        }
-
-        repository = ClaudeRepositoryImpl(apiService, tokenRefreshService, prefsManager)
-    }
-
-    @After
-    fun tearDown() {
-        mockWebServer.shutdown()
-    }
-
     @Test
-    fun `fetchQuota returns success with all windows`() = runTest {
-        val responseJson = """
-        {
-            "five_hour": { "utilization": 42, "resets_at": "2025-06-01T12:00:00Z" },
-            "seven_day": { "utilization": 15, "resets_at": "2025-06-07T00:00:00Z" },
-            "seven_day_oauth_apps": { "utilization": 10 },
-            "seven_day_opus": { "utilization": 30 },
-            "seven_day_sonnet": { "utilization": 20 },
-            "iguana_necktie": { "utilization": 5 },
-            "extra_usage": {
-                "is_enabled": true,
-                "monthly_limit": 50.0,
-                "used_credits": 12.5,
-                "utilization": 0.25,
-                "currency": "USD"
-            }
-        }
-        """.trimIndent()
+    fun `fetchQuota maps sanitized official CLI companion snapshot`() = runTest {
+        `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(credential)
+        val generatedAt = Instant.ofEpochSecond(1_750_000_000L)
+        val client = clientReturning(
+            ClaudeCompanionSnapshot(
+                schemaVersion = 1,
+                source = "claude-cli-terminal",
+                generatedAtEpochSeconds = generatedAt.epochSecond,
+                cliVersion = "official-cli",
+                tier = "Max 5x",
+                windows = listOf(
+                    ClaudeCompanionWindow(
+                        label = "5-Hour",
+                        usedFraction = 0.37,
+                        resetsAtEpochSeconds = generatedAt.plusSeconds(5_400).epochSecond
+                    )
+                )
+            )
+        )
 
-        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(responseJson))
-
-        val result = repository.fetchQuota()
+        val result = ClaudeRepositoryImpl(client, prefsManager).fetchQuota()
 
         assertTrue(result is Result.Success)
-        val quotaInfo = (result as Result.Success).value
-
-        assertEquals(AiService.CLAUDE, quotaInfo.service)
-        assertEquals(6, quotaInfo.windows.size)
-        assertEquals("5-Hour", quotaInfo.windows[0].label)
-        assertEquals(0.42, quotaInfo.windows[0].utilization, 0.001)
-        assertEquals(18000L, quotaInfo.windows[0].windowDurationSeconds)
-        assertEquals(604800L, quotaInfo.windows[1].windowDurationSeconds)
-        assertEquals("Extended", quotaInfo.windows[5].label)
-        assertEquals(null, quotaInfo.windows[5].windowDurationSeconds)
-        assertNotNull(quotaInfo.extraUsage)
-        assertEquals(50.0, quotaInfo.extraUsage!!.monthlyLimit, 0.001)
-        assertEquals(12.5, quotaInfo.extraUsage!!.usedCredits, 0.001)
+        val quota = (result as Result.Success).value
+        assertEquals("Max 5x", quota.tier)
+        assertEquals(0.37, quota.windows.single().utilization, 0.001)
+        assertEquals(18_000L, quota.windows.single().windowDurationSeconds)
+        assertEquals(generatedAt, quota.fetchedAt)
     }
 
     @Test
-    fun `fetchQuota handles response without iguana_necktie`() = runTest {
-        val responseJson = """
-        {
-            "five_hour": { "utilization": 42 },
-            "seven_day": { "utilization": 15 }
-        }
-        """.trimIndent()
-
-        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(responseJson))
-
-        val result = repository.fetchQuota()
-
-        assertTrue(result is Result.Success)
-        val quotaInfo = (result as Result.Success).value
-        assertEquals(2, quotaInfo.windows.size)
-        assertTrue(quotaInfo.windows.none { it.label == "Extended" })
-    }
-
-    @Test
-    fun `fetchQuota returns AuthError on 401`() = runTest {
-        mockWebServer.enqueue(MockResponse().setResponseCode(401))
-        // Token refresh also fails
-        mockWebServer.enqueue(MockResponse().setResponseCode(401))
-
-        val result = repository.fetchQuota()
-
-        assertTrue(result is Result.Failure)
-        val error = (result as Result.Failure).error
-        assertTrue(error is AppError.AuthError)
-        assertTrue((error as AppError.AuthError).isTerminal)
-    }
-
-    @Test
-    fun `fetchQuota returns RateLimited on 429`() = runTest {
-        mockWebServer.enqueue(MockResponse().setResponseCode(429))
-
-        val result = repository.fetchQuota()
-
-        assertTrue(result is Result.Failure)
-        assertTrue((result as Result.Failure).error is AppError.RateLimited)
-    }
-
-    @Test
-    fun `fetchQuota returns CredentialNotFound when no credential saved`() = runTest {
+    fun `fetchQuota requires a companion pairing`() = runTest {
         `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(null)
 
-        val result = repository.fetchQuota()
+        val result = ClaudeRepositoryImpl(clientReturning(null), prefsManager).fetchQuota()
 
         assertTrue(result is Result.Failure)
         assertTrue((result as Result.Failure).error is AppError.CredentialNotFound)
     }
 
     @Test
-    fun `fetchQuota extracts tier from response headers`() = runTest {
-        val responseJson = """
-        {
-            "five_hour": { "utilization": 42 }
-        }
-        """.trimIndent()
+    fun `validateCredential rejects non companion credentials`() = runTest {
+        val repository = ClaudeRepositoryImpl(clientReturning(null), prefsManager)
 
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(responseJson)
-                .addHeader("anthropic-ratelimit-tier", "pro")
-        )
+        val result = repository.validateCredential(Credential.CopilotCredential("not-claude"))
 
-        val result = repository.fetchQuota()
-
-        assertTrue(result is Result.Success)
-        val quotaInfo = (result as Result.Success).value
-        assertEquals("Pro", quotaInfo.tier)
+        assertTrue(result is Result.Failure)
+        val error = (result as Result.Failure).error
+        assertTrue(error is AppError.AuthError && error.isTerminal)
     }
 
     @Test
-    fun `fetchQuota extracts tier from x-ratelimit-tier fallback header`() = runTest {
-        val responseJson = """
-        {
-            "five_hour": { "utilization": 10 }
+    fun `companion authentication errors require a new pairing`() = runTest {
+        `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(credential)
+        val client = object : ClaudeCompanionClient(Json) {
+            override suspend fun fetchSnapshot(
+                credential: Credential.ClaudeCompanionCredential,
+                now: Instant
+            ): ClaudeCompanionSnapshot {
+                throw ClaudeCompanionAuthenticationException("invalid pairing")
+            }
         }
-        """.trimIndent()
 
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(responseJson)
-                .addHeader("x-ratelimit-tier", "free")
-        )
+        val result = ClaudeRepositoryImpl(client, prefsManager).fetchQuota()
 
-        val result = repository.fetchQuota()
-
-        assertTrue(result is Result.Success)
-        assertEquals("Free", (result as Result.Success).value.tier)
+        assertTrue(result is Result.Failure)
+        val error = (result as Result.Failure).error
+        assertTrue(error is AppError.AuthError && error.isTerminal)
     }
 
-    @Test
-    fun `fetchQuota extracts tier from JWT access token`() = runTest {
-        // Build a fake JWT: header.payload.signature
-        val payload = java.util.Base64.getUrlEncoder().withoutPadding()
-            .encodeToString("""{"rate_limit_tier":"max","sub":"user"}""".toByteArray())
-        val fakeJwt = "eyJhbGciOiJSUzI1NiJ9.$payload.fake-signature"
-
-        val jwtCredential = Credential.ClaudeCredential(
-            accessToken = fakeJwt,
-            refreshToken = "test-refresh-token"
-        )
-        `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(jwtCredential)
-
-        val responseJson = """
-        {
-            "five_hour": { "utilization": 20 }
+    private fun clientReturning(snapshot: ClaudeCompanionSnapshot?): ClaudeCompanionClient {
+        return object : ClaudeCompanionClient(Json) {
+            override suspend fun fetchSnapshot(
+                credential: Credential.ClaudeCompanionCredential,
+                now: Instant
+            ): ClaudeCompanionSnapshot {
+                return snapshot ?: throw IOException("companion unavailable")
+            }
         }
-        """.trimIndent()
-
-        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(responseJson))
-
-        val result = repository.fetchQuota()
-
-        assertTrue(result is Result.Success)
-        assertEquals("Max", (result as Result.Success).value.tier)
-    }
-
-    @Test
-    fun `fetchQuota extra_usage null when disabled`() = runTest {
-        val responseJson = """
-        {
-            "five_hour": { "utilization": 42 },
-            "extra_usage": { "is_enabled": false, "monthly_limit": 0, "used_credits": 0, "utilization": 0, "currency": "USD" }
-        }
-        """.trimIndent()
-
-        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(responseJson))
-
-        val result = repository.fetchQuota()
-
-        assertTrue(result is Result.Success)
-        val quotaInfo = (result as Result.Success).value
-        assertTrue(quotaInfo.extraUsage == null)
     }
 }

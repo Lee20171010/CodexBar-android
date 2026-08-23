@@ -74,9 +74,15 @@ class EncryptedPrefsManager @Inject constructor(
 
     suspend fun warmCache() {
         val initialPrefs = readPreferencesOrNull()
-        val prefs = if (initialPrefs?.containsLegacyGeminiTokens() == true) {
+        val servicesToRemove = buildList {
+            if (initialPrefs?.containsLegacyGeminiTokens() == true) add(AiService.GEMINI)
+            if (initialPrefs?.containsLegacyClaudeTokens() == true) add(AiService.CLAUDE)
+        }
+        val prefs = if (servicesToRemove.isNotEmpty()) {
             dataStore.edit { mutablePrefs ->
-                mutablePrefs.removeServiceEntries(AiService.GEMINI)
+                servicesToRemove.forEach { service ->
+                    mutablePrefs.removeServiceEntries(service)
+                }
             }
         } else {
             initialPrefs
@@ -92,12 +98,18 @@ class EncryptedPrefsManager @Inject constructor(
         require(
             credential !is Credential.ProviderSecretCredential || credential.service == service
         ) { "Provider credential does not match ${service.name}" }
+        require(
+            service != AiService.CLAUDE || credential is Credential.ClaudeCompanionCredential
+        ) { "Claude accepts only a local companion pairing" }
 
         val updated = dataStore.edit { prefs ->
             prefs.removeServiceEntries(service)
             val prefix = service.name
 
-            if (credential !is Credential.GeminiCompanionCredential) {
+            if (
+                credential !is Credential.GeminiCompanionCredential &&
+                credential !is Credential.ClaudeCompanionCredential
+            ) {
                 prefs.putEncryptedString("${prefix}_access_token", credential.accessToken)
                 credential.refreshToken?.let {
                     prefs.putEncryptedString("${prefix}_refresh_token", it)
@@ -105,21 +117,22 @@ class EncryptedPrefsManager @Inject constructor(
             }
 
             when (credential) {
-                is Credential.ClaudeCredential -> {
-                    credential.expiresAt?.let {
-                        prefs[longPreferencesKey("${prefix}_expires_at")] = it.epochSecond
-                    }
-                    credential.scopes?.let {
-                        prefs.putEncryptedString("${prefix}_scopes", it)
-                    }
-                    credential.rateLimitTier?.let {
-                        prefs.putEncryptedString("${prefix}_rate_limit_tier", it)
-                    }
+                is Credential.ClaudeCompanionCredential -> {
+                    prefs.putEncryptedString("${prefix}_companion_host", credential.host)
+                    prefs[longPreferencesKey("${prefix}_companion_port")] = credential.port.toLong()
+                    prefs.putEncryptedString("${prefix}_companion_id", credential.companionId)
+                    prefs.putEncryptedString(
+                        "${prefix}_companion_shared_key",
+                        credential.sharedKeyBase64Url
+                    )
                 }
 
                 is Credential.CodexCredential -> {
                     credential.accountId?.let {
                         prefs.putEncryptedString("${prefix}_account_id", it)
+                    }
+                    credential.expiresAt?.let {
+                        prefs[longPreferencesKey("${prefix}_expires_at")] = it.epochSecond
                     }
                 }
 
@@ -340,30 +353,38 @@ class EncryptedPrefsManager @Inject constructor(
 
         return when {
             service == AiService.CLAUDE -> {
-                val accessToken = prefs.getEncryptedString("${prefix}_access_token") ?: return null
-                val refreshToken = prefs.getEncryptedString("${prefix}_refresh_token")
-                val expiresAt = prefs[longPreferencesKey("${prefix}_expires_at")]
-                    ?.takeIf { it > 0 }
-                    ?.let { Instant.ofEpochSecond(it) }
-                val scopes = prefs.getEncryptedString("${prefix}_scopes")
-                val rateLimitTier = prefs.getEncryptedString("${prefix}_rate_limit_tier")
-                Credential.ClaudeCredential(
-                    accessToken = accessToken,
-                    refreshToken = refreshToken,
-                    expiresAt = expiresAt,
-                    scopes = scopes,
-                    rateLimitTier = rateLimitTier
-                )
+                val companionHost = prefs.getEncryptedString("${prefix}_companion_host")
+                if (companionHost != null) {
+                    val port = prefs[longPreferencesKey("${prefix}_companion_port")]
+                        ?.takeIf { it in 1..65535 }
+                        ?.toInt()
+                        ?: return null
+                    val companionId = prefs.getEncryptedString("${prefix}_companion_id")
+                        ?: return null
+                    val sharedKey = prefs.getEncryptedString("${prefix}_companion_shared_key")
+                        ?: return null
+                    return Credential.ClaudeCompanionCredential(
+                        host = companionHost,
+                        port = port,
+                        companionId = companionId,
+                        sharedKeyBase64Url = sharedKey
+                    )
+                }
+                null
             }
 
             service == AiService.CODEX -> {
                 val accessToken = prefs.getEncryptedString("${prefix}_access_token") ?: return null
                 val refreshToken = prefs.getEncryptedString("${prefix}_refresh_token") ?: return null
                 val accountId = prefs.getEncryptedString("${prefix}_account_id")
+                val expiresAt = prefs[longPreferencesKey("${prefix}_expires_at")]
+                    ?.takeIf { it > 0 }
+                    ?.let { Instant.ofEpochSecond(it) }
                 Credential.CodexCredential(
                     accessToken = accessToken,
                     refreshToken = refreshToken,
-                    accountId = accountId
+                    accountId = accountId,
+                    expiresAt = expiresAt
                 )
             }
 
@@ -409,6 +430,13 @@ class EncryptedPrefsManager @Inject constructor(
 
     private fun Preferences.containsLegacyGeminiTokens(): Boolean {
         val prefix = "${AiService.GEMINI.name}_"
+        val hasCompanionKey = this[stringPreferencesKey("${prefix}companion_shared_key")] != null
+        if (hasCompanionKey) return false
+        return asMap().keys.any { key -> key.name.startsWith(prefix) }
+    }
+
+    private fun Preferences.containsLegacyClaudeTokens(): Boolean {
+        val prefix = "${AiService.CLAUDE.name}_"
         val hasCompanionKey = this[stringPreferencesKey("${prefix}companion_shared_key")] != null
         if (hasCompanionKey) return false
         return asMap().keys.any { key -> key.name.startsWith(prefix) }

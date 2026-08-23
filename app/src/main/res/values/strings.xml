@@ -111,6 +111,7 @@
     <string name="status_offline">Offline</string>
     <string name="status_provider_error">Provider error</string>
     <string name="status_not_connected">Not connected</string>
+    <string name="status_verification_pending">Saved · verification pending</string>
     <string name="status_quota_hidden">Quota hidden</string>
     <string name="status_hidden">Hidden</string>
     <string name="extra_usage_summary">%1$s: %2$s / %3$s (%4$s)</string>
@@ -129,6 +130,9 @@
     <string name="action_open_sign_in_page">Open sign-in page</string>
     <string name="action_pair_gemini_companion">Pair &amp; verify companion</string>
     <string name="action_repair_gemini_companion">Replace companion pairing</string>
+    <string name="action_pair_claude_companion">Pair &amp; verify Claude companion</string>
+    <string name="action_repair_claude_companion">Replace Claude companion pairing</string>
+    <string name="action_scan_claude_pairing">Scan QR securely in CodexBar</string>
     <string name="action_view_setup_guide">View setup guide</string>
     <string name="action_revalidate">Revalidate</string>
     <string name="action_save_changes">Save changes</string>
@@ -144,10 +148,15 @@
     <string name="credential_provider_api_key">API key</string>
     <string name="credential_provider_session_cookie">Session cookie header</string>
     <string name="credential_account_id_optional">Account ID (optional)</string>
-    <string name="credential_claude_instructions">Use `claude setup-token` and paste the generated OAuth token. In-app sign-in is unavailable because Claude Code does not expose a supported Android device-code flow.</string>
-    <string name="credential_claude_step_command">1. Run this command on a computer with Claude Code:</string>
-    <string name="credential_claude_step_paste">2. Paste the generated token under Manual token setup, then validate it.</string>
-    <string name="credential_claude_refresh_support">Required for auto-refresh (tokens expire every 8 hours)</string>
+    <string name="credential_claude_instructions">Use the private Claude Code companion. The official `claude setup-token` is inference-only and cannot read the usage endpoint required by this app.</string>
+    <string name="credential_claude_step_command">Sign in once with the official Claude Code CLI, then start the Claude companion.</string>
+    <string name="credential_claude_step_paste">Scan the companion QR code or paste its pairing code. Anthropic credentials stay inside Claude Code.</string>
+    <string name="credential_claude_companion_title">Private Claude Code companion</string>
+    <string name="credential_claude_companion_body">CodexBar asks the official Claude Code CLI to render `/usage` on your computer, then receives only sanitized percentages, reset times, plan, and freshness over your local network.</string>
+    <string name="credential_claude_companion_steps">1. Install Claude Code and complete `claude` sign-in once. 2. Download and start the Claude companion from this project’s Release on the same Wi-Fi. 3. Tap the secure scanner below—do not use the system camera—or paste the pairing code, then keep the companion running.</string>
+    <string name="credential_claude_pairing_code">Claude companion pairing code</string>
+    <string name="credential_claude_pairing_hint">Starts with CBCLAUDE1. Treat it like a local-device password.</string>
+    <string name="credential_claude_companion_security">No Anthropic access token, refresh token, setup-token, prompt, response, file, email address, or CLI session text is transferred to Android. Only the encrypted quota snapshot leaves your computer.</string>
     <string name="credential_github_oauth_token">GitHub OAuth Token</string>
     <string name="credential_gemini_companion_title">Private Gemini CLI companion</string>
     <string name="credential_gemini_companion_body">Keep Google sign-in inside the official Gemini CLI on your computer. CodexBar receives only model labels, used percentages, reset times, tier, and freshness over your local network.</string>
@@ -260,6 +269,9 @@
     <string name="validation_account_link_dns_failed">Couldn’t resolve the %1$s authentication server. Check Private DNS, VPN, ad blockers, and your network, then retry.</string>
     <string name="validation_gemini_pairing_invalid">Invalid Gemini companion pairing: %1$s</string>
     <string name="validation_gemini_companion_failed">Couldn’t verify the Gemini companion. Keep it running on the same trusted Wi-Fi, allow private-network access in the computer firewall, and check that both device clocks are automatic. Detail: %1$s</string>
+    <string name="validation_claude_pairing_invalid">Invalid Claude companion pairing: %1$s</string>
+    <string name="validation_claude_companion_failed">Couldn’t verify the Claude companion. Confirm Claude Code `/usage` works on the computer, keep the companion running on the same trusted Wi-Fi, allow private-network access in the firewall, and check that both clocks are automatic. Detail: %1$s</string>
+    <string name="validation_claude_scanner_failed">Couldn’t open the secure in-app QR scanner. Check Google Play services, or paste the CBCLAUDE1 pairing code below.</string>
     <string name="validation_codex_telemetry_pairing_invalid">Invalid Codex telemetry pairing: %1$s</string>
     <string name="validation_codex_telemetry_failed">Couldn’t verify Codex telemetry. Keep the companion running on the same trusted Wi-Fi, allow private-network access in the computer firewall, and check that both device clocks are automatic. Detail: %1$s</string>
     <string name="validation_unknown">Unknown</string>

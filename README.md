@@ -2,7 +2,7 @@
 
 > Android port of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete) — the macOS menu bar app for monitoring AI service quotas.
 
-Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT), GitHub Copilot, Gemini, Cursor, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI usage in one place. Optional private companions keep Gemini authentication inside the official Gemini CLI and add local Codex context/token telemetry without exporting session content.
+Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT), GitHub Copilot, Gemini, Cursor, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI usage in one place. Optional private companions keep Claude and Gemini authentication inside their official CLIs and add local Codex context/token telemetry without exporting session content.
 
 <p align="center">
   <img src="docs/images/dashboard-light.png" width="320" alt="Material 3 Expressive dashboard in light mode" />
@@ -26,7 +26,7 @@ Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT
 - Built-in stable-release update prompt with a direct link to this fork's signed APK
 - Independently configurable persistent notification and time-bounded API 36 promoted Live Update, both synchronized with every dashboard refresh
 - Live progress, remaining quota, reset, pace, Refresh, and Stop on eligible Android 16 / One UI surfaces, with a compatible ongoing notification elsewhere
-- Secure device-code account connection for Codex and GitHub Copilot, with a validated Claude setup-token fallback
+- Secure device-code account connection for Codex and GitHub Copilot, plus an encrypted local Claude Code companion that never exports Anthropic credentials
 - Push alert when quota resets (fully replenished)
 - DataStore + Android Keystore-backed credential storage
 - English and Japanese per-app language selection
@@ -86,7 +86,7 @@ Signed APKs are available on this fork's [Releases](https://github.com/lingmulon
 
 If Android reports a signature conflict, first confirm that both APKs came from this repository's Releases. Uninstalling the existing app is a last resort because it deletes locally encrypted credentials, settings, and cached usage data.
 
-No hosted CodexBar backend is used. Provider tokens stay on-device. The optional Gemini and Codex companions are local-network processes on your own computer: the Gemini companion does not read, copy, store, or serve Google tokens, while the Codex companion serves only bounded aggregate token/model metadata and never prompts, responses, file paths, working directories, session IDs, or account tokens.
+No hosted CodexBar backend is used. Provider tokens stay on-device. The optional Claude, Gemini, and Codex companions are local-network processes on your own computer: the Claude and Gemini companions drive only the official CLI views and never read or serve provider tokens, while the Codex companion serves only bounded aggregate token/model metadata and never prompts, responses, file paths, working directories, session IDs, or account tokens.
 
 ## Security & Backup
 
@@ -140,13 +140,17 @@ Troubleshooting:
 
 ### Claude (Anthropic)
 
-Claude does not expose a supported Android device-code flow for third-party apps. Use Claude Code's long-lived setup token instead:
+Claude does not expose a supported third-party Android device-code flow for this plan-usage use case. The recommended connection therefore keeps sign-in inside the official Claude Code CLI:
 
-```bash
-claude setup-token
-```
+1. Install Claude Code using [Anthropic's current setup instructions](https://code.claude.com/docs/en/setup), run `claude`, and complete browser sign-in and first-run trust prompts.
+2. Enter `/usage` and confirm that **Current session** appears.
+3. Download `CodexBar-Claude-Companion-v0.8.0.zip` from the same Release as the APK and extract it.
+4. On Windows, run `start-windows.cmd`. On macOS or Linux, run `chmod +x start-macos-linux.sh` once and then `./start-macos-linux.sh`.
+5. Keep the phone and computer on the same trusted Wi-Fi. If the computer firewall prompts, permit Node.js on private networks only. In Claude under **Connections**, tap **Scan QR securely in CodexBar** and scan the displayed QR inside the app. Do not use the system camera. If Google Play services cannot open the scanner, paste the `CBCLAUDE1...` pairing code, then tap **Pair & verify Claude companion**.
 
-Paste the generated OAuth token into the Claude **Access Token** field in Connections. Avoid copying raw Keychain exports into logs, notes, or issue reports.
+The companion keeps one tools-disabled Claude Code terminal alive, requests `/usage` without creating a new session every refresh, waits for loading to finish and the complete view to stabilize, then discards the raw rendering. It encrypts only validated quota labels, percentages, reset times, a known plan label, and freshness for Android. Anthropic access/refresh tokens, setup tokens, prompts, responses, files, email addresses, and session text never leave the computer.
+
+Do **not** paste the result of `claude setup-token`. [Anthropic documents `setup-token` for long-lived inference automation](https://code.claude.com/docs/en/authentication); it carries inference scope and cannot provide the plan-usage view required here. Direct Claude token entry and refresh are disabled. An upgrade securely removes legacy Claude access/refresh records and asks you to pair the companion instead.
 
 ### Codex (OpenAI / ChatGPT)
 
@@ -166,7 +170,7 @@ Do not extract bearer tokens from browser DevTools unless you are debugging loca
 
 #### Optional private Codex telemetry companion
 
-OpenAI's subscription quota response does not contain local Codex CLI context-window or token-count history. To add those insights without uploading session content, install `CodexBar-Codex-Telemetry-Companion-v0.7.0.zip` from the same GitHub Release as the app:
+OpenAI's subscription quota response does not contain local Codex CLI context-window or token-count history. To add those insights without uploading session content, install `CodexBar-Codex-Telemetry-Companion-v0.8.0.zip` from the same GitHub Release as the app:
 
 1. Install Node.js 20 or newer on the computer where Codex CLI or Codex desktop stores `~/.codex/sessions`.
 2. Extract the companion archive. On Windows, run `start-windows.cmd`; on macOS or Linux, run `./start-macos-linux.sh`.
@@ -177,7 +181,7 @@ The scanner is bounded to recent session files and reads only `token_count` plus
 
 ### Gemini (Google)
 
-Direct Gemini OAuth inside the Android app remains disabled. CodexBar does not copy Gemini CLI credentials, embed a Google client secret, or call the internal `cloudcode-pa` service. Instead, the v0.7.0 companion drives the official Gemini CLI's documented `/stats` view and sends only a sanitized quota snapshot over your trusted local network.
+Direct Gemini OAuth inside the Android app remains disabled. CodexBar does not copy Gemini CLI credentials, embed a Google client secret, or call the internal `cloudcode-pa` service. Instead, the v0.8.0 companion drives the official Gemini CLI's documented `/stats` view and sends only a sanitized quota snapshot over your trusted local network.
 
 #### Install and pair the private companion
 
@@ -189,7 +193,7 @@ gemini
 ```
 
 2. Complete Google's sign-in in that official CLI, then exit it.
-3. Download `CodexBar-Gemini-Companion-v0.7.0.zip` from this repository's Release and extract it. Do not run a companion archive from another source.
+3. Download `CodexBar-Gemini-Companion-v0.8.0.zip` from this repository's Release and extract it. Do not run a companion archive from another source.
 4. On Windows, double-click `start-windows.cmd`. On macOS or Linux, run `./start-macos-linux.sh`. The first launch installs only the versions pinned in `package-lock.json`.
 5. Keep the phone and computer on the same trusted Wi-Fi. If the computer firewall prompts, permit private networks only.
 6. Scan the displayed QR code with the phone and choose CodexBar, or paste the complete `codexbar://gemini-pair?...` value into the Gemini card.

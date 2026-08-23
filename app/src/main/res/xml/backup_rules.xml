@@ -2,6 +2,7 @@
 <full-backup-content>
     <exclude domain="sharedpref" path="codexbar_secure_prefs.xml" />
     <exclude domain="sharedpref" path="codexbar_token_refresh_state.xml" />
+    <exclude domain="sharedpref" path="codexbar_connection_health.xml" />
     <exclude domain="sharedpref" path="codexbar_monitoring_session.xml" />
     <exclude domain="sharedpref" path="codexbar_widget_prefs.xml" />
     <exclude domain="sharedpref" path="codexbar_quota_history.xml" />

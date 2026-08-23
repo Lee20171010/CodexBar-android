@@ -4,12 +4,16 @@ import android.content.Context
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.codexbar.android.core.auth.codexAccountId
+import com.codexbar.android.core.auth.codexTokenExpiresAt
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.Credential
-import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
 import com.codexbar.android.core.network.codex.CodexDto
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
+import com.codexbar.android.core.network.RetryAfter
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.security.ConnectionHealth
+import com.codexbar.android.core.security.ConnectionHealthStore
 import com.codexbar.android.core.security.TokenRefreshAttemptDecision
 import com.codexbar.android.core.security.TokenRefreshCoordinator
 import com.codexbar.android.core.security.TokenRefreshRetryPolicy
@@ -25,9 +29,9 @@ import java.time.Instant
 class TokenRefreshWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
-    private val claudeTokenRefreshService: ClaudeTokenRefreshService,
     private val codexTokenRefreshService: CodexTokenRefreshService,
     private val prefsManager: EncryptedPrefsManager,
+    private val connectionHealthStore: ConnectionHealthStore,
     private val tokenRefreshCoordinator: TokenRefreshCoordinator,
     private val tokenRefreshStateStore: TokenRefreshStateStore
 ) : CoroutineWorker(context, workerParams) {
@@ -60,13 +64,30 @@ class TokenRefreshWorker @AssistedInject constructor(
                 when (outcome) {
                     is RefreshOutcome.Success,
                     is RefreshOutcome.NotNeeded -> {
+                        val currentCredential = when (outcome) {
+                            is RefreshOutcome.Success -> outcome.credential
+                            is RefreshOutcome.NotNeeded -> {
+                                prefsManager.loadCredential(service) ?: credential
+                            }
+                            is RefreshOutcome.Failure -> error("unreachable")
+                        }
+                        val currentFingerprint = tokenRefreshStateStore.fingerprintFor(
+                            service,
+                            currentCredential
+                        )
                         tokenRefreshStateStore.save(
                             service,
                             retryPolicy.success(
-                                credentialFingerprint = credentialFingerprint,
-                                nextAttemptAtMillis = nextRefreshDueMillis(credential, nowMillis)
+                                credentialFingerprint = currentFingerprint,
+                                nextAttemptAtMillis = nextRefreshDueMillis(
+                                    currentCredential,
+                                    nowMillis
+                                )
                             )
                         )
+                        if (outcome is RefreshOutcome.Success) {
+                            connectionHealthStore.update(service, ConnectionHealth.CONNECTED)
+                        }
                         RefreshRunResult.Succeeded
                     }
 
@@ -81,6 +102,14 @@ class TokenRefreshWorker @AssistedInject constructor(
                                 retryAtMillis = outcome.retryAtMillis
                             )
                         )
+                        connectionHealthStore.update(
+                            service,
+                            if (outcome.terminal) {
+                                ConnectionHealth.NEEDS_REAUTHENTICATION
+                            } else {
+                                ConnectionHealth.OFFLINE
+                            }
+                        )
                         RefreshRunResult(shouldRetryWork = !outcome.terminal)
                     }
                 }
@@ -90,7 +119,7 @@ class TokenRefreshWorker @AssistedInject constructor(
 
     private suspend fun refreshIfNeeded(credential: Credential): RefreshOutcome {
         return when (credential) {
-            is Credential.ClaudeCredential -> refreshClaude(credential)
+            is Credential.ClaudeCompanionCredential -> RefreshOutcome.NotNeeded
             is Credential.CodexCredential -> refreshCodex(credential)
             is Credential.GeminiCompanionCredential -> RefreshOutcome.NotNeeded
             is Credential.CopilotCredential -> RefreshOutcome.NotNeeded
@@ -98,36 +127,15 @@ class TokenRefreshWorker @AssistedInject constructor(
         }
     }
 
-    private suspend fun refreshClaude(credential: Credential.ClaudeCredential): RefreshOutcome {
-        val expiresAt = credential.expiresAt ?: return RefreshOutcome.NotNeeded
-        // Refresh if within 10 minutes of expiry
-        if (Instant.now().isBefore(expiresAt.minusSeconds(REFRESH_BUFFER_SECONDS))) return RefreshOutcome.NotNeeded
-
-        val refreshToken = credential.refreshToken ?: return RefreshOutcome.Failure(terminal = true)
-        return try {
-            val response = claudeTokenRefreshService.refreshToken(refreshToken = refreshToken)
-            if (response.isSuccessful) {
-                val body = response.body() ?: return RefreshOutcome.Failure()
-                prefsManager.saveCredential(
-                    AiService.CLAUDE,
-                    Credential.ClaudeCredential(
-                        accessToken = body.accessToken,
-                        refreshToken = body.refreshToken ?: refreshToken,
-                        expiresAt = Instant.now().plusSeconds(body.expiresIn.toLong()),
-                        scopes = credential.scopes,
-                        rateLimitTier = credential.rateLimitTier
-                    )
-                )
-                RefreshOutcome.Success
-            } else {
-                RefreshOutcome.Failure(terminal = response.code() == 400 || response.code() == 401)
-            }
-        } catch (_: Exception) {
-            RefreshOutcome.Failure()
-        }
-    }
-
     private suspend fun refreshCodex(credential: Credential.CodexCredential): RefreshOutcome {
+        val credentialExpiry = credential.expiresAt ?: codexTokenExpiresAt(credential.accessToken)
+        if (credentialExpiry == null || Instant.now().isBefore(
+                credentialExpiry.minusSeconds(REFRESH_BUFFER_SECONDS)
+            )
+        ) {
+            return RefreshOutcome.NotNeeded
+        }
+
         return tokenRefreshCoordinator.withRefreshLock(AiService.CODEX) {
             val activeCredential = prefsManager.loadCredential(AiService.CODEX)
                 as? Credential.CodexCredential
@@ -137,33 +145,55 @@ class TokenRefreshWorker @AssistedInject constructor(
                 return@withRefreshLock RefreshOutcome.NotNeeded
             }
 
+            val activeExpiry = activeCredential.expiresAt
+                ?: codexTokenExpiresAt(activeCredential.accessToken)
+            if (activeExpiry == null || Instant.now().isBefore(
+                    activeExpiry.minusSeconds(REFRESH_BUFFER_SECONDS)
+                )
+            ) {
+                return@withRefreshLock RefreshOutcome.NotNeeded
+            }
+
             try {
-                val request = CodexDto.TokenRefreshRequest(refreshToken = activeCredential.refreshToken)
+                val request = CodexDto.TokenRefreshRequest(
+                    clientId = CodexDto.CODEX_CLIENT_ID,
+                    grantType = "refresh_token",
+                    refreshToken = activeCredential.refreshToken
+                )
                 val response = codexTokenRefreshService.refreshToken(request)
                 if (response.isSuccessful) {
                     val body = response.body() ?: return@withRefreshLock RefreshOutcome.Failure()
+                    if (body.accessToken.isBlank()) {
+                        return@withRefreshLock RefreshOutcome.Failure()
+                    }
                     val newCredential = Credential.CodexCredential(
                         accessToken = body.accessToken,
                         refreshToken = body.refreshToken ?: activeCredential.refreshToken,
                         accountId = activeCredential.accountId
+                            ?: codexAccountId(idToken = null, accessToken = body.accessToken),
+                        expiresAt = body.expiresIn
+                            ?.takeIf { it > 0 }
+                            ?.let { Instant.now().plusSeconds(it.toLong()) }
+                            ?: codexTokenExpiresAt(body.accessToken)
                     )
                     val currentCredential = prefsManager.loadCredential(AiService.CODEX)
                         as? Credential.CodexCredential
                     if (currentCredential?.matchesRefreshSubject(activeCredential) == true) {
                         prefsManager.saveCredential(AiService.CODEX, newCredential)
+                        RefreshOutcome.Success(newCredential)
+                    } else {
+                        RefreshOutcome.NotNeeded
                     }
-                    RefreshOutcome.Success
                 } else {
                     val errorBody = response.errorBody()?.string() ?: ""
-                    val isTerminal = CodexDto.TERMINAL_ERROR_CODES.any { errorBody.contains(it) }
-                    if (isTerminal) {
-                        val currentCredential = prefsManager.loadCredential(AiService.CODEX)
-                            as? Credential.CodexCredential
-                        if (currentCredential?.matchesRefreshSubject(activeCredential) == true) {
-                            prefsManager.deleteCredential(AiService.CODEX)
+                    RefreshOutcome.Failure(
+                        terminal = CodexDto.isTerminalRefreshFailure(response.code(), errorBody),
+                        retryAtMillis = if (response.code() == 429) {
+                            RetryAfter.parseRetryAt(response.headers()["Retry-After"])?.toEpochMilli()
+                        } else {
+                            null
                         }
-                    }
-                    RefreshOutcome.Failure(terminal = isTerminal)
+                    )
                 }
             } catch (_: Exception) {
                 RefreshOutcome.Failure()
@@ -174,19 +204,22 @@ class TokenRefreshWorker @AssistedInject constructor(
     private fun Credential.CodexCredential.matchesRefreshSubject(
         other: Credential.CodexCredential
     ): Boolean {
-        return refreshToken == other.refreshToken && accountId == other.accountId
+        return refreshToken == other.refreshToken
     }
 
     private fun nextRefreshDueMillis(credential: Credential, nowMillis: Long): Long {
         val minimumDue = nowMillis + MIN_REFRESH_GAP_MILLIS
         return when (credential) {
-            is Credential.ClaudeCredential -> credential.expiresAt
-                ?.minusSeconds(REFRESH_BUFFER_SECONDS)
-                ?.toEpochMilli()
-                ?.coerceAtLeast(minimumDue)
-                ?: (nowMillis + DEFAULT_PROACTIVE_REFRESH_MILLIS)
+            is Credential.ClaudeCompanionCredential -> Long.MAX_VALUE
 
-            is Credential.CodexCredential -> nowMillis + DEFAULT_PROACTIVE_REFRESH_MILLIS
+            is Credential.CodexCredential -> {
+                val fallback = nowMillis + DEFAULT_PROACTIVE_REFRESH_MILLIS
+                (credential.expiresAt ?: codexTokenExpiresAt(credential.accessToken))
+                    ?.minusSeconds(REFRESH_BUFFER_SECONDS)
+                    ?.toEpochMilli()
+                    ?.coerceAtLeast(minimumDue)
+                    ?: fallback
+            }
 
             is Credential.GeminiCompanionCredential -> Long.MAX_VALUE
 
@@ -206,7 +239,7 @@ class TokenRefreshWorker @AssistedInject constructor(
     }
 
     private sealed class RefreshOutcome {
-        data object Success : RefreshOutcome()
+        data class Success(val credential: Credential) : RefreshOutcome()
         data object NotNeeded : RefreshOutcome()
         data class Failure(
             val terminal: Boolean = false,

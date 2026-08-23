@@ -8,6 +8,7 @@ import com.codexbar.android.core.network.oauth.DeviceAuthDto
 import com.codexbar.android.core.network.oauth.GitHubDeviceAuthService
 import java.io.IOException
 import java.net.UnknownHostException
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.delay
@@ -97,7 +98,11 @@ class AccountLinkManager @Inject constructor(
                 return Credential.CodexCredential(
                     accessToken = tokens.accessToken,
                     refreshToken = tokens.refreshToken,
-                    accountId = null
+                    accountId = codexAccountId(tokens.idToken, tokens.accessToken),
+                    expiresAt = tokens.expiresIn
+                        ?.takeIf { it > 0 }
+                        ?.let { Instant.now().plusSeconds(it.toLong()) }
+                        ?: codexTokenExpiresAt(tokens.accessToken)
                 )
             }
 
