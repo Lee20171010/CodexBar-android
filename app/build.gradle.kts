@@ -16,8 +16,8 @@ android {
         applicationId = "com.codexbar.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 23
-        versionName = "0.8.0"
+        versionCode = 24
+        versionName = "0.8.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
