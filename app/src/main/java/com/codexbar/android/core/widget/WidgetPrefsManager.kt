@@ -33,15 +33,6 @@ class WidgetPrefsManager @Inject constructor(
 
     // --- Per-widget service selection ---
 
-    fun saveSelectedServices(appWidgetId: Int, services: Set<AiService>) {
-        val current = getWidgetConfig(appWidgetId)
-        saveWidgetConfig(appWidgetId, current.copy(services = services.sortedBy { it.ordinal }))
-    }
-
-    fun getSelectedServices(appWidgetId: Int): Set<AiService> {
-        return getWidgetConfig(appWidgetId).services.toSet()
-    }
-
     fun saveWidgetConfig(appWidgetId: Int, config: WidgetDisplayConfig) {
         val prefix = "widget_${appWidgetId}"
         prefs.edit()
@@ -96,39 +87,6 @@ class WidgetPrefsManager @Inject constructor(
     }
 
     // --- Cached quota data for widgets ---
-
-    fun cacheQuotaData(service: AiService, label: String, utilization: Double, resetsAtEpochSecond: Long?) {
-        val prefix = "cache_${service.name}"
-        prefs.edit()
-            .putString("${prefix}_labels", getCachedLabels(service).plus(label).joinToString(","))
-            .putFloat("${prefix}_${label}_util", utilization.toFloat())
-            .apply {
-                if (resetsAtEpochSecond != null) {
-                    putLong("${prefix}_${label}_resets", resetsAtEpochSecond)
-                } else {
-                    remove("${prefix}_${label}_resets")
-                }
-            }
-            .apply()
-    }
-
-    fun cacheAllQuotaData(service: AiService, windows: List<Triple<String, Double, Long?>>) {
-        val prefix = "cache_${service.name}"
-        val editor = prefs.edit()
-        // Clear old cache for this service
-        prefs.all.keys.filter { it.startsWith(prefix) }.forEach { editor.remove(it) }
-
-        val labels = windows.map { it.first }
-        editor.putString("${prefix}_labels", labels.joinToString(","))
-        for ((label, utilization, resetsAt) in windows) {
-            editor.putFloat("${prefix}_${label}_util", utilization.toFloat())
-            if (resetsAt != null) {
-                editor.putLong("${prefix}_${label}_resets", resetsAt)
-            }
-        }
-        editor.putLong("${prefix}_updated_at", System.currentTimeMillis())
-        editor.apply()
-    }
 
     fun cachePresentation(service: ServiceQuotaPresentation) {
         val prefix = "cache_${service.service.name}"
@@ -225,29 +183,8 @@ class WidgetPrefsManager @Inject constructor(
             .apply()
     }
 
-    fun getCachedResetsAt(service: AiService, label: String): Long? {
-        val value = prefs.getLong("cache_${service.name}_${label}_resets", -1L)
-        return if (value > 0) value else null
-    }
-
     fun getCachedUpdatedAt(service: AiService): Long {
         return prefs.getLong("cache_${service.name}_updated_at", 0L)
-    }
-
-    /** Returns the highest utilization across all cached windows for this service. */
-    fun getMaxCachedUtilization(service: AiService): Float {
-        val labels = getCachedLabels(service)
-        if (labels.isEmpty()) return 0f
-        return labels.maxOf { getCachedUtilization(service, it) }
-    }
-
-    fun cacheTier(service: AiService, tier: String?) {
-        val key = "cache_${service.name}_tier"
-        if (tier != null) {
-            prefs.edit().putString(key, tier).apply()
-        } else {
-            prefs.edit().remove(key).apply()
-        }
     }
 
     fun getCachedTier(service: AiService): String? {
