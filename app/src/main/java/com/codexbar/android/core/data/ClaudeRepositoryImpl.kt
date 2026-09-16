@@ -11,6 +11,7 @@ import com.codexbar.android.core.network.claude.ClaudeCompanionAuthenticationExc
 import com.codexbar.android.core.network.claude.ClaudeCompanionClient
 import com.codexbar.android.core.network.claude.ClaudeCompanionProtocolException
 import com.codexbar.android.core.network.claude.ClaudeCompanionSnapshot
+import com.codexbar.android.core.network.companion.LocalCompanionLocator
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import java.io.IOException
 import java.time.Instant
@@ -19,14 +20,21 @@ import kotlinx.coroutines.CancellationException
 
 class ClaudeRepositoryImpl @Inject constructor(
     private val companionClient: ClaudeCompanionClient,
-    private val prefsManager: EncryptedPrefsManager
+    private val prefsManager: EncryptedPrefsManager,
+    private val companionLocator: LocalCompanionLocator,
+    private val nowMillis: () -> Long = System::currentTimeMillis
 ) : QuotaRepository {
+
+    @Volatile
+    private var nextRelocationAtMillis = 0L
 
     override suspend fun fetchQuota(): Result<QuotaInfo, AppError> {
         val credential = prefsManager.loadCredential(AiService.CLAUDE)
             as? Credential.ClaudeCompanionCredential
             ?: return Result.Failure(AppError.CredentialNotFound(AiService.CLAUDE))
-        return fetchCompanionQuota(credential)
+        val direct = fetchCompanionQuota(credential)
+        if (direct is Result.Success || !direct.isCompanionUnreachable()) return direct
+        return relocateCompanion(credential) ?: direct
     }
 
     override suspend fun validateCredential(): Result<Unit, AppError> {
@@ -38,7 +46,46 @@ class ClaudeRepositoryImpl @Inject constructor(
             ?: return Result.Failure(
                 AppError.AuthError(AiService.CLAUDE, isTerminal = true)
             )
+        // An address the user just paired is current by definition, so it is never relocated.
         return fetchCompanionQuota(companion).toUnitResult()
+    }
+
+    /**
+     * Finds the companion again after its computer received a new DHCP address.
+     *
+     * The stored pairing key still has to authenticate the snapshot, so a candidate that merely
+     * listens on the same port cannot take over the connection. Only a host that answers with a
+     * valid encrypted envelope is persisted.
+     */
+    private suspend fun relocateCompanion(
+        credential: Credential.ClaudeCompanionCredential
+    ): Result<QuotaInfo, AppError>? {
+        val startedAt = nowMillis()
+        if (startedAt < nextRelocationAtMillis) return null
+        nextRelocationAtMillis = startedAt + RELOCATION_COOLDOWN_MILLIS
+
+        val hosts = runCatching {
+            companionLocator.reachableHosts(
+                port = credential.port,
+                previousHost = credential.host
+            )
+        }.getOrDefault(emptyList())
+
+        for (host in hosts) {
+            if (host == credential.host) continue
+            val candidate = credential.copy(host = host)
+            val result = fetchCompanionQuota(candidate)
+            if (result is Result.Success) {
+                prefsManager.saveCredential(AiService.CLAUDE, candidate)
+                nextRelocationAtMillis = 0L
+                return result
+            }
+        }
+        return null
+    }
+
+    private fun Result<QuotaInfo, AppError>.isCompanionUnreachable(): Boolean {
+        return this is Result.Failure && error is AppError.NetworkError
     }
 
     private suspend fun fetchCompanionQuota(
@@ -108,5 +155,8 @@ class ClaudeRepositoryImpl @Inject constructor(
     private companion object {
         const val FIVE_HOURS_SECONDS = 5L * 60L * 60L
         const val SEVEN_DAYS_SECONDS = 7L * 24L * 60L * 60L
+
+        /** Keeps a companion that is simply switched off from causing a scan on every refresh. */
+        const val RELOCATION_COOLDOWN_MILLIS = 10L * 60L * 1000L
     }
 }
