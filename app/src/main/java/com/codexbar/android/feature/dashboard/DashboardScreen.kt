@@ -186,7 +186,10 @@ private fun DashboardContent(
                             val summary = remember(state.snapshot) {
                                 state.snapshot.toDashboardSummary()
                             }
-                            val visibleServices = if (showOnlyAttention) {
+                            // The filter row disappears once everything recovers, so a stale
+                            // selection must not leave the list empty with no way back.
+                            val filterAttention = showOnlyAttention && summary.attentionCount > 0
+                            val visibleServices = if (filterAttention) {
                                 state.snapshot.services.filter { it.needsAttention() }
                             } else {
                                 state.snapshot.services
@@ -199,7 +202,7 @@ private fun DashboardContent(
                                         summary = summary,
                                         errorBanner = errorBanner,
                                         attentionCount = summary.attentionCount,
-                                        showOnlyAttention = showOnlyAttention,
+                                        showOnlyAttention = filterAttention,
                                         onAttentionFilterChange = { showOnlyAttention = it },
                                         selectedServiceName = paneService.service.name,
                                         onServiceClick = {
@@ -228,7 +231,7 @@ private fun DashboardContent(
                                     summary = summary,
                                     errorBanner = errorBanner,
                                     attentionCount = summary.attentionCount,
-                                    showOnlyAttention = showOnlyAttention,
+                                    showOnlyAttention = filterAttention,
                                     onAttentionFilterChange = { showOnlyAttention = it },
                                     selectedServiceName = null,
                                     onServiceClick = {
