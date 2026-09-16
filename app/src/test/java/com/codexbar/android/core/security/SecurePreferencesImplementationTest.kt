@@ -1,6 +1,7 @@
 package com.codexbar.android.core.security
 
 import java.io.File
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,6 +25,27 @@ class SecurePreferencesImplementationTest {
         assertTrue(source.contains("AES/GCM/NoPadding"))
         assertFalse(source.contains("EncryptedSharedPreferences"))
         assertFalse(source.contains("MasterKeys"))
+    }
+
+    @Test
+    fun `credential key is resolved once instead of per value`() {
+        val source = File(
+            appDir,
+            "src/main/java/com/codexbar/android/core/security/EncryptedPrefsManager.kt"
+        ).readText().replace("\r\n", "\n")
+        val cipher = source.substring(source.indexOf("private class AndroidKeyStoreValueCipher"))
+
+        assertTrue(cipher.contains("private var cachedSecretKey: SecretKey?"))
+        assertTrue(cipher.contains("cachedSecretKey?.let { return it }"))
+        assertTrue(cipher.contains("private fun invalidateCachedSecretKey()"))
+        // A stale handle must not silently turn every stored credential into a missing one.
+        assertTrue(cipher.contains("invalidateCachedSecretKey()"))
+        // Only the cache miss path may reach the keystore.
+        assertEquals(1, cipher.split("KeyStore.getInstance(ANDROID_KEYSTORE)").size - 1)
+        assertTrue(
+            cipher.substringAfter("private fun loadOrCreateSecretKey()")
+                .contains("KeyStore.getInstance(ANDROID_KEYSTORE)")
+        )
     }
 
     @Test

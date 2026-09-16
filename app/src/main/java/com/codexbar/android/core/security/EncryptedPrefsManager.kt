@@ -496,6 +496,15 @@ class EncryptedPrefsManager @Inject constructor(
 }
 
 private class AndroidKeyStoreValueCipher {
+    /**
+     * Loading the Android Keystore is a binder round trip. A cold credential read decrypts dozens
+     * of values, so resolving the key once keeps widget and worker composition well inside their
+     * broadcast deadlines.
+     */
+    @Volatile
+    private var cachedSecretKey: SecretKey? = null
+    private val keyLock = Any()
+
     fun encryptToString(plainText: String): String {
         val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateSecretKey())
@@ -508,12 +517,22 @@ private class AndroidKeyStoreValueCipher {
     }
 
     fun decryptToString(encryptedValue: String): String? {
-        return try {
-            val parts = encryptedValue.split(":", limit = 3)
-            if (parts.size != 3 || parts[0] != ENVELOPE_VERSION) return null
+        val parts = encryptedValue.split(":", limit = 3)
+        if (parts.size != 3 || parts[0] != ENVELOPE_VERSION) return null
+        val iv = runCatching { Base64.decode(parts[1], Base64.NO_WRAP) }.getOrNull() ?: return null
+        val ciphertext = runCatching { Base64.decode(parts[2], Base64.NO_WRAP) }.getOrNull()
+            ?: return null
 
-            val iv = Base64.decode(parts[1], Base64.NO_WRAP)
-            val ciphertext = Base64.decode(parts[2], Base64.NO_WRAP)
+        return decryptWithCachedKey(iv, ciphertext) ?: run {
+            // A cached handle can outlive the keystore entry it points at. Drop it once and
+            // resolve the key again before treating the value as undecryptable.
+            invalidateCachedSecretKey()
+            decryptWithCachedKey(iv, ciphertext)
+        }
+    }
+
+    private fun decryptWithCachedKey(iv: ByteArray, ciphertext: ByteArray): String? {
+        return try {
             val cipher = Cipher.getInstance(CIPHER_TRANSFORMATION)
             cipher.init(
                 Cipher.DECRYPT_MODE,
@@ -526,7 +545,21 @@ private class AndroidKeyStoreValueCipher {
         }
     }
 
+    private fun invalidateCachedSecretKey() {
+        synchronized(keyLock) {
+            cachedSecretKey = null
+        }
+    }
+
     private fun getOrCreateSecretKey(): SecretKey {
+        cachedSecretKey?.let { return it }
+        synchronized(keyLock) {
+            cachedSecretKey?.let { return it }
+            return loadOrCreateSecretKey().also { cachedSecretKey = it }
+        }
+    }
+
+    private fun loadOrCreateSecretKey(): SecretKey {
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply {
             load(null)
         }
