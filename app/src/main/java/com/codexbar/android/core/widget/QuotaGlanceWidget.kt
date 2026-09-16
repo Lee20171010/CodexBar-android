@@ -1,7 +1,9 @@
 package com.codexbar.android.core.widget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.util.Log
+import androidx.annotation.ColorRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -47,8 +49,8 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.presentation.QuotaSeverity
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.workmanager.WorkManagerInitializer
-import java.time.Duration
-import java.time.Instant
+import com.codexbar.android.di.appSingletonEntryPointOrNull
+import kotlinx.coroutines.withTimeoutOrNull
 
 class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error) {
 
@@ -66,21 +68,34 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
         super.onCompositionError(context, glanceId, appWidgetId, throwable)
     }
 
+    /**
+     * Nothing here may throw or block indefinitely. The launcher keeps showing
+     * `widget_loading` until [provideContent] returns a composition, so a failed or slow setup
+     * read has to degrade into a rendered state instead of aborting the update.
+     */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val widgetPrefs = WidgetPrefsManager(context)
-        val prefsManager = EncryptedPrefsManager(context)
-        prefsManager.warmCache()
-        val privacySettings = prefsManager.getPrivacySettings()
-        val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val config = widgetPrefs.getWidgetConfig(appWidgetId)
-        val strings = WidgetStrings(ContextCompat.getContextForLanguage(context))
+        val appContext = context.applicationContext
+        val dependencies = WidgetDependencies.of(appContext)
+        val appWidgetId = runCatching { GlanceAppWidgetManager(appContext).getAppWidgetId(id) }
+            .getOrElse { error ->
+                Log.w(TAG, "Could not resolve the App Widget ID for $id", error)
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            }
+        val config = runCatching { dependencies.widgetPrefs.getWidgetConfig(appWidgetId) }
+            .getOrElse { error ->
+                Log.e(TAG, "Could not read the configuration for id=$appWidgetId", error)
+                WidgetDisplayConfig()
+            }
+        val redactQuotaDetails = dependencies.readWidgetRedaction()
+        val strings = runCatching { WidgetStrings(ContextCompat.getContextForLanguage(context)) }
+            .getOrElse { WidgetStrings(context) }
 
         provideContent {
             GlanceTheme {
                 WidgetContent(
                     config = config,
-                    widgetPrefs = widgetPrefs,
-                    redactQuotaDetails = privacySettings.widgetRedactionEnabled,
+                    widgetPrefs = dependencies.widgetPrefs,
+                    redactQuotaDetails = redactQuotaDetails,
                     strings = strings
                 )
             }
@@ -103,9 +118,9 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             modifier = GlanceModifier
                 .fillMaxSize()
                 .cornerRadius(20.dp)
-                .background(ColorProvider(Color(0xB01C1B1F)))
+                .background(GlanceTheme.colors.widgetBackground)
                 .clickable(actionStartActivity<MainActivity>())
-            .padding(16.dp)
+                .padding(16.dp)
         ) {
             if (redactQuotaDetails) {
                 RedactedState(strings)
@@ -132,8 +147,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                         Text(
                             text = strings.moreServices(selectedServices.size - maxServices),
                             style = TextStyle(
-                                color = ColorProvider(Color.White.copy(alpha = 0.45f)),
-                                fontSize = 10.sp
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = 11.sp
                             )
                         )
                     }
@@ -148,10 +163,24 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             modifier = GlanceModifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = strings.noServices,
-                style = TextStyle(color = ColorProvider(Color.White.copy(alpha = 0.6f)), fontSize = 14.sp)
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = strings.noServices,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurface,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Spacer(modifier = GlanceModifier.height(4.dp))
+                Text(
+                    text = strings.openDetails,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontSize = 12.sp
+                    )
+                )
+            }
         }
     }
 
@@ -165,7 +194,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.quotaHidden,
                     style = TextStyle(
-                        color = ColorProvider(Color.White),
+                        color = GlanceTheme.colors.onSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -174,7 +203,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.openDetails,
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.55f)),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 )
@@ -188,7 +217,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(ColorProvider(Color.White.copy(alpha = 0.1f)))
+                .background(GlanceTheme.colors.outline)
         ) {}
     }
 
@@ -223,7 +252,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = service.displayName,
                     style = TextStyle(
-                        color = ColorProvider(Color.White),
+                        color = GlanceTheme.colors.onSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -233,14 +262,14 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                     Spacer(modifier = GlanceModifier.width(8.dp))
                     Box(
                         modifier = GlanceModifier
-                            .cornerRadius(4.dp)
-                            .background(ColorProvider(Color.White.copy(alpha = 0.15f)))
+                            .cornerRadius(6.dp)
+                            .background(GlanceTheme.colors.secondaryContainer)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = tier,
                             style = TextStyle(
-                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                color = GlanceTheme.colors.onSecondaryContainer,
                                 fontSize = 11.sp
                             )
                         )
@@ -256,7 +285,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                         modifier = GlanceModifier
                             .size(18.dp)
                             .clickable(actionRunCallback<RefreshWidgetAction>()),
-                        colorFilter = ColorFilter.tint(ColorProvider(Color.White.copy(alpha = 0.5f)))
+                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
                     )
                 }
             }
@@ -267,8 +296,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.updated(freshness),
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.45f)),
-                        fontSize = 10.sp
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontSize = 11.sp
                     )
                 )
                 Spacer(modifier = GlanceModifier.height(4.dp))
@@ -285,7 +314,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = statusMessage ?: strings.waitingForData,
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.4f)),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 )
@@ -319,7 +348,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = label,
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 )
@@ -328,8 +357,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                     text = remainingLabel,
                     style = TextStyle(
                         color = severityColor(severity),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 )
             }
@@ -351,8 +380,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                     Text(
                         text = detailText,
                         style = TextStyle(
-                            color = ColorProvider(Color.White.copy(alpha = 0.4f)),
-                            fontSize = 10.sp
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 11.sp
                         ),
                         maxLines = 2
                     )
@@ -365,18 +394,14 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
     private fun QuotaProgressBar(barProgress: Float, severity: QuotaSeverity) {
         LinearProgressIndicator(
             progress = barProgress.coerceIn(0f, 1f),
-            modifier = GlanceModifier.fillMaxWidth().height(4.dp),
+            modifier = GlanceModifier.fillMaxWidth().height(6.dp),
             color = severityColor(severity),
-            backgroundColor = ColorProvider(Color.White.copy(alpha = 0.1f))
+            backgroundColor = GlanceTheme.colors.surfaceVariant
         )
     }
 
     companion object {
         private const val TAG = "CodexBarWidget"
-
-        fun utilizationColor(utilization: Float): ColorProvider {
-            return severityColor(severityForUtilization(utilization))
-        }
 
         fun severityForUtilization(utilization: Float): QuotaSeverity {
             return when {
@@ -386,29 +411,75 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             }
         }
 
+        /**
+         * Severity has to stay recognizable on both a light and a dark launcher, so the colors
+         * come from resources with a values-night variant rather than one fixed value.
+         */
         fun severityColor(severity: QuotaSeverity): ColorProvider {
-            val color = when {
-                severity == QuotaSeverity.Critical -> Color(0xFFEF5350)
-                severity == QuotaSeverity.Warning -> Color(0xFFFFB74D)
-                severity == QuotaSeverity.Redacted -> Color.White.copy(alpha = 0.35f)
-                severity == QuotaSeverity.Unknown -> Color.White.copy(alpha = 0.45f)
-                else -> Color(0xFF81C784)
-            }
-            return ColorProvider(color)
+            return WidgetResourceColorProvider(
+                when (severity) {
+                    QuotaSeverity.Critical -> R.color.widget_severity_critical
+                    QuotaSeverity.Warning -> R.color.widget_severity_warning
+                    QuotaSeverity.Redacted,
+                    QuotaSeverity.Unknown -> R.color.widget_severity_unknown
+                    QuotaSeverity.Good -> R.color.widget_severity_good
+                }
+            )
         }
+    }
+}
 
-        fun formatResetTime(epochSecond: Long): String {
-            val now = Instant.now()
-            val resetAt = Instant.ofEpochSecond(epochSecond)
-            if (resetAt.isBefore(now)) return ""
-            val duration = Duration.between(now, resetAt)
-            val hours = duration.toHours()
-            val minutes = duration.toMinutes() % 60
-            return when {
-                hours >= 24 -> "${hours / 24}d ${hours % 24}h"
-                hours > 0 -> "${hours}h ${minutes}m"
-                else -> "${minutes}m"
-            }
+/**
+ * Resolves a color resource when the widget is rendered, so a `values-night` variant still
+ * applies. Glance's own resource-backed provider is restricted to its library group.
+ */
+private class WidgetResourceColorProvider(
+    @ColorRes private val resourceId: Int
+) : ColorProvider {
+    override fun getColor(context: Context): Color {
+        return Color(ContextCompat.getColor(context, resourceId))
+    }
+}
+
+/**
+ * Resolves the application-scoped managers the widget renders from.
+ *
+ * Constructing them per render re-ran the legacy-preferences migration and warmed a second
+ * credential cache on every launcher update, which is exactly the work that can outlast a
+ * broadcast. Hilt already owns one instance of each; direct construction stays as a fallback for
+ * hosts that update the widget before the application component exists.
+ */
+internal class WidgetDependencies private constructor(
+    val widgetPrefs: WidgetPrefsManager,
+    private val encryptedPrefs: EncryptedPrefsManager?
+) {
+    /**
+     * Returns whether quota values must stay hidden. A failed or slow read keeps the
+     * fail-closed default from [EncryptedPrefsManager] rather than blocking the composition.
+     */
+    suspend fun readWidgetRedaction(): Boolean {
+        val prefsManager = encryptedPrefs ?: return true
+        val warmed = runCatching {
+            withTimeoutOrNull(SETTINGS_TIMEOUT_MILLIS) { prefsManager.warmCache() }
+        }.getOrNull()
+        if (warmed == null) {
+            Log.w(TAG, "Widget privacy settings were unavailable within the render deadline")
+        }
+        return runCatching { prefsManager.getPrivacySettings().widgetRedactionEnabled }
+            .getOrDefault(true)
+    }
+
+    companion object {
+        private const val TAG = "CodexBarWidget"
+        private const val SETTINGS_TIMEOUT_MILLIS = 2_000L
+
+        fun of(appContext: Context): WidgetDependencies {
+            val entryPoint = appSingletonEntryPointOrNull(appContext)
+            val widgetPrefs = runCatching { entryPoint?.widgetPrefsManager() }.getOrNull()
+                ?: WidgetPrefsManager(appContext)
+            val prefsManager = runCatching { entryPoint?.encryptedPrefsManager() }.getOrNull()
+                ?: runCatching { EncryptedPrefsManager(appContext) }.getOrNull()
+            return WidgetDependencies(widgetPrefs, prefsManager)
         }
     }
 }

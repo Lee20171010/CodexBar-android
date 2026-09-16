@@ -21,6 +21,7 @@ import com.codexbar.android.core.data.ZenMuxRepositoryImpl
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.network.claude.ClaudeCompanionClient
+import com.codexbar.android.core.network.companion.LocalCompanionLocator
 import com.codexbar.android.core.network.chutes.ChutesApiService
 import com.codexbar.android.core.network.clinepass.ClinePassApiService
 import com.codexbar.android.core.network.codex.CodexApiService
@@ -63,8 +64,9 @@ object RepositoryModule {
     @AiServiceKey(AiService.CLAUDE)
     fun provideClaudeRepository(
         companionClient: ClaudeCompanionClient,
-        prefsManager: EncryptedPrefsManager
-    ): QuotaRepository = ClaudeRepositoryImpl(companionClient, prefsManager)
+        prefsManager: EncryptedPrefsManager,
+        companionLocator: LocalCompanionLocator
+    ): QuotaRepository = ClaudeRepositoryImpl(companionClient, prefsManager, companionLocator)
 
     @Provides
     @Singleton

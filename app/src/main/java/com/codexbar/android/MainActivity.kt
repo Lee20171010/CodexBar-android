@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.update.AvailableUpdate
 import com.codexbar.android.core.update.GitHubReleaseUpdateChecker
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
 
     private var pendingGeminiPairingUri by mutableStateOf<String?>(null)
     private var pendingCodexTelemetryPairingUri by mutableStateOf<String?>(null)
+    private var pendingDashboardService by mutableStateOf<AiService?>(null)
 
     @Inject
     lateinit var prefsManager: EncryptedPrefsManager
@@ -44,6 +46,7 @@ class MainActivity : AppCompatActivity() {
         val initialDestination = startDestinationForHost(launchUri?.host)
         pendingGeminiPairingUri = geminiPairingUriOrNull(launchUri)
         pendingCodexTelemetryPairingUri = codexTelemetryPairingUriOrNull(launchUri)
+        pendingDashboardService = dashboardServiceOrNull(launchUri)
         if (pendingGeminiPairingUri != null || pendingCodexTelemetryPairingUri != null) {
             intent?.data = null
         }
@@ -101,6 +104,8 @@ class MainActivity : AppCompatActivity() {
                     onCodexTelemetryPairingConsumed = {
                         pendingCodexTelemetryPairingUri = null
                     },
+                    initialDashboardService = pendingDashboardService,
+                    onDashboardServiceConsumed = { pendingDashboardService = null },
                     onScreenPrivacyChanged = ::applyScreenPrivacy
                 )
             }
@@ -118,6 +123,9 @@ class MainActivity : AppCompatActivity() {
         if (codexTelemetryPairingUri != null) {
             pendingCodexTelemetryPairingUri = codexTelemetryPairingUri
             intent.data = null
+        }
+        dashboardServiceOrNull(intent.data)?.let { service ->
+            pendingDashboardService = service
         }
         setIntent(intent)
     }
@@ -156,6 +164,20 @@ internal fun startDestinationForHost(host: String?): String {
         else -> "dashboard"
     }
 }
+
+/**
+ * Reads the provider a notification or Now Bar entry was opened for, so the dashboard can show
+ * that provider's detail instead of only the top of the list.
+ */
+internal fun dashboardServiceOrNull(uri: Uri?): AiService? {
+    if (uri == null || uri.toString().length > 2048) return null
+    if (!uri.scheme.equals("codexbar", ignoreCase = true)) return null
+    if (!uri.host.equals("dashboard", ignoreCase = true)) return null
+    val name = runCatching { uri.getQueryParameter(EXTRA_DASHBOARD_SERVICE) }.getOrNull() ?: return null
+    return AiService.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
+}
+
+internal const val EXTRA_DASHBOARD_SERVICE = "service"
 
 internal fun codexTelemetryPairingUriOrNull(uri: Uri?): String? {
     if (uri == null || uri.toString().length > 2048) return null

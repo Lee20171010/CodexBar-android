@@ -778,8 +778,24 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Accepts a pairing code that arrived whole, from the in-app scanner or the clipboard, and
+     * pairs immediately. Asking for a second tap after a successful scan only adds a step, and a
+     * malformed code reports the same error it would report from the button.
+     */
     fun importClaudePairingCode(value: String) {
         updateClaudePairingCode(value)
+        connectClaudeCompanion()
+    }
+
+    fun reportClaudePairingClipboardEmpty() {
+        updateClaudeValidation(
+            isValidating = false,
+            validationResult = ValidationResult.Failure(
+                appContext.getString(R.string.validation_claude_clipboard_empty)
+            ),
+            keepExistingConnection = true
+        )
     }
 
     fun reportClaudePairingScanFailure() {

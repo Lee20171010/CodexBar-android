@@ -20,15 +20,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Login
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -37,15 +40,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.codexbar.android.R
+import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.presentation.QuotaPresentationSnapshot
 import com.codexbar.android.core.presentation.ServiceQuotaPresentation
 import com.codexbar.android.core.presentation.ServiceQuotaStatus
@@ -58,6 +64,8 @@ private const val TwoPaneMinWidthDp = 720f
 @Composable
 fun DashboardScreen(
     onNavigateToConnections: () -> Unit,
+    initialSelectedService: AiService? = null,
+    onInitialSelectionConsumed: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,7 +79,9 @@ fun DashboardScreen(
         uiState = uiState,
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
-        onNavigateToConnections = onNavigateToConnections
+        onNavigateToConnections = onNavigateToConnections,
+        initialSelectedService = initialSelectedService,
+        onInitialSelectionConsumed = onInitialSelectionConsumed
     )
 }
 
@@ -94,23 +104,47 @@ private fun DashboardContent(
     uiState: DashboardUiState,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    onNavigateToConnections: () -> Unit
+    onNavigateToConnections: () -> Unit,
+    initialSelectedService: AiService? = null,
+    onInitialSelectionConsumed: () -> Unit = {}
 ) {
     val themeProfile = LocalCodexBarThemeProfile.current
     var selectedServiceName by remember { mutableStateOf<String?>(null) }
+    var showOnlyAttention by rememberSaveable { mutableStateOf(false) }
+
+    // A notification or Now Bar entry names the provider it was opened for.
+    LaunchedEffect(initialSelectedService) {
+        if (initialSelectedService != null) {
+            selectedServiceName = initialSelectedService.name
+            onInitialSelectionConsumed()
+        }
+    }
 
     val explicitlySelectedService = (uiState as? DashboardUiState.Content)
         ?.snapshot
         ?.services
         ?.firstOrNull { it.service.name == selectedServiceName }
 
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         topBar = {
-            TopAppBar(
+            LargeTopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = themeProfile.topBarContainerColor
+                actions = {
+                    IconButton(onClick = onRefresh, enabled = !isRefreshing) {
+                        Icon(
+                            imageVector = Icons.Rounded.Refresh,
+                            contentDescription = stringResource(R.string.action_refresh)
+                        )
+                    }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.largeTopAppBarColors(
+                    containerColor = themeProfile.topBarContainerColor,
+                    scrolledContainerColor = themeProfile.topBarContainerColor
                 )
             )
         }
@@ -141,10 +175,7 @@ private fun DashboardContent(
                             EmptyState(onOpenConnections = onNavigateToConnections)
                         } else {
                             val failedServices = state.snapshot.services
-                                .filterNot {
-                                    it.status == ServiceQuotaStatus.Fresh ||
-                                        it.status == ServiceQuotaStatus.Redacted
-                                }
+                                .filter { it.needsAttention() }
                                 .joinToString(", ") { it.service.displayName }
                             val errorBanner = failedServices.takeIf { it.isNotBlank() }
                                 ?.let {
@@ -152,16 +183,32 @@ private fun DashboardContent(
                                 }
                             val paneService = explicitlySelectedService
                                 ?: state.snapshot.services.first()
+                            val summary = remember(state.snapshot) {
+                                state.snapshot.toDashboardSummary()
+                            }
+                            // The filter row disappears once everything recovers, so a stale
+                            // selection must not leave the list empty with no way back.
+                            val filterAttention = showOnlyAttention && summary.attentionCount > 0
+                            val visibleServices = if (filterAttention) {
+                                state.snapshot.services.filter { it.needsAttention() }
+                            } else {
+                                state.snapshot.services
+                            }
 
                             if (useTwoPane) {
                                 Row(modifier = Modifier.fillMaxSize()) {
                                     CardList(
-                                        services = state.snapshot.services,
+                                        services = visibleServices,
+                                        summary = summary,
                                         errorBanner = errorBanner,
+                                        attentionCount = summary.attentionCount,
+                                        showOnlyAttention = filterAttention,
+                                        onAttentionFilterChange = { showOnlyAttention = it },
                                         selectedServiceName = paneService.service.name,
                                         onServiceClick = {
                                             selectedServiceName = it.service.name
                                         },
+                                        onSummaryProviderClick = { selectedServiceName = it.name },
                                         modifier = Modifier.weight(0.46f)
                                     )
                                     VerticalDivider(modifier = Modifier.fillMaxHeight())
@@ -180,12 +227,17 @@ private fun DashboardContent(
                                 }
                             } else {
                                 CardList(
-                                    services = state.snapshot.services,
+                                    services = visibleServices,
+                                    summary = summary,
                                     errorBanner = errorBanner,
+                                    attentionCount = summary.attentionCount,
+                                    showOnlyAttention = filterAttention,
+                                    onAttentionFilterChange = { showOnlyAttention = it },
                                     selectedServiceName = null,
                                     onServiceClick = {
                                         selectedServiceName = it.service.name
-                                    }
+                                    },
+                                    onSummaryProviderClick = { selectedServiceName = it.name }
                                 )
                             }
                         }
@@ -213,9 +265,14 @@ private fun DashboardContent(
 @Composable
 private fun CardList(
     services: List<ServiceQuotaPresentation>,
+    summary: DashboardSummary,
     errorBanner: String?,
+    attentionCount: Int,
+    showOnlyAttention: Boolean,
+    onAttentionFilterChange: (Boolean) -> Unit,
     selectedServiceName: String?,
     onServiceClick: (ServiceQuotaPresentation) -> Unit,
+    onSummaryProviderClick: (AiService) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -223,6 +280,37 @@ private fun CardList(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        item(key = "summary") {
+            DashboardSummaryCard(
+                summary = summary,
+                onProviderClick = onSummaryProviderClick
+            )
+        }
+
+        if (attentionCount > 0) {
+            item(key = "filters") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = !showOnlyAttention,
+                        onClick = { onAttentionFilterChange(false) },
+                        label = { Text(stringResource(R.string.dashboard_filter_all)) }
+                    )
+                    FilterChip(
+                        selected = showOnlyAttention,
+                        onClick = { onAttentionFilterChange(true) },
+                        label = {
+                            Text(
+                                stringResource(
+                                    R.string.dashboard_filter_attention,
+                                    attentionCount
+                                )
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
         if (errorBanner != null) {
             item {
                 Surface(

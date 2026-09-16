@@ -60,6 +60,15 @@
     <string name="action_refresh">Refresh</string>
     <string name="action_open_connections">Open Connections</string>
     <string name="action_manage_connection">Manage connection</string>
+    <string name="dashboard_summary_title">Running out first</string>
+    <string name="dashboard_summary_no_reading">No bounded quota to report yet</string>
+    <string name="dashboard_summary_window">%1$s · %2$s</string>
+    <string name="dashboard_summary_attention">%1$d of %2$d providers need attention</string>
+    <string name="dashboard_summary_pulse_value">%1$d%%</string>
+    <string name="dashboard_summary_pulse_unknown">—</string>
+    <string name="dashboard_summary_pulse_description">%1$s, %2$s remaining</string>
+    <string name="dashboard_filter_all">All</string>
+    <string name="dashboard_filter_attention">Needs attention (%1$d)</string>
     <string name="dashboard_needs_attention">Needs attention: %1$s</string>
     <string name="dashboard_empty_title">No services configured</string>
     <string name="dashboard_empty_message">Go to Connections to add an AI provider securely.</string>
@@ -133,6 +142,9 @@
     <string name="action_pair_claude_companion">Pair &amp; verify Claude companion</string>
     <string name="action_repair_claude_companion">Replace Claude companion pairing</string>
     <string name="action_scan_claude_pairing">Scan QR securely in CodexBar</string>
+    <string name="action_paste_claude_pairing">Paste pairing code</string>
+    <string name="action_show_pairing_code">Show pairing code</string>
+    <string name="action_hide_pairing_code">Hide pairing code</string>
     <string name="action_view_setup_guide">View setup guide</string>
     <string name="action_revalidate">Revalidate</string>
     <string name="action_save_changes">Save changes</string>
@@ -271,6 +283,7 @@
     <string name="validation_gemini_companion_failed">Couldn’t verify the Gemini companion. Keep it running on the same trusted Wi-Fi, allow private-network access in the computer firewall, and check that both device clocks are automatic. Detail: %1$s</string>
     <string name="validation_claude_pairing_invalid">Invalid Claude companion pairing: %1$s</string>
     <string name="validation_claude_companion_failed">Couldn’t verify the Claude companion. Confirm Claude Code `/usage` works on the computer, keep the companion running on the same trusted Wi-Fi, allow private-network access in the firewall, and check that both clocks are automatic. Detail: %1$s</string>
+    <string name="validation_claude_clipboard_empty">No CBCLAUDE1 pairing code was found on the clipboard. Copy the code shown by the companion, then paste it again.</string>
     <string name="validation_claude_scanner_failed">Couldn’t open the secure in-app QR scanner. Check Google Play services, or paste the CBCLAUDE1 pairing code below.</string>
     <string name="validation_codex_telemetry_pairing_invalid">Invalid Codex telemetry pairing: %1$s</string>
     <string name="validation_codex_telemetry_failed">Couldn’t verify Codex telemetry. Keep the companion running on the same trusted Wi-Fi, allow private-network access in the computer firewall, and check that both device clocks are automatic. Detail: %1$s</string>
@@ -334,6 +347,8 @@
     <string name="notification_just_now">just now</string>
     <string name="notification_service_summary">%1$s: %2$s</string>
     <string name="notification_monitoring_title">Quota monitoring</string>
+    <string name="notification_monitoring_headline">%1$s · %2$s</string>
+    <string name="notification_overview_entry">%1$s %2$s</string>
     <string name="notification_monitoring_hidden">%1$s left · quota details hidden</string>
     <string name="notification_monitoring_waiting">%1$s left · waiting for the first quota update</string>
     <string name="notification_live_session">Live session · %1$s left</string>
@@ -342,6 +357,7 @@
     <string name="notification_reset_generic">A quota window has reset.</string>
     <string name="notification_reset_window">%1$s window has reset. Your quota is fully available.</string>
     <string name="notification_live_short">Live</string>
+    <string name="notification_live_remaining_short">%1$d%%</string>
     <string name="notification_waiting_for_data">waiting for data</string>
     <string name="action_stop">Stop</string>
     <string name="worker_refreshing_quota">Refreshing quota data…</string>

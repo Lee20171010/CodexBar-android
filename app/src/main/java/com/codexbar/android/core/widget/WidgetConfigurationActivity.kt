@@ -1,5 +1,6 @@
 package com.codexbar.android.core.widget
 
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.net.Uri
@@ -407,6 +408,24 @@ class WidgetConfigurationActivity : AppCompatActivity() {
                             setTextViewText(
                                 R.id.widget_loading_text,
                                 getString(R.string.widget_preparing)
+                            )
+                            // A placeholder that outlives the first render must still open the app.
+                            setOnClickPendingIntent(
+                                R.id.widget_loading_root,
+                                PendingIntent.getActivity(
+                                    this@WidgetConfigurationActivity,
+                                    appWidgetId,
+                                    Intent(
+                                        this@WidgetConfigurationActivity,
+                                        MainActivity::class.java
+                                    ).apply {
+                                        action = Intent.ACTION_VIEW
+                                        data = Uri.parse("codexbar://dashboard")
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    },
+                                    PendingIntent.FLAG_UPDATE_CURRENT or
+                                        PendingIntent.FLAG_IMMUTABLE
+                                )
                             )
                         }
                     )

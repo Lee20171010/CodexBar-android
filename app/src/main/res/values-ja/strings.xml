@@ -60,6 +60,15 @@
     <string name="action_refresh">更新</string>
     <string name="action_open_connections">接続を開く</string>
     <string name="action_manage_connection">接続を管理</string>
+    <string name="dashboard_summary_title">最初に尽きる枠</string>
+    <string name="dashboard_summary_no_reading">上限つきの残量はまだ取得できていません</string>
+    <string name="dashboard_summary_window">%1$s · %2$s</string>
+    <string name="dashboard_summary_attention">%2$d件中%1$d件のプロバイダーに対応が必要です</string>
+    <string name="dashboard_summary_pulse_value">%1$d%%</string>
+    <string name="dashboard_summary_pulse_unknown">—</string>
+    <string name="dashboard_summary_pulse_description">%1$s、残り%2$s</string>
+    <string name="dashboard_filter_all">すべて</string>
+    <string name="dashboard_filter_attention">要対応 (%1$d)</string>
     <string name="dashboard_needs_attention">確認が必要: %1$s</string>
     <string name="dashboard_empty_title">接続済みサービスがありません</string>
     <string name="dashboard_empty_message">接続タブからAIプロバイダーを安全に追加してください。</string>
@@ -133,6 +142,9 @@
     <string name="action_pair_claude_companion">Claudeコンパニオンをペアリングして検証</string>
     <string name="action_repair_claude_companion">Claudeコンパニオンの接続を置き換える</string>
     <string name="action_scan_claude_pairing">CodexBar内でQRを安全に読み取る</string>
+    <string name="action_paste_claude_pairing">ペアリングコードを貼り付ける</string>
+    <string name="action_show_pairing_code">ペアリングコードを表示</string>
+    <string name="action_hide_pairing_code">ペアリングコードを非表示</string>
     <string name="action_view_setup_guide">詳しい設定ガイドを見る</string>
     <string name="action_revalidate">再検証</string>
     <string name="action_save_changes">変更を保存</string>
@@ -271,6 +283,7 @@
     <string name="validation_gemini_companion_failed">Geminiコンパニオンを検証できませんでした。同じ信頼済みWi-Fi上でコンパニオンを起動したままにし、パソコンのファイアウォールでプライベートネットワークを許可して、両端末の時刻が自動設定か確認してください。詳細: %1$s</string>
     <string name="validation_claude_pairing_invalid">Claudeコンパニオンのペアリング情報が無効です: %1$s</string>
     <string name="validation_claude_companion_failed">Claudeコンパニオンを検証できませんでした。パソコンでClaude Codeの `/usage` が動作することを確認し、同じ信頼済みWi-Fi上でコンパニオンを起動したままにして、ファイアウォールのプライベートネットワーク許可と両端末の自動時刻を確認してください。詳細: %1$s</string>
+    <string name="validation_claude_clipboard_empty">クリップボードに CBCLAUDE1 ペアリングコードが見つかりませんでした。コンパニオンが表示しているコードをコピーしてから、もう一度貼り付けてください。</string>
     <string name="validation_claude_scanner_failed">アプリ内の安全なQRスキャナーを開けませんでした。Google Play開発者サービスを確認するか、下へCBCLAUDE1ペアリングコードを貼り付けてください。</string>
     <string name="validation_codex_telemetry_pairing_invalid">Codexテレメトリのペアリング情報が無効です: %1$s</string>
     <string name="validation_codex_telemetry_failed">Codexテレメトリを検証できませんでした。同じ信頼済みWi-Fi上でコンパニオンを起動したままにし、パソコンのファイアウォールでプライベートネットワークを許可して、両端末の時刻が自動設定か確認してください。詳細: %1$s</string>
@@ -334,6 +347,8 @@
     <string name="notification_just_now">たった今</string>
     <string name="notification_service_summary">%1$s: %2$s</string>
     <string name="notification_monitoring_title">使用枠をモニタリング中</string>
+    <string name="notification_monitoring_headline">%1$s · %2$s</string>
+    <string name="notification_overview_entry">%1$s %2$s</string>
     <string name="notification_monitoring_hidden">残り%1$s · 使用枠の詳細を非表示</string>
     <string name="notification_monitoring_waiting">残り%1$s · 最初の使用枠更新を待っています</string>
     <string name="notification_live_session">ライブセッション · 残り%1$s</string>
@@ -342,6 +357,7 @@
     <string name="notification_reset_generic">使用枠の1つがリセットされました。</string>
     <string name="notification_reset_window">%1$sの使用枠がリセットされ、全量を利用できます。</string>
     <string name="notification_live_short">ライブ</string>
+    <string name="notification_live_remaining_short">%1$d%%</string>
     <string name="notification_waiting_for_data">データ待機中</string>
     <string name="action_stop">停止</string>
     <string name="worker_refreshing_quota">使用枠データを更新中…</string>

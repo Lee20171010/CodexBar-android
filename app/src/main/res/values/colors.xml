@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Widget colors. The launcher decides the surface underneath the widget, so each value needs
+      a light and a dark variant instead of one value chosen for a dark scrim.
+    -->
+    <color name="widget_severity_good">#FF1B6B3A</color>
+    <color name="widget_severity_warning">#FF8A5000</color>
+    <color name="widget_severity_critical">#FFB3261E</color>
+    <color name="widget_severity_unknown">#FF5F5F66</color>
+    <color name="widget_placeholder_background">#F2F3F1F7</color>
+    <color name="widget_placeholder_text">#FF46464F</color>
+    <color name="widget_preview_title">#FF1B1B21</color>
+    <color name="widget_preview_divider">#1F000000</color>
+    <color name="widget_preview_chip">#14000000</color>
+</resources>
