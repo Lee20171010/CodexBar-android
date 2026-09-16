@@ -15,6 +15,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.codexbar.android.EXTRA_DASHBOARD_SERVICE
 import com.codexbar.android.MainActivity
 import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.AiService
@@ -45,6 +46,16 @@ class QuotaNotificationService @Inject constructor(
         const val RESET_NOTIFICATION_ID_BASE = 2000
         const val ACTION_REFRESH = "com.codexbar.android.ACTION_REFRESH"
         private const val EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing"
+
+        private const val MAX_OVERVIEW_SERVICES = 4
+        private const val OVERVIEW_SEPARATOR = " · "
+
+        /** Mirrors the thresholds QuotaSeverity uses, so the bar and the colors agree. */
+        private const val WARNING_THRESHOLD_PERCENT = 60
+        private const val CRITICAL_THRESHOLD_PERCENT = 85
+        private val SEVERITY_GOOD_COLOR = Color.rgb(52, 168, 83)
+        private val SEVERITY_WARNING_COLOR = Color.rgb(251, 188, 4)
+        private val SEVERITY_CRITICAL_COLOR = Color.rgb(234, 67, 53)
     }
 
     init {
@@ -189,7 +200,21 @@ class QuotaNotificationService @Inject constructor(
         }
         val remaining = session.remainingMinutes()
         val remainingDuration = localizedString(R.string.duration_minutes, remaining)
-        val title = localizedString(R.string.notification_monitoring_title)
+        val title = if (
+            privacySettings.notificationRedactionEnabled ||
+            primaryService == null ||
+            primaryMetric == null
+        ) {
+            localizedString(R.string.notification_monitoring_title)
+        } else {
+            // The collapsed entry has room for one line, so it names the provider that needs
+            // attention instead of a constant app-level label.
+            localizedString(
+                R.string.notification_monitoring_headline,
+                primaryService.service.displayName,
+                primaryMetric.remainingLabel
+            )
+        }
         val hiddenText = localizedString(R.string.notification_quota_hidden)
         val text = when {
             privacySettings.notificationRedactionEnabled -> {
@@ -198,19 +223,15 @@ class QuotaNotificationService @Inject constructor(
             primaryService == null || primaryMetric == null -> {
                 localizedString(R.string.notification_monitoring_waiting, remainingDuration)
             }
-            else -> {
-                localizedString(
-                    R.string.notification_service_summary,
-                    primaryService.service.displayName,
-                    formatRemaining(primaryService)
-                )
-            }
+            else -> formatRemaining(primaryService)
         }
+        val overview = monitoringOverview(snapshot, privacySettings)
         val subText = localizedString(R.string.notification_live_session, remainingDuration)
         val notification = if (Build.VERSION.SDK_INT >= 36) {
             buildPlatformMonitoringNotification(
                 title = title,
                 text = text,
+                overview = overview,
                 subText = subText,
                 progress = progress,
                 primaryService = primaryService,
@@ -223,9 +244,13 @@ class QuotaNotificationService @Inject constructor(
                 .setContentTitle(title)
                 .setContentText(text)
                 .setSubText(subText)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .setBigContentTitle(title)
+                        .bigText(listOf(text, overview).filter { it.isNotBlank() }.joinToString("\n"))
+                )
                 .setProgress(100, progress, primaryMetric == null)
-                .setContentIntent(dashboardPendingIntent())
+                .setContentIntent(dashboardPendingIntent(primaryService?.service))
                 .setOngoing(true)
                 .setSilent(true)
                 .setOnlyAlertOnce(true)
@@ -254,6 +279,29 @@ class QuotaNotificationService @Inject constructor(
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(MONITORING_NOTIFICATION_ID, notification)
+    }
+
+    /**
+     * Summarizes every monitored provider on one line, so expanding the entry answers "what about
+     * the others" without opening the app.
+     */
+    private fun monitoringOverview(
+        snapshot: QuotaPresentationSnapshot,
+        privacySettings: PrivacySettings
+    ): String {
+        if (privacySettings.notificationRedactionEnabled) return ""
+        return snapshot.services
+            .sortedByDescending { it.primaryMetric?.usedPercent ?: -1 }
+            .take(MAX_OVERVIEW_SERVICES)
+            .mapNotNull { service ->
+                val metric = service.primaryMetric ?: return@mapNotNull null
+                localizedString(
+                    R.string.notification_overview_entry,
+                    service.service.displayName,
+                    metric.remainingLabel
+                )
+            }
+            .joinToString(OVERVIEW_SEPARATOR)
     }
 
     fun showMonitoringPlaceholder(session: MonitoringSession) {
@@ -318,6 +366,7 @@ class QuotaNotificationService @Inject constructor(
     private fun buildPlatformMonitoringNotification(
         title: String,
         text: String,
+        overview: String,
         subText: String,
         progress: Int,
         primaryService: ServiceQuotaPresentation?,
@@ -325,42 +374,56 @@ class QuotaNotificationService @Inject constructor(
         endsAtMillis: Long
     ): Notification {
         val progressColor = when (primaryService?.primaryMetric?.severity) {
-            QuotaSeverity.Good -> Color.rgb(52, 168, 83)
-            QuotaSeverity.Warning -> Color.rgb(251, 188, 4)
-            QuotaSeverity.Critical -> Color.rgb(234, 67, 53)
+            QuotaSeverity.Good -> SEVERITY_GOOD_COLOR
+            QuotaSeverity.Warning -> SEVERITY_WARNING_COLOR
+            QuotaSeverity.Critical -> SEVERITY_CRITICAL_COLOR
             else -> primaryService?.service?.brandColor?.toInt() ?: Color.GRAY
         }
+        // Splitting the track along the severity thresholds turns the bar itself into a reading:
+        // the filled portion shows how far into the warning and critical bands usage has gone.
         val progressStyle = Notification.ProgressStyle()
             .setStyledByProgress(true)
             .setProgress(progress)
             .addProgressSegment(
-                Notification.ProgressStyle.Segment(100)
-                    .setColor(progressColor)
+                Notification.ProgressStyle.Segment(WARNING_THRESHOLD_PERCENT)
+                    .setColor(SEVERITY_GOOD_COLOR)
+            )
+            .addProgressSegment(
+                Notification.ProgressStyle.Segment(
+                    CRITICAL_THRESHOLD_PERCENT - WARNING_THRESHOLD_PERCENT
+                ).setColor(SEVERITY_WARNING_COLOR)
+            )
+            .addProgressSegment(
+                Notification.ProgressStyle.Segment(100 - CRITICAL_THRESHOLD_PERCENT)
+                    .setColor(SEVERITY_CRITICAL_COLOR)
             )
             .setProgressTrackerIcon(
                 Icon.createWithResource(context, R.drawable.ic_quota)
             )
+        primaryService?.primaryMetric?.resetPlan?.let {
+            // Marks where usage has to stop to still reach the reset.
+            progressStyle.addProgressPoint(
+                Notification.ProgressStyle.Point(CRITICAL_THRESHOLD_PERCENT)
+                    .setColor(SEVERITY_CRITICAL_COLOR)
+            )
+        }
 
         val publicVersion = Notification.Builder(context, LIVE_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quota)
-            .setContentTitle(title)
+            .setContentTitle(localizedString(R.string.notification_monitoring_title))
             .setContentText(localizedString(R.string.notification_quota_hidden))
             .setShowWhen(false)
             .build()
-        val criticalText = if (privacySettings.notificationRedactionEnabled) {
-            localizedString(R.string.notification_live_short)
-        } else {
-            "$progress%"
-        }
+        val criticalText = shortCriticalText(primaryService, privacySettings)
 
         return Notification.Builder(context, LIVE_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quota)
             .setContentTitle(title)
-            .setContentText(text)
+            .setContentText(listOf(text, overview).filter { it.isNotBlank() }.joinToString(" — "))
             .setSubText(subText)
             .setStyle(progressStyle)
             .setColor(progressColor)
-            .setContentIntent(dashboardPendingIntent())
+            .setContentIntent(dashboardPendingIntent(primaryService?.service))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setWhen(endsAtMillis)
@@ -411,14 +474,42 @@ class QuotaNotificationService @Inject constructor(
         )
     }
 
-    private fun dashboardPendingIntent(): PendingIntent {
+    /**
+     * Returns the short label the collapsed Now Bar entry shows.
+     *
+     * Remaining quota is the number the entry exists to communicate, so it is preferred over the
+     * used percentage the progress bar already conveys.
+     */
+    private fun shortCriticalText(
+        primaryService: ServiceQuotaPresentation?,
+        privacySettings: PrivacySettings
+    ): String {
+        if (privacySettings.notificationRedactionEnabled) {
+            return localizedString(R.string.notification_live_short)
+        }
+        val remainingPercent = primaryService?.primaryMetric?.remainingPercent
+            ?: return localizedString(R.string.notification_live_short)
+        return localizedString(R.string.notification_live_remaining_short, remainingPercent)
+    }
+
+    /**
+     * Opens the dashboard, on [service]'s detail when the entry was about one provider.
+     */
+    private fun dashboardPendingIntent(service: AiService? = null): PendingIntent {
+        val uri = android.net.Uri.parse("codexbar://dashboard").let { base ->
+            service?.let {
+                base.buildUpon().appendQueryParameter(EXTRA_DASHBOARD_SERVICE, it.name).build()
+            } ?: base
+        }
         val dashboardIntent = Intent(context, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
-            data = android.net.Uri.parse("codexbar://dashboard")
+            data = uri
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         return PendingIntent.getActivity(
-            context, 0, dashboardIntent,
+            context,
+            service?.ordinal?.plus(1) ?: 0,
+            dashboardIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }

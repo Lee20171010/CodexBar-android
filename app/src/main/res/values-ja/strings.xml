@@ -338,6 +338,8 @@
     <string name="notification_just_now">たった今</string>
     <string name="notification_service_summary">%1$s: %2$s</string>
     <string name="notification_monitoring_title">使用枠をモニタリング中</string>
+    <string name="notification_monitoring_headline">%1$s · %2$s</string>
+    <string name="notification_overview_entry">%1$s %2$s</string>
     <string name="notification_monitoring_hidden">残り%1$s · 使用枠の詳細を非表示</string>
     <string name="notification_monitoring_waiting">残り%1$s · 最初の使用枠更新を待っています</string>
     <string name="notification_live_session">ライブセッション · 残り%1$s</string>
@@ -346,6 +348,7 @@
     <string name="notification_reset_generic">使用枠の1つがリセットされました。</string>
     <string name="notification_reset_window">%1$sの使用枠がリセットされ、全量を利用できます。</string>
     <string name="notification_live_short">ライブ</string>
+    <string name="notification_live_remaining_short">%1$d%%</string>
     <string name="notification_waiting_for_data">データ待機中</string>
     <string name="action_stop">停止</string>
     <string name="worker_refreshing_quota">使用枠データを更新中…</string>

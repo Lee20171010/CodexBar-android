@@ -14,9 +14,11 @@ class InternalNavigationSourceTest {
         val source = sourceFile("notification/QuotaNotificationService.kt")
 
         assertTrue(source.contains("Intent(context, MainActivity::class.java).apply"))
-        assertTrue(source.contains("data = android.net.Uri.parse(\"codexbar://dashboard\")"))
+        assertTrue(source.contains("android.net.Uri.parse(\"codexbar://dashboard\")"))
         assertTrue(source.contains("PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE"))
         assertFalse(source.contains("val dashboardIntent = Intent().apply"))
+        // The provider only ever travels as a query parameter on that same internal link.
+        assertTrue(source.contains("appendQueryParameter(EXTRA_DASHBOARD_SERVICE, it.name)"))
     }
 
     @Test

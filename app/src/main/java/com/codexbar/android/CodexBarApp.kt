@@ -48,6 +48,7 @@ import com.codexbar.android.feature.settings.ConnectionsScreen
 import com.codexbar.android.feature.settings.SettingsScreen
 import com.codexbar.android.feature.settings.SettingsViewModel
 import com.codexbar.android.ui.theme.LocalCodexBarThemeProfile
+import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.presentation.QuotaPresentationSnapshot
 
 private const val DashboardRoute = "dashboard"
@@ -84,6 +85,8 @@ fun CodexBarApp(
     onGeminiPairingConsumed: () -> Unit = {},
     initialCodexTelemetryPairingUri: String? = null,
     onCodexTelemetryPairingConsumed: () -> Unit = {},
+    initialDashboardService: AiService? = null,
+    onDashboardServiceConsumed: () -> Unit = {},
     dashboardPreviewSnapshot: QuotaPresentationSnapshot? = null,
     onScreenPrivacyChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier
@@ -119,6 +122,12 @@ fun CodexBarApp(
             navController.navigate(ConnectionsRoute) {
                 launchSingleTop = true
             }
+        }
+    }
+
+    LaunchedEffect(initialDashboardService) {
+        if (initialDashboardService != null) {
+            navController.navigateTopLevel(DashboardRoute)
         }
     }
 
@@ -176,6 +185,8 @@ fun CodexBarApp(
                     onGeminiPairingConsumed = onGeminiPairingConsumed,
                     initialCodexTelemetryPairingUri = initialCodexTelemetryPairingUri,
                     onCodexTelemetryPairingConsumed = onCodexTelemetryPairingConsumed,
+                    initialDashboardService = initialDashboardService,
+                    onDashboardServiceConsumed = onDashboardServiceConsumed,
                     onScreenPrivacyChanged = onScreenPrivacyChanged,
                     settingsViewModel = settingsViewModel,
                     dashboardPreviewSnapshot = dashboardPreviewSnapshot,
@@ -212,6 +223,8 @@ fun CodexBarApp(
                     onGeminiPairingConsumed = onGeminiPairingConsumed,
                     initialCodexTelemetryPairingUri = initialCodexTelemetryPairingUri,
                     onCodexTelemetryPairingConsumed = onCodexTelemetryPairingConsumed,
+                    initialDashboardService = initialDashboardService,
+                    onDashboardServiceConsumed = onDashboardServiceConsumed,
                     onScreenPrivacyChanged = onScreenPrivacyChanged,
                     settingsViewModel = settingsViewModel,
                     dashboardPreviewSnapshot = dashboardPreviewSnapshot,
@@ -229,6 +242,8 @@ private fun AppNavHost(
     onGeminiPairingConsumed: () -> Unit,
     initialCodexTelemetryPairingUri: String?,
     onCodexTelemetryPairingConsumed: () -> Unit,
+    initialDashboardService: AiService?,
+    onDashboardServiceConsumed: () -> Unit,
     onScreenPrivacyChanged: (Boolean) -> Unit,
     settingsViewModel: SettingsViewModel,
     dashboardPreviewSnapshot: QuotaPresentationSnapshot?,
@@ -244,7 +259,11 @@ private fun AppNavHost(
                 navController.navigateTopLevel(ConnectionsRoute)
             }
             if (dashboardPreviewSnapshot == null) {
-                DashboardScreen(onNavigateToConnections = navigateToConnections)
+                DashboardScreen(
+                    onNavigateToConnections = navigateToConnections,
+                    initialSelectedService = initialDashboardService,
+                    onInitialSelectionConsumed = onDashboardServiceConsumed
+                )
             } else {
                 DashboardPreviewScreen(
                     snapshot = dashboardPreviewSnapshot,

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.codexbar.android.R
+import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.presentation.QuotaPresentationSnapshot
 import com.codexbar.android.core.presentation.ServiceQuotaPresentation
 import com.codexbar.android.core.presentation.ServiceQuotaStatus
@@ -58,6 +59,8 @@ private const val TwoPaneMinWidthDp = 720f
 @Composable
 fun DashboardScreen(
     onNavigateToConnections: () -> Unit,
+    initialSelectedService: AiService? = null,
+    onInitialSelectionConsumed: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,7 +74,9 @@ fun DashboardScreen(
         uiState = uiState,
         isRefreshing = isRefreshing,
         onRefresh = viewModel::refresh,
-        onNavigateToConnections = onNavigateToConnections
+        onNavigateToConnections = onNavigateToConnections,
+        initialSelectedService = initialSelectedService,
+        onInitialSelectionConsumed = onInitialSelectionConsumed
     )
 }
 
@@ -94,10 +99,20 @@ private fun DashboardContent(
     uiState: DashboardUiState,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
-    onNavigateToConnections: () -> Unit
+    onNavigateToConnections: () -> Unit,
+    initialSelectedService: AiService? = null,
+    onInitialSelectionConsumed: () -> Unit = {}
 ) {
     val themeProfile = LocalCodexBarThemeProfile.current
     var selectedServiceName by remember { mutableStateOf<String?>(null) }
+
+    // A notification or Now Bar entry names the provider it was opened for.
+    LaunchedEffect(initialSelectedService) {
+        if (initialSelectedService != null) {
+            selectedServiceName = initialSelectedService.name
+            onInitialSelectionConsumed()
+        }
+    }
 
     val explicitlySelectedService = (uiState as? DashboardUiState.Content)
         ?.snapshot

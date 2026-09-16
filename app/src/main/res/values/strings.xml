@@ -338,6 +338,8 @@
     <string name="notification_just_now">just now</string>
     <string name="notification_service_summary">%1$s: %2$s</string>
     <string name="notification_monitoring_title">Quota monitoring</string>
+    <string name="notification_monitoring_headline">%1$s · %2$s</string>
+    <string name="notification_overview_entry">%1$s %2$s</string>
     <string name="notification_monitoring_hidden">%1$s left · quota details hidden</string>
     <string name="notification_monitoring_waiting">%1$s left · waiting for the first quota update</string>
     <string name="notification_live_session">Live session · %1$s left</string>
@@ -346,6 +348,7 @@
     <string name="notification_reset_generic">A quota window has reset.</string>
     <string name="notification_reset_window">%1$s window has reset. Your quota is fully available.</string>
     <string name="notification_live_short">Live</string>
+    <string name="notification_live_remaining_short">%1$d%%</string>
     <string name="notification_waiting_for_data">waiting for data</string>
     <string name="action_stop">Stop</string>
     <string name="worker_refreshing_quota">Refreshing quota data…</string>
