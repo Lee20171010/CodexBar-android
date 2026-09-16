@@ -3,6 +3,7 @@ package com.codexbar.android.core.widget
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.util.Log
+import androidx.annotation.ColorRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -415,7 +416,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
          * come from resources with a values-night variant rather than one fixed value.
          */
         fun severityColor(severity: QuotaSeverity): ColorProvider {
-            return ColorProvider(
+            return WidgetResourceColorProvider(
                 when (severity) {
                     QuotaSeverity.Critical -> R.color.widget_severity_critical
                     QuotaSeverity.Warning -> R.color.widget_severity_warning
@@ -425,6 +426,18 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 }
             )
         }
+    }
+}
+
+/**
+ * Resolves a color resource when the widget is rendered, so a `values-night` variant still
+ * applies. Glance's own resource-backed provider is restricted to its library group.
+ */
+private class WidgetResourceColorProvider(
+    @ColorRes private val resourceId: Int
+) : ColorProvider {
+    override fun getColor(context: Context): Color {
+        return Color(ContextCompat.getColor(context, resourceId))
     }
 }
 
