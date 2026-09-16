@@ -27,6 +27,7 @@ This document records the shipped account-linking decision for each provider. Th
 - Refresh retry state is provider/account scoped so one provider outage cannot force repeated refreshes for unrelated providers.
 - Live monitoring is user-started, time-bounded, and uses a standard notification style.
 - Claude and Gemini companion requests use HMAC-SHA256 authentication, bounded clock skew, nonce replay rejection, per-client rate limiting, and AES-256-GCM snapshot encryption.
+- A Claude companion that becomes unreachable is looked for again on the subnet the device is already attached to, on the paired port only. Candidates are found with a plain TCP connect, and the stored pairing key must authenticate the encrypted snapshot before the new address replaces the saved one, so a host that merely listens on that port cannot take over the connection. A terminal authentication failure never starts a scan, and a cooldown stops a switched-off companion from scanning on every refresh.
 - The companion binds one numeric private IPv4 address, discards raw terminal output after parsing, and exposes only validated quota fields with a freshness timestamp.
 - Codex telemetry companion requests use the same authenticated encrypted transport and private-address restriction. Its bounded scanner exposes only aggregate token counts, model labels, dates, and the newest context size; prompts, responses, paths, working directories, session identifiers, and account tokens are excluded.
 

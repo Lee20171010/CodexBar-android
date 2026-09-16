@@ -16,17 +16,20 @@ Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT
 
 - Unified quota monitoring for 18 providers: Claude, Codex, GitHub Copilot, Gemini, Cursor, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI
 - Four complete selectable design systems: the existing Material 3 UI, Liquid Glass, WinUI 3, and Aurora, each with light/dark support
+- A dashboard summary that leads with the quota window running out first, a tappable strip of every provider's remaining quota, and a needs-attention filter
 - Provider cards with animated rings, bars, exact values, reset countdowns, pace forecasts, and retained history charts
 - Codex reset-credit inventory, provider-reported model quota windows, and exact expiry details
 - Optional privacy-preserving Codex companion for current context usage and input, cached-input, output, reasoning, daily, and per-model token totals
 - Adaptive phone navigation and a two-pane large-screen dashboard
 - Quick Settings tile for at-a-glance status
-- Per-widget Android home screen customization for providers, quota windows, reset time, freshness, and pace
+- Per-widget Android home screen customization for providers, quota windows, reset time, freshness, and pace, drawn from the launcher's own light or dark theme
 - Configurable background refresh plus explicit refresh actions that supersede stale queued work
 - Built-in stable-release update prompt with a direct link to this fork's signed APK
 - Independently configurable persistent notification and time-bounded API 36 promoted Live Update, both synchronized with every dashboard refresh
-- Live progress, remaining quota, reset, pace, Refresh, and Stop on eligible Android 16 / One UI surfaces, with a compatible ongoing notification elsewhere
+- Live progress, remaining quota, reset, pace, Refresh, and Stop on eligible Android 16 / One UI Now Bar surfaces, with a compatible ongoing notification elsewhere
+- Now Bar entries that name the provider and its remaining quota, summarize the other monitored providers when expanded, and open that provider's detail when tapped
 - Secure device-code account connection for Codex and GitHub Copilot, plus an encrypted local Claude Code companion that never exports Anthropic credentials
+- Claude companion pairing from one QR scan or a pasted code, and automatic reconnection when the companion's computer receives a new local address
 - Push alert when quota resets (fully replenished)
 - DataStore + Android Keystore-backed credential storage
 - English and Japanese per-app language selection
