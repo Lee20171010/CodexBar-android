@@ -261,7 +261,7 @@ class QuotaNotificationService @Inject constructor(
                 .applyPrivacy(
                     privacySettings = privacySettings,
                     channelId = LIVE_CHANNEL_ID,
-                    redactedTitle = title,
+                    redactedTitle = localizedString(R.string.notification_monitoring_title),
                     redactedText = hiddenText
                 )
                 .addAction(

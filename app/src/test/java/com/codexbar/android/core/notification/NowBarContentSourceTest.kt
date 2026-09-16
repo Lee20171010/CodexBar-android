@@ -67,6 +67,21 @@ class NowBarContentSourceTest {
     }
 
     @Test
+    fun `pre Android 16 lock screen title does not reveal the provider or quota`() {
+        val monitoring = service.substring(
+            service.indexOf("fun showMonitoringNotification("),
+            service.indexOf("private fun monitoringOverview(")
+        )
+        val privacy = monitoring.substring(monitoring.indexOf(".applyPrivacy("))
+
+        assertTrue(privacy.contains(
+            "redactedTitle = localizedString(R.string.notification_monitoring_title)"
+        ))
+        assertTrue(privacy.contains("redactedText = hiddenText"))
+        assertFalse(privacy.contains("redactedTitle = title"))
+    }
+
+    @Test
     fun `the lock screen version still hides quota values`() {
         val platform = service.substring(
             service.indexOf("private fun buildPlatformMonitoringNotification(")
