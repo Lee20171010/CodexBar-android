@@ -46,11 +46,14 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.ContentPaste
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.QrCodeScanner
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -92,6 +95,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.browser.customtabs.CustomTabsIntent
@@ -107,6 +111,7 @@ import com.codexbar.android.core.domain.model.AppThemeStyle
 import com.codexbar.android.core.domain.model.ProviderAuthMode
 import com.codexbar.android.core.domain.model.ProviderCategory
 import com.codexbar.android.core.domain.model.providerMetadata
+import com.codexbar.android.core.network.claude.ClaudeCompanionPairing
 import com.codexbar.android.core.security.PrivacySettings
 import com.codexbar.android.core.security.ConnectionHealth
 import com.codexbar.android.core.workmanager.RefreshIntervalPolicy
@@ -428,6 +433,14 @@ fun ConnectionsScreen(
                                 onFailure = viewModel::reportClaudePairingScanFailure
                             )
                         },
+                        onPasteClaudePairing = {
+                            val pasted = pairingCodeFromClipboard(context)
+                            if (pasted == null) {
+                                viewModel.reportClaudePairingClipboardEmpty()
+                            } else {
+                                viewModel.importClaudePairingCode(pasted)
+                            }
+                        },
                         onConnectClaudeCompanion = viewModel::connectClaudeCompanion,
                         onGeminiPairingCodeChange = viewModel::updateGeminiPairingCode,
                         onConnectGeminiCompanion = viewModel::connectGeminiCompanion,
@@ -469,6 +482,23 @@ fun ConnectionsScreen(
         )
     }
 }
+
+/**
+ * Returns a companion pairing code from the clipboard.
+ *
+ * Reading only the leading token keeps a pasted chat message or e-mail from being rejected for
+ * the surrounding text, and anything that is not a pairing code is reported as empty.
+ */
+private fun pairingCodeFromClipboard(context: Context): String? {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    val clip = clipboard?.primaryClip?.takeIf { it.itemCount > 0 } ?: return null
+    val text = clip.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+    return text.split(Regex("\\s+"))
+        .firstOrNull { it.startsWith(ClaudeCompanionPairing.PREFIX) }
+        ?.take(CLIPBOARD_PAIRING_CODE_LIMIT)
+}
+
+private const val CLIPBOARD_PAIRING_CODE_LIMIT = 512
 
 private fun startClaudePairingScan(
     context: Context,
@@ -907,6 +937,7 @@ private fun ServiceCredentialSection(
     onCopyAccountCode: (String) -> Unit,
     onClaudePairingCodeChange: (String) -> Unit,
     onScanClaudePairing: () -> Unit,
+    onPasteClaudePairing: () -> Unit,
     onConnectClaudeCompanion: () -> Unit,
     onGeminiPairingCodeChange: (String) -> Unit,
     onConnectGeminiCompanion: () -> Unit,
@@ -1030,6 +1061,7 @@ private fun ServiceCredentialSection(
                         accent = visualStyle.accent,
                         onPairingCodeChange = onClaudePairingCodeChange,
                         onScanPairing = onScanClaudePairing,
+                        onPastePairing = onPasteClaudePairing,
                         onConnect = onConnectClaudeCompanion
                     )
                     service == AiService.GEMINI -> GeminiCompanionSetup(
@@ -1399,6 +1431,7 @@ private fun ClaudeCompanionSetup(
     accent: Color,
     onPairingCodeChange: (String) -> Unit,
     onScanPairing: () -> Unit,
+    onPastePairing: () -> Unit,
     onConnect: () -> Unit
 ) {
     Surface(
@@ -1426,7 +1459,7 @@ private fun ClaudeCompanionSetup(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            OutlinedButton(
+            Button(
                 onClick = onScanPairing,
                 enabled = !state.isValidating,
                 modifier = Modifier.fillMaxWidth()
@@ -1435,6 +1468,16 @@ private fun ClaudeCompanionSetup(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(stringResource(R.string.action_scan_claude_pairing))
             }
+            OutlinedButton(
+                onClick = onPastePairing,
+                enabled = !state.isValidating,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Rounded.ContentPaste, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.action_paste_claude_pairing))
+            }
+            var pairingCodeVisible by rememberSaveable { mutableStateOf(false) }
             OutlinedTextField(
                 value = state.claudePairingCode,
                 onValueChange = onPairingCodeChange,
@@ -1444,7 +1487,29 @@ private fun ClaudeCompanionSetup(
                     Text(stringResource(R.string.credential_claude_pairing_hint))
                 },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (pairingCodeVisible) {
+                    VisualTransformation.None
+                } else {
+                    PasswordVisualTransformation()
+                },
+                trailingIcon = {
+                    IconButton(onClick = { pairingCodeVisible = !pairingCodeVisible }) {
+                        Icon(
+                            imageVector = if (pairingCodeVisible) {
+                                Icons.Rounded.VisibilityOff
+                            } else {
+                                Icons.Rounded.Visibility
+                            },
+                            contentDescription = stringResource(
+                                if (pairingCodeVisible) {
+                                    R.string.action_hide_pairing_code
+                                } else {
+                                    R.string.action_show_pairing_code
+                                }
+                            )
+                        )
+                    }
+                },
                 keyboardOptions = secretKeyboardOptions()
             )
             Button(

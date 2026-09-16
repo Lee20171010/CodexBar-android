@@ -133,6 +133,9 @@
     <string name="action_pair_claude_companion">Claudeコンパニオンをペアリングして検証</string>
     <string name="action_repair_claude_companion">Claudeコンパニオンの接続を置き換える</string>
     <string name="action_scan_claude_pairing">CodexBar内でQRを安全に読み取る</string>
+    <string name="action_paste_claude_pairing">ペアリングコードを貼り付ける</string>
+    <string name="action_show_pairing_code">ペアリングコードを表示</string>
+    <string name="action_hide_pairing_code">ペアリングコードを非表示</string>
     <string name="action_view_setup_guide">詳しい設定ガイドを見る</string>
     <string name="action_revalidate">再検証</string>
     <string name="action_save_changes">変更を保存</string>
@@ -271,6 +274,7 @@
     <string name="validation_gemini_companion_failed">Geminiコンパニオンを検証できませんでした。同じ信頼済みWi-Fi上でコンパニオンを起動したままにし、パソコンのファイアウォールでプライベートネットワークを許可して、両端末の時刻が自動設定か確認してください。詳細: %1$s</string>
     <string name="validation_claude_pairing_invalid">Claudeコンパニオンのペアリング情報が無効です: %1$s</string>
     <string name="validation_claude_companion_failed">Claudeコンパニオンを検証できませんでした。パソコンでClaude Codeの `/usage` が動作することを確認し、同じ信頼済みWi-Fi上でコンパニオンを起動したままにして、ファイアウォールのプライベートネットワーク許可と両端末の自動時刻を確認してください。詳細: %1$s</string>
+    <string name="validation_claude_clipboard_empty">クリップボードに CBCLAUDE1 ペアリングコードが見つかりませんでした。コンパニオンが表示しているコードをコピーしてから、もう一度貼り付けてください。</string>
     <string name="validation_claude_scanner_failed">アプリ内の安全なQRスキャナーを開けませんでした。Google Play開発者サービスを確認するか、下へCBCLAUDE1ペアリングコードを貼り付けてください。</string>
     <string name="validation_codex_telemetry_pairing_invalid">Codexテレメトリのペアリング情報が無効です: %1$s</string>
     <string name="validation_codex_telemetry_failed">Codexテレメトリを検証できませんでした。同じ信頼済みWi-Fi上でコンパニオンを起動したままにし、パソコンのファイアウォールでプライベートネットワークを許可して、両端末の時刻が自動設定か確認してください。詳細: %1$s</string>

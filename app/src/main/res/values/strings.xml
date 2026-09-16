@@ -133,6 +133,9 @@
     <string name="action_pair_claude_companion">Pair &amp; verify Claude companion</string>
     <string name="action_repair_claude_companion">Replace Claude companion pairing</string>
     <string name="action_scan_claude_pairing">Scan QR securely in CodexBar</string>
+    <string name="action_paste_claude_pairing">Paste pairing code</string>
+    <string name="action_show_pairing_code">Show pairing code</string>
+    <string name="action_hide_pairing_code">Hide pairing code</string>
     <string name="action_view_setup_guide">View setup guide</string>
     <string name="action_revalidate">Revalidate</string>
     <string name="action_save_changes">Save changes</string>
@@ -271,6 +274,7 @@
     <string name="validation_gemini_companion_failed">Couldn’t verify the Gemini companion. Keep it running on the same trusted Wi-Fi, allow private-network access in the computer firewall, and check that both device clocks are automatic. Detail: %1$s</string>
     <string name="validation_claude_pairing_invalid">Invalid Claude companion pairing: %1$s</string>
     <string name="validation_claude_companion_failed">Couldn’t verify the Claude companion. Confirm Claude Code `/usage` works on the computer, keep the companion running on the same trusted Wi-Fi, allow private-network access in the firewall, and check that both clocks are automatic. Detail: %1$s</string>
+    <string name="validation_claude_clipboard_empty">No CBCLAUDE1 pairing code was found on the clipboard. Copy the code shown by the companion, then paste it again.</string>
     <string name="validation_claude_scanner_failed">Couldn’t open the secure in-app QR scanner. Check Google Play services, or paste the CBCLAUDE1 pairing code below.</string>
     <string name="validation_codex_telemetry_pairing_invalid">Invalid Codex telemetry pairing: %1$s</string>
     <string name="validation_codex_telemetry_failed">Couldn’t verify Codex telemetry. Keep the companion running on the same trusted Wi-Fi, allow private-network access in the computer firewall, and check that both device clocks are automatic. Detail: %1$s</string>
