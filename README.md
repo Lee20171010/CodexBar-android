@@ -5,9 +5,9 @@
 Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT), GitHub Copilot, Gemini, Cursor, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI usage in one place. Optional private companions keep Claude and Gemini authentication inside their official CLIs and add local Codex context/token telemetry without exporting session content.
 
 <p align="center">
-  <img src="docs/images/dashboard-light.png" width="320" alt="Material 3 Expressive dashboard in light mode" />
+  <img src="docs/images/releases/v0.9.0/dashboard-material3.png" width="320" alt="v0.9.0 Material 3 dashboard in light mode" />
   &nbsp;&nbsp;
-  <img src="docs/images/dashboard-dark.png" width="320" alt="Material 3 Expressive dashboard in dark mode" />
+  <img src="docs/images/releases/v0.9.0/dashboard-aurora-dark.png" width="320" alt="v0.9.0 Aurora dashboard in dark mode" />
 </p>
 
 <p align="center"><sub>Demo quota data is shown in screenshots. No account credentials are included.</sub></p>
@@ -38,15 +38,15 @@ Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT
 ## Selectable design systems and Codex insights
 
 <p align="center">
-  <img src="docs/images/releases/v0.7.0/dashboard-material3.png" width="210" alt="Material 3 dashboard" />
-  <img src="docs/images/releases/v0.7.0/dashboard-liquid-glass.png" width="210" alt="Liquid Glass dashboard" />
-  <img src="docs/images/releases/v0.7.0/dashboard-winui3.png" width="210" alt="WinUI 3 dashboard" />
-  <img src="docs/images/releases/v0.7.0/dashboard-aurora-dark.png" width="210" alt="Aurora dashboard in dark mode" />
+  <img src="docs/images/releases/v0.9.0/dashboard-material3.png" width="210" alt="Material 3 dashboard" />
+  <img src="docs/images/releases/v0.9.0/dashboard-liquid-glass.png" width="210" alt="Liquid Glass dashboard" />
+  <img src="docs/images/releases/v0.9.0/dashboard-winui3.png" width="210" alt="WinUI 3 dashboard" />
+  <img src="docs/images/releases/v0.9.0/dashboard-aurora-dark.png" width="210" alt="Aurora dashboard in dark mode" />
 </p>
 
 <p align="center">
-  <img src="docs/images/releases/v0.7.0/codex-insights-liquid-glass.png" width="320" alt="Codex reset-credit and context detail" />
-  <img src="docs/images/releases/v0.7.0/codex-token-history-liquid-glass.png" width="320" alt="Codex daily token history" />
+  <img src="docs/images/releases/v0.9.0/codex-insights-liquid-glass.png" width="320" alt="Codex reset-credit and context detail" />
+  <img src="docs/images/releases/v0.9.0/codex-token-history-liquid-glass.png" width="320" alt="Codex daily token history" />
 </p>
 
 <p align="center"><sub>All release screenshots were captured from the debug-only deterministic harness on an Android 16 emulator. They contain demo data, not account credentials.</sub></p>
@@ -58,7 +58,7 @@ Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT
 </p>
 
 <p align="center">
-  <img src="docs/images/live-update.png" width="320" alt="Android 16 promoted Live Update notification" />
+  <img src="docs/images/releases/v0.9.0/live-update.png" width="320" alt="Android 16 monitoring notification with segmented quota progress" />
   &nbsp;&nbsp;
   <img src="docs/images/account-setup.png" width="320" alt="Secure provider account setup" />
 </p>
