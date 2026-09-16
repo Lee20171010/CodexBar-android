@@ -3,7 +3,7 @@
     android:id="@+id/widget_error_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#B01C1B1F"
+    android:background="@color/widget_placeholder_background"
     android:padding="16dp">
 
     <TextView
@@ -12,6 +12,6 @@
         android:layout_gravity="center"
         android:gravity="center"
         android:text="@string/widget_render_error"
-        android:textColor="#CCFFFFFF"
+        android:textColor="@color/widget_placeholder_text"
         android:textSize="14sp" />
 </FrameLayout>

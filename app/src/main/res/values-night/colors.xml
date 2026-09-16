@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_severity_good">#FF7FD69B</color>
+    <color name="widget_severity_warning">#FFFFCC80</color>
+    <color name="widget_severity_critical">#FFFF8A80</color>
+    <color name="widget_severity_unknown">#FFB0AFB8</color>
+    <color name="widget_placeholder_background">#F21C1B1F</color>
+    <color name="widget_placeholder_text">#FFC7C5D0</color>
+</resources>

@@ -49,8 +49,6 @@ import com.codexbar.android.core.presentation.QuotaSeverity
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.workmanager.WorkManagerInitializer
 import com.codexbar.android.di.appSingletonEntryPointOrNull
-import java.time.Duration
-import java.time.Instant
 import kotlinx.coroutines.withTimeoutOrNull
 
 class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error) {
@@ -119,9 +117,9 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             modifier = GlanceModifier
                 .fillMaxSize()
                 .cornerRadius(20.dp)
-                .background(ColorProvider(Color(0xB01C1B1F)))
+                .background(GlanceTheme.colors.widgetBackground)
                 .clickable(actionStartActivity<MainActivity>())
-            .padding(16.dp)
+                .padding(16.dp)
         ) {
             if (redactQuotaDetails) {
                 RedactedState(strings)
@@ -148,8 +146,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                         Text(
                             text = strings.moreServices(selectedServices.size - maxServices),
                             style = TextStyle(
-                                color = ColorProvider(Color.White.copy(alpha = 0.45f)),
-                                fontSize = 10.sp
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = 11.sp
                             )
                         )
                     }
@@ -168,7 +166,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.noServices,
                     style = TextStyle(
-                        color = ColorProvider(Color.White),
+                        color = GlanceTheme.colors.onSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -177,7 +175,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.openDetails,
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.55f)),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 )
@@ -195,7 +193,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.quotaHidden,
                     style = TextStyle(
-                        color = ColorProvider(Color.White),
+                        color = GlanceTheme.colors.onSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -204,7 +202,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.openDetails,
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.55f)),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 )
@@ -218,7 +216,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             modifier = GlanceModifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(ColorProvider(Color.White.copy(alpha = 0.1f)))
+                .background(GlanceTheme.colors.outline)
         ) {}
     }
 
@@ -253,7 +251,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = service.displayName,
                     style = TextStyle(
-                        color = ColorProvider(Color.White),
+                        color = GlanceTheme.colors.onSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -263,14 +261,14 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                     Spacer(modifier = GlanceModifier.width(8.dp))
                     Box(
                         modifier = GlanceModifier
-                            .cornerRadius(4.dp)
-                            .background(ColorProvider(Color.White.copy(alpha = 0.15f)))
+                            .cornerRadius(6.dp)
+                            .background(GlanceTheme.colors.secondaryContainer)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = tier,
                             style = TextStyle(
-                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                                color = GlanceTheme.colors.onSecondaryContainer,
                                 fontSize = 11.sp
                             )
                         )
@@ -286,7 +284,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                         modifier = GlanceModifier
                             .size(18.dp)
                             .clickable(actionRunCallback<RefreshWidgetAction>()),
-                        colorFilter = ColorFilter.tint(ColorProvider(Color.White.copy(alpha = 0.5f)))
+                        colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant)
                     )
                 }
             }
@@ -297,8 +295,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = strings.updated(freshness),
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.45f)),
-                        fontSize = 10.sp
+                        color = GlanceTheme.colors.onSurfaceVariant,
+                        fontSize = 11.sp
                     )
                 )
                 Spacer(modifier = GlanceModifier.height(4.dp))
@@ -315,7 +313,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = statusMessage ?: strings.waitingForData,
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.4f)),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 )
@@ -349,7 +347,7 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 Text(
                     text = label,
                     style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.7f)),
+                        color = GlanceTheme.colors.onSurfaceVariant,
                         fontSize = 12.sp
                     )
                 )
@@ -358,8 +356,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                     text = remainingLabel,
                     style = TextStyle(
                         color = severityColor(severity),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 )
             }
@@ -381,8 +379,8 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                     Text(
                         text = detailText,
                         style = TextStyle(
-                            color = ColorProvider(Color.White.copy(alpha = 0.4f)),
-                            fontSize = 10.sp
+                            color = GlanceTheme.colors.onSurfaceVariant,
+                            fontSize = 11.sp
                         ),
                         maxLines = 2
                     )
@@ -395,18 +393,14 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
     private fun QuotaProgressBar(barProgress: Float, severity: QuotaSeverity) {
         LinearProgressIndicator(
             progress = barProgress.coerceIn(0f, 1f),
-            modifier = GlanceModifier.fillMaxWidth().height(4.dp),
+            modifier = GlanceModifier.fillMaxWidth().height(6.dp),
             color = severityColor(severity),
-            backgroundColor = ColorProvider(Color.White.copy(alpha = 0.1f))
+            backgroundColor = GlanceTheme.colors.surfaceVariant
         )
     }
 
     companion object {
         private const val TAG = "CodexBarWidget"
-
-        fun utilizationColor(utilization: Float): ColorProvider {
-            return severityColor(severityForUtilization(utilization))
-        }
 
         fun severityForUtilization(utilization: Float): QuotaSeverity {
             return when {
@@ -416,29 +410,20 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             }
         }
 
+        /**
+         * Severity has to stay recognizable on both a light and a dark launcher, so the colors
+         * come from resources with a values-night variant rather than one fixed value.
+         */
         fun severityColor(severity: QuotaSeverity): ColorProvider {
-            val color = when {
-                severity == QuotaSeverity.Critical -> Color(0xFFEF5350)
-                severity == QuotaSeverity.Warning -> Color(0xFFFFB74D)
-                severity == QuotaSeverity.Redacted -> Color.White.copy(alpha = 0.35f)
-                severity == QuotaSeverity.Unknown -> Color.White.copy(alpha = 0.45f)
-                else -> Color(0xFF81C784)
-            }
-            return ColorProvider(color)
-        }
-
-        fun formatResetTime(epochSecond: Long): String {
-            val now = Instant.now()
-            val resetAt = Instant.ofEpochSecond(epochSecond)
-            if (resetAt.isBefore(now)) return ""
-            val duration = Duration.between(now, resetAt)
-            val hours = duration.toHours()
-            val minutes = duration.toMinutes() % 60
-            return when {
-                hours >= 24 -> "${hours / 24}d ${hours % 24}h"
-                hours > 0 -> "${hours}h ${minutes}m"
-                else -> "${minutes}m"
-            }
+            return ColorProvider(
+                when (severity) {
+                    QuotaSeverity.Critical -> R.color.widget_severity_critical
+                    QuotaSeverity.Warning -> R.color.widget_severity_warning
+                    QuotaSeverity.Redacted,
+                    QuotaSeverity.Unknown -> R.color.widget_severity_unknown
+                    QuotaSeverity.Good -> R.color.widget_severity_good
+                }
+            )
         }
     }
 }
