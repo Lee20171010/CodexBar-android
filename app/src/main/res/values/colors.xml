@@ -10,4 +10,7 @@
     <color name="widget_severity_unknown">#FF5F5F66</color>
     <color name="widget_placeholder_background">#F2F3F1F7</color>
     <color name="widget_placeholder_text">#FF46464F</color>
+    <color name="widget_preview_title">#FF1B1B21</color>
+    <color name="widget_preview_divider">#1F000000</color>
+    <color name="widget_preview_chip">#14000000</color>
 </resources>

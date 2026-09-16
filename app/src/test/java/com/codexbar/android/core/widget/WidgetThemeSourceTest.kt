@@ -63,6 +63,21 @@ class WidgetThemeSourceTest {
         }
     }
 
+    @Test
+    fun `the picker preview keeps only brand colors literal`() {
+        val preview = File(appDir, "src/main/res/layout/widget_preview.xml")
+            .readText()
+            .replace("\r\n", "\n")
+
+        assertTrue(preview.contains("@color/widget_placeholder_background"))
+        assertTrue(preview.contains("@color/widget_preview_title"))
+        assertTrue(preview.contains("@color/widget_severity_good"))
+        assertFalse(preview.contains("#B01C1B1F"))
+        assertFalse(preview.contains("#FFFFFF"))
+        // Only the two provider brand dots stay literal.
+        assertEquals(2, Regex("#[0-9A-Fa-f]{6,8}").findAll(preview).count())
+    }
+
     private fun colors(qualifier: String): String {
         return File(appDir, "src/main/res/$qualifier/colors.xml").readText().replace("\r\n", "\n")
     }

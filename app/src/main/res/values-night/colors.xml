@@ -6,4 +6,7 @@
     <color name="widget_severity_unknown">#FFB0AFB8</color>
     <color name="widget_placeholder_background">#F21C1B1F</color>
     <color name="widget_placeholder_text">#FFC7C5D0</color>
+    <color name="widget_preview_title">#FFE4E1E9</color>
+    <color name="widget_preview_divider">#1FFFFFFF</color>
+    <color name="widget_preview_chip">#26FFFFFF</color>
 </resources>
