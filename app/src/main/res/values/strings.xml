@@ -60,6 +60,15 @@
     <string name="action_refresh">Refresh</string>
     <string name="action_open_connections">Open Connections</string>
     <string name="action_manage_connection">Manage connection</string>
+    <string name="dashboard_summary_title">Running out first</string>
+    <string name="dashboard_summary_no_reading">No bounded quota to report yet</string>
+    <string name="dashboard_summary_window">%1$s · %2$s</string>
+    <string name="dashboard_summary_attention">%1$d of %2$d providers need attention</string>
+    <string name="dashboard_summary_pulse_value">%1$d%%</string>
+    <string name="dashboard_summary_pulse_unknown">—</string>
+    <string name="dashboard_summary_pulse_description">%1$s, %2$s remaining</string>
+    <string name="dashboard_filter_all">All</string>
+    <string name="dashboard_filter_attention">Needs attention (%1$d)</string>
     <string name="dashboard_needs_attention">Needs attention: %1$s</string>
     <string name="dashboard_empty_title">No services configured</string>
     <string name="dashboard_empty_message">Go to Connections to add an AI provider securely.</string>

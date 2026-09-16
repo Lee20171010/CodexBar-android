@@ -60,6 +60,15 @@
     <string name="action_refresh">更新</string>
     <string name="action_open_connections">接続を開く</string>
     <string name="action_manage_connection">接続を管理</string>
+    <string name="dashboard_summary_title">最初に尽きる枠</string>
+    <string name="dashboard_summary_no_reading">上限つきの残量はまだ取得できていません</string>
+    <string name="dashboard_summary_window">%1$s · %2$s</string>
+    <string name="dashboard_summary_attention">%2$d件中%1$d件のプロバイダーに対応が必要です</string>
+    <string name="dashboard_summary_pulse_value">%1$d%%</string>
+    <string name="dashboard_summary_pulse_unknown">—</string>
+    <string name="dashboard_summary_pulse_description">%1$s、残り%2$s</string>
+    <string name="dashboard_filter_all">すべて</string>
+    <string name="dashboard_filter_attention">要対応 (%1$d)</string>
     <string name="dashboard_needs_attention">確認が必要: %1$s</string>
     <string name="dashboard_empty_title">接続済みサービスがありません</string>
     <string name="dashboard_empty_message">接続タブからAIプロバイダーを安全に追加してください。</string>
