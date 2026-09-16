@@ -15,6 +15,7 @@ import com.codexbar.android.core.monitoring.MonitoringSession
 import com.codexbar.android.core.monitoring.MonitoringSessionStore
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.widget.QuotaGlanceWidget
+import com.codexbar.android.di.appSingletonEntryPointOrNull
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -39,7 +40,10 @@ class WorkManagerInitializer private constructor() {
         fun applySavedRefreshPolicyAsync(context: Context) {
             val appContext = context.applicationContext
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                val prefsManager = EncryptedPrefsManager(appContext)
+                // The injected singleton is the same cache every other surface reads, so warming
+                // it here also primes the widget and the notification renderers.
+                val prefsManager = appSingletonEntryPointOrNull(appContext)?.encryptedPrefsManager()
+                    ?: EncryptedPrefsManager(appContext)
                 prefsManager.warmCache()
                 applyRefreshPolicy(appContext, prefsManager.getRefreshInterval())
                 QuotaGlanceWidget().updateAll(appContext)
