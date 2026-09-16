@@ -76,7 +76,9 @@ class ClaudeRepositoryImpl @Inject constructor(
             val candidate = credential.copy(host = host)
             val result = fetchCompanionQuota(candidate)
             if (result is Result.Success) {
-                prefsManager.saveCredential(AiService.CLAUDE, candidate)
+                if (!prefsManager.updateClaudeCompanionHostIfCurrent(credential, host)) {
+                    return null
+                }
                 nextRelocationAtMillis = 0L
                 return result
             }

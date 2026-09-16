@@ -49,6 +49,25 @@ class SecurePreferencesImplementationTest {
     }
 
     @Test
+    fun `Claude relocation checks the current pairing inside the write transaction`() {
+        val source = File(
+            appDir,
+            "src/main/java/com/codexbar/android/core/security/EncryptedPrefsManager.kt"
+        ).readText()
+        val relocation = source.substringAfter("suspend fun updateClaudeCompanionHostIfCurrent(")
+            .substringBefore("suspend fun saveCodexTelemetryCredential(")
+        val transaction = relocation.substringAfter("dataStore.edit { prefs ->")
+            .substringBefore("updateCache(updated)")
+
+        assertTrue(transaction.contains("if (readCredential(prefs, AiService.CLAUDE) == expected)"))
+        assertTrue(transaction.contains("prefs.putEncryptedString"))
+        assertFalse(relocation.contains("loadCredential("))
+        assertFalse(relocation.contains("saveCredential("))
+        assertFalse(transaction.contains("removeServiceEntries"))
+        assertTrue(relocation.contains("return applied"))
+    }
+
+    @Test
     fun `security crypto dependency is removed`() {
         val appBuild = File(appDir, "build.gradle.kts").readText()
         val versionCatalog = File(repoDir, "gradle/libs.versions.toml").readText()

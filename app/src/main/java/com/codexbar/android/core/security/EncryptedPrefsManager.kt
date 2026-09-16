@@ -165,6 +165,23 @@ class EncryptedPrefsManager @Inject constructor(
         return readCredential(readPreferences(), service)
     }
 
+    suspend fun updateClaudeCompanionHostIfCurrent(
+        expected: Credential.ClaudeCompanionCredential,
+        host: String
+    ): Boolean {
+        var applied = false
+        val updated = dataStore.edit { prefs ->
+            // Disconnect and re-pair also use this transaction, so an in-flight scan cannot
+            // restore a deleted pairing or overwrite a newer one.
+            if (readCredential(prefs, AiService.CLAUDE) == expected) {
+                prefs.putEncryptedString("${AiService.CLAUDE.name}_companion_host", host)
+                applied = true
+            }
+        }
+        updateCache(updated)
+        return applied
+    }
+
     suspend fun saveCodexTelemetryCredential(credential: CodexTelemetryCredential) {
         require(credential.host.isNotBlank()) { "Companion host is required" }
         require(credential.port in 1..65535) { "Invalid companion port" }

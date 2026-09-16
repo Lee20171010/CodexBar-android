@@ -12,6 +12,8 @@ import com.codexbar.android.core.network.companion.LocalCompanionLocator
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import java.io.IOException
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
@@ -108,6 +110,8 @@ class ClaudeRepositoryImplTest {
         `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(credential)
         val movedTo = "192.168.1.42"
         val client = clientReachableAt(movedTo)
+        `when`(prefsManager.updateClaudeCompanionHostIfCurrent(credential, movedTo))
+            .thenReturn(true)
 
         val result = ClaudeRepositoryImpl(
             client,
@@ -116,7 +120,60 @@ class ClaudeRepositoryImplTest {
         ).fetchQuota()
 
         assertTrue(result is Result.Success)
-        verify(prefsManager).saveCredential(AiService.CLAUDE, credential.copy(host = movedTo))
+        verify(prefsManager).updateClaudeCompanionHostIfCurrent(credential, movedTo)
+    }
+
+    @Test
+    fun `disconnect while relocation is in flight does not restore the pairing`() = runTest {
+        assertPairingChangeDuringRelocation(null)
+    }
+
+    @Test
+    fun `re-pair while relocation is in flight does not overwrite the new pairing`() = runTest {
+        assertPairingChangeDuringRelocation(credential.copy(companionId = "new-companion"))
+    }
+
+    private suspend fun assertPairingChangeDuringRelocation(
+        replacement: Credential.ClaudeCompanionCredential?
+    ) = kotlinx.coroutines.coroutineScope {
+        var storedCredential = credential as Credential.ClaudeCompanionCredential?
+        val movedTo = "192.168.1.42"
+        val candidateStarted = CompletableDeferred<Unit>()
+        val resumeCandidate = CompletableDeferred<Unit>()
+        `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenAnswer { storedCredential }
+        `when`(prefsManager.updateClaudeCompanionHostIfCurrent(credential, movedTo))
+            .thenAnswer {
+                if (storedCredential == credential) {
+                    storedCredential = credential.copy(host = movedTo)
+                    true
+                } else {
+                    false
+                }
+            }
+        val client = object : ClaudeCompanionClient(Json) {
+            override suspend fun fetchSnapshot(
+                credential: Credential.ClaudeCompanionCredential,
+                now: Instant
+            ): ClaudeCompanionSnapshot {
+                if (credential.host != movedTo) throw IOException("companion unavailable")
+                candidateStarted.complete(Unit)
+                resumeCandidate.await()
+                return clientReachableAt(movedTo).fetchSnapshot(credential, now)
+            }
+        }
+        val pending = async {
+            ClaudeRepositoryImpl(client, prefsManager, locatorReturning(listOf(movedTo)))
+                .fetchQuota()
+        }
+        candidateStarted.await()
+        storedCredential = replacement
+        resumeCandidate.complete(Unit)
+
+        assertTrue(pending.await() is Result.Failure)
+        assertEquals(replacement, storedCredential)
+        verify(prefsManager).updateClaudeCompanionHostIfCurrent(credential, movedTo)
+        verify(prefsManager, never())
+            .saveCredential(AiService.CLAUDE, credential.copy(host = movedTo))
     }
 
     @Test
@@ -143,7 +200,7 @@ class ClaudeRepositoryImplTest {
         assertTrue(result is Result.Failure)
         assertTrue((result as Result.Failure).error is AppError.NetworkError)
         verify(prefsManager, never())
-            .saveCredential(AiService.CLAUDE, credential.copy(host = "192.168.1.9"))
+            .updateClaudeCompanionHostIfCurrent(credential, "192.168.1.9")
     }
 
     @Test
