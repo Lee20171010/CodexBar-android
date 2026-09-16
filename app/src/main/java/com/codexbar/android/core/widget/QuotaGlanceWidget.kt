@@ -1,5 +1,6 @@
 package com.codexbar.android.core.widget
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.Composable
@@ -47,8 +48,10 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.presentation.QuotaSeverity
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.workmanager.WorkManagerInitializer
+import com.codexbar.android.di.appSingletonEntryPointOrNull
 import java.time.Duration
 import java.time.Instant
+import kotlinx.coroutines.withTimeoutOrNull
 
 class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error) {
 
@@ -66,21 +69,34 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
         super.onCompositionError(context, glanceId, appWidgetId, throwable)
     }
 
+    /**
+     * Nothing here may throw or block indefinitely. The launcher keeps showing
+     * `widget_loading` until [provideContent] returns a composition, so a failed or slow setup
+     * read has to degrade into a rendered state instead of aborting the update.
+     */
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val widgetPrefs = WidgetPrefsManager(context)
-        val prefsManager = EncryptedPrefsManager(context)
-        prefsManager.warmCache()
-        val privacySettings = prefsManager.getPrivacySettings()
-        val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val config = widgetPrefs.getWidgetConfig(appWidgetId)
-        val strings = WidgetStrings(ContextCompat.getContextForLanguage(context))
+        val appContext = context.applicationContext
+        val dependencies = WidgetDependencies.of(appContext)
+        val appWidgetId = runCatching { GlanceAppWidgetManager(appContext).getAppWidgetId(id) }
+            .getOrElse { error ->
+                Log.w(TAG, "Could not resolve the App Widget ID for $id", error)
+                AppWidgetManager.INVALID_APPWIDGET_ID
+            }
+        val config = runCatching { dependencies.widgetPrefs.getWidgetConfig(appWidgetId) }
+            .getOrElse { error ->
+                Log.e(TAG, "Could not read the configuration for id=$appWidgetId", error)
+                WidgetDisplayConfig()
+            }
+        val redactQuotaDetails = dependencies.readWidgetRedaction()
+        val strings = runCatching { WidgetStrings(ContextCompat.getContextForLanguage(context)) }
+            .getOrElse { WidgetStrings(context) }
 
         provideContent {
             GlanceTheme {
                 WidgetContent(
                     config = config,
-                    widgetPrefs = widgetPrefs,
-                    redactQuotaDetails = privacySettings.widgetRedactionEnabled,
+                    widgetPrefs = dependencies.widgetPrefs,
+                    redactQuotaDetails = redactQuotaDetails,
                     strings = strings
                 )
             }
@@ -148,10 +164,24 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
             modifier = GlanceModifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = strings.noServices,
-                style = TextStyle(color = ColorProvider(Color.White.copy(alpha = 0.6f)), fontSize = 14.sp)
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = strings.noServices,
+                    style = TextStyle(
+                        color = ColorProvider(Color.White),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Spacer(modifier = GlanceModifier.height(4.dp))
+                Text(
+                    text = strings.openDetails,
+                    style = TextStyle(
+                        color = ColorProvider(Color.White.copy(alpha = 0.55f)),
+                        fontSize = 12.sp
+                    )
+                )
+            }
         }
     }
 
@@ -409,6 +439,49 @@ class QuotaGlanceWidget : GlanceAppWidget(errorUiLayout = R.layout.widget_error)
                 hours > 0 -> "${hours}h ${minutes}m"
                 else -> "${minutes}m"
             }
+        }
+    }
+}
+
+/**
+ * Resolves the application-scoped managers the widget renders from.
+ *
+ * Constructing them per render re-ran the legacy-preferences migration and warmed a second
+ * credential cache on every launcher update, which is exactly the work that can outlast a
+ * broadcast. Hilt already owns one instance of each; direct construction stays as a fallback for
+ * hosts that update the widget before the application component exists.
+ */
+internal class WidgetDependencies private constructor(
+    val widgetPrefs: WidgetPrefsManager,
+    private val encryptedPrefs: EncryptedPrefsManager?
+) {
+    /**
+     * Returns whether quota values must stay hidden. A failed or slow read keeps the
+     * fail-closed default from [EncryptedPrefsManager] rather than blocking the composition.
+     */
+    suspend fun readWidgetRedaction(): Boolean {
+        val prefsManager = encryptedPrefs ?: return true
+        val warmed = runCatching {
+            withTimeoutOrNull(SETTINGS_TIMEOUT_MILLIS) { prefsManager.warmCache() }
+        }.getOrNull()
+        if (warmed == null) {
+            Log.w(TAG, "Widget privacy settings were unavailable within the render deadline")
+        }
+        return runCatching { prefsManager.getPrivacySettings().widgetRedactionEnabled }
+            .getOrDefault(true)
+    }
+
+    companion object {
+        private const val TAG = "CodexBarWidget"
+        private const val SETTINGS_TIMEOUT_MILLIS = 2_000L
+
+        fun of(appContext: Context): WidgetDependencies {
+            val entryPoint = appSingletonEntryPointOrNull(appContext)
+            val widgetPrefs = runCatching { entryPoint?.widgetPrefsManager() }.getOrNull()
+                ?: WidgetPrefsManager(appContext)
+            val prefsManager = runCatching { entryPoint?.encryptedPrefsManager() }.getOrNull()
+                ?: runCatching { EncryptedPrefsManager(appContext) }.getOrNull()
+            return WidgetDependencies(widgetPrefs, prefsManager)
         }
     }
 }
