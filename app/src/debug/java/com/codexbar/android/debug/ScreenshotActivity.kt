@@ -5,6 +5,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.codexbar.android.CodexBarApp
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppThemeStyle
@@ -18,21 +19,29 @@ import com.codexbar.android.core.domain.model.CodexTokenUsage
 import com.codexbar.android.core.domain.model.ExtraUsage
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.UsageWindow
+import com.codexbar.android.core.monitoring.MonitoringSession
+import com.codexbar.android.core.notification.QuotaNotificationService
 import com.codexbar.android.core.presentation.AndroidQuotaPresentationText
 import com.codexbar.android.core.presentation.PacePresentation
 import com.codexbar.android.core.presentation.QuotaHistorySample
 import com.codexbar.android.core.presentation.QuotaPaceCalculator
 import com.codexbar.android.core.presentation.QuotaPresentationMapper
 import com.codexbar.android.core.presentation.QuotaPresentationSnapshot
+import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.ui.theme.CodexBarTheme
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 /** Debug-only deterministic surface used to produce release screenshots from the real UI. */
 @AndroidEntryPoint
 class ScreenshotActivity : AppCompatActivity() {
+    @Inject lateinit var prefsManager: EncryptedPrefsManager
+    @Inject lateinit var notificationService: QuotaNotificationService
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val style = AppThemeStyle.fromStoredValue(intent.getStringExtra(EXTRA_THEME))
@@ -43,6 +52,18 @@ class ScreenshotActivity : AppCompatActivity() {
             isAppearanceLightNavigationBars = !darkTheme
         }
         val snapshot = createScreenshotSnapshot(Instant.now())
+
+        // Opt in only on a disposable screenshot emulator with notification permission granted.
+        if (intent.getBooleanExtra(EXTRA_NOTIFICATION, false)) {
+            lifecycleScope.launch {
+                prefsManager.warmCache()
+                val now = System.currentTimeMillis()
+                notificationService.showMonitoringNotification(
+                    snapshot,
+                    MonitoringSession(now, now + 60 * 60_000L, 1L)
+                )
+            }
+        }
 
         setContent {
             CodexBarTheme(
@@ -62,6 +83,7 @@ class ScreenshotActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_THEME = "theme"
         const val EXTRA_DARK_THEME = "dark_theme"
+        const val EXTRA_NOTIFICATION = "notification"
     }
 }
 
