@@ -109,6 +109,7 @@
     <string name="detail_pace">Pace</string>
     <string name="detail_forecast">Forecast</string>
     <string name="detail_reset_time">Reset time</string>
+    <string name="detail_renews">Renews</string>
     <string name="detail_limit">Limit</string>
     <string name="detail_remaining">Remaining</string>
     <string name="status_fresh">Fresh</string>
@@ -124,6 +125,7 @@
     <string name="status_quota_hidden">Quota hidden</string>
     <string name="status_hidden">Hidden</string>
     <string name="extra_usage_summary">%1$s: %2$s / %3$s (%4$s)</string>
+    <string name="renewal_summary">Renews %1$s</string>
     <string name="quota_metric_description">%1$s: %2$s</string>
     <string name="quota_percent_value">%1$d%%</string>
     <string name="action_cancel">Cancel</string>
@@ -188,6 +190,9 @@
     <string name="credential_cursor_setup_title">Cursor web session</string>
     <string name="credential_cursor_setup_body">Cursor does not provide a supported mobile device-code flow. In a desktop browser signed in to cursor.com, copy the Cookie request header from /api/usage-summary and paste it below. Treat it like a password. CodexBar validates it only against cursor.com, never follows redirects, and encrypts it after validation.</string>
     <string name="credential_cursor_cookie_header">Cursor Cookie header</string>
+    <string name="credential_opencode_go_setup_title">OpenCode Go web session</string>
+    <string name="credential_opencode_go_setup_body">In a desktop browser signed in to opencode.ai, copy the Cookie request header from the OpenCode Go page and paste it below. Treat the cookie like a password. Cookie is sent only to the fixed opencode.ai host, redirects are disabled, and it is encrypted with Android Keystore only after validation. Workspace ID is optional and accepts a wrk_... ID or an OpenCode workspace URL.</string>
+    <string name="credential_workspace_id_optional">Workspace ID (optional)</string>
     <string name="credential_zai_setup_title">z.ai Coding Plan</string>
     <string name="credential_zai_setup_body">Create or copy an API token from the z.ai Coding Plan dashboard. This release connects only to the fixed Global endpoint at api.z.ai; BigModel China and team selectors remain disabled until their region fields can be stored and validated separately.</string>
     <string name="credential_zai_api_key">z.ai API token</string>
@@ -376,6 +381,9 @@
     <string name="presentation_limit_hidden">Limit hidden</string>
     <string name="presentation_currency_limit">%1$s %2$s limit</string>
     <string name="presentation_currency_remaining">%1$s %2$s left</string>
+    <string name="presentation_balance">Zen balance</string>
+    <string name="presentation_balance_hidden">Balance hidden</string>
+    <string name="presentation_currency_balance">%1$s %2$s</string>
     <string name="presentation_no_fresh_data">No fresh data</string>
     <string name="presentation_reauthentication_required">Reauthentication required</string>
     <string name="presentation_authentication_failed">Authentication failed</string>

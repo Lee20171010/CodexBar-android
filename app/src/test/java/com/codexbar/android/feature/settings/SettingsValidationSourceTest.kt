@@ -18,12 +18,34 @@ class SettingsValidationSourceTest {
 
         val validationCall = source.indexOf("val result = repo.validateCredential(credential)")
         val successBranch = source.indexOf("is Result.Success -> {", startIndex = validationCall)
-        val saveCredential = source.indexOf("prefsManager.saveCredential(service, credential)", startIndex = successBranch)
+        val canonicalCopy = source.indexOf(
+            "credential.copy(accessToken = checkNotNull(canonicalOpenCodeCookieOrNull(credential.accessToken)))",
+            startIndex = successBranch
+        )
+        val saveCredential = source.indexOf("prefsManager.saveCredential(service, credentialToSave)", startIndex = successBranch)
+        val connectedHealth = source.indexOf(
+            "connectionHealthStore.update(service, ConnectionHealth.CONNECTED)",
+            startIndex = successBranch
+        )
         val failureBranch = source.indexOf("is Result.Failure ->", startIndex = successBranch)
+        val cookieBranch = source.indexOf("accessToken = if (service == AiService.OPENCODE_GO)")
+        val rawCookie = source.indexOf("state.accessToken", startIndex = cookieBranch)
+        val otherProviderBranch = source.indexOf("} else {", startIndex = rawCookie)
+        val trimmedToken = source.indexOf("state.accessToken.trim()", startIndex = otherProviderBranch)
 
         assertTrue("manual validation must validate the candidate credential", validationCall >= 0)
+        assertTrue(
+            "OpenCode Go validation must preserve raw cookie control characters",
+            cookieBranch >= 0 && rawCookie > cookieBranch &&
+                otherProviderBranch > rawCookie && trimmedToken > otherProviderBranch
+        )
         assertTrue("manual validation must save only from the success branch", successBranch > validationCall)
+        assertTrue("OpenCode Go validation success must canonicalize the persisted cookie", canonicalCopy > successBranch)
         assertTrue("manual validation must persist the credential after success", saveCredential > successBranch)
+        assertTrue(
+            "manual validation must mark the saved credential connected only in the success branch",
+            connectedHealth > saveCredential && connectedHealth < failureBranch
+        )
         assertTrue("manual validation must not save from the failure branch", failureBranch == -1 || saveCredential < failureBranch)
         assertFalse(source.contains("val result = repo.validateCredential()\n"))
     }

@@ -1084,6 +1084,11 @@ private fun ServiceCredentialSection(
                         body = stringResource(R.string.credential_cursor_setup_body),
                         accent = visualStyle.accent
                     )
+                    service == AiService.OPENCODE_GO -> ProviderSecretSetupGuide(
+                        title = stringResource(R.string.credential_opencode_go_setup_title),
+                        body = stringResource(R.string.credential_opencode_go_setup_body),
+                        accent = visualStyle.accent
+                    )
                     service == AiService.ZAI -> ProviderSecretSetupGuide(
                         title = stringResource(R.string.credential_zai_setup_title),
                         body = stringResource(R.string.credential_zai_setup_body),
@@ -1601,6 +1606,7 @@ private fun ManualCredentialFields(
             visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = secretKeyboardOptions(),
             modifier = Modifier.fillMaxWidth(),
+            enabled = service != AiService.OPENCODE_GO || !state.isValidating,
             singleLine = true
         )
 
@@ -1626,13 +1632,26 @@ private fun ManualCredentialFields(
             )
         }
 
-        if (service.providerMetadata.requiresAccountReference) {
+        if (service.providerMetadata.requiresAccountReference || service == AiService.OPENCODE_GO) {
             OutlinedTextField(
                 value = state.accountReference,
                 onValueChange = { onFieldChange("accountReference", it) },
-                label = { Text(stringResource(R.string.credential_account_slug)) },
-                supportingText = { Text(stringResource(R.string.credential_fireworks_slug_support)) },
+                label = {
+                    Text(
+                        stringResource(
+                            if (service == AiService.OPENCODE_GO) {
+                                R.string.credential_workspace_id_optional
+                            } else {
+                                R.string.credential_account_slug
+                            }
+                        )
+                    )
+                },
+                supportingText = if (service == AiService.FIREWORKS) {
+                    { Text(stringResource(R.string.credential_fireworks_slug_support)) }
+                } else null,
                 modifier = Modifier.fillMaxWidth(),
+                enabled = service != AiService.OPENCODE_GO || !state.isValidating,
                 singleLine = true
             )
         }
@@ -1749,6 +1768,7 @@ private fun AccountLinkControls(
                 AiService.CLINEPASS -> stringResource(R.string.credential_clinepass_setup_body)
                 AiService.IBM_BOB -> stringResource(R.string.credential_ibm_bob_setup_body)
                 AiService.FIREWORKS -> stringResource(R.string.credential_fireworks_setup_body)
+                AiService.OPENCODE_GO -> stringResource(R.string.credential_opencode_go_setup_body)
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

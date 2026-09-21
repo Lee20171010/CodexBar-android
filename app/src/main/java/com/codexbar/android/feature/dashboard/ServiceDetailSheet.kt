@@ -159,6 +159,14 @@ private fun ServiceDetailContent(
             ExtraUsageCard(extraUsage, accent)
         }
 
+        service.balance?.let { balance ->
+            DetailRow(balance.label, balance.amountLabel)
+        }
+
+        service.renewal?.let { renewal ->
+            DetailRow(stringResource(R.string.detail_renews), renewal.valueLabel)
+        }
+
         HorizontalDivider()
         Row(
             modifier = Modifier.fillMaxWidth(),

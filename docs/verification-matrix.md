@@ -16,6 +16,7 @@ This repository now uses layered verification because the app spans credentials,
 | Gemini desktop companion | Node tests cover CLI-output sanitization, persistent identity, private-address binding, authenticated socket exchange, encryption, and nonce replay rejection; CI also runs `npm audit` against the pinned lockfile. |
 | Retry-After parsing | `RetryAfterTest` and `RetryInterceptorTest` cover malformed, negative, overflow, date, and capped retry behavior. |
 | Token refresh races | `TokenRefreshRetryPolicyTest` covers provider/account-scoped retry state, terminal failure behavior, and account-fingerprint changes. |
+| OpenCode Go | `OpenCodePayloadParserTest` covers JSON and Seroval usage/balance payloads. `OpenCodeRepositoryImplTest` covers Cookie canonicalization and injection rejection, workspace discovery, balance-only success, billing fallback, terminal authentication, and a bounded optional-balance wait. `SecurePreferencesImplementationTest` source-checks encrypted provider-secret account-reference persistence; `NetworkModuleTest` covers credential-client logging, redirect, and response-size protections. |
 | Presentation snapshot | `QuotaPresentationMapperTest` covers shared labels, bars, freshness, privacy, and extra usage mapping. |
 | Pace/history | `QuotaPaceCalculatorTest` covers sparse samples, reserve, reset windows, and forecast states. |
 | Monitoring session | `MonitoringSessionTest` covers explicit start/end and remaining-duration math. |

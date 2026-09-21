@@ -94,6 +94,8 @@ class DashboardSummaryTest {
         primaryMetric = metrics.maxByOrNull { it.usedFraction ?: 0.0 },
         metrics = metrics,
         extraUsage = null,
+        balance = null,
+        renewal = null,
         freshness = FreshnessPresentation(
             fetchedAt = Instant.ofEpochSecond(1_750_000_000L),
             ageLabel = "just now",

@@ -1,6 +1,7 @@
 package com.codexbar.android.core.presentation
 
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountBalance
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.CodexTelemetry
 import com.codexbar.android.core.domain.model.CodexTokenTotals
@@ -55,6 +56,10 @@ class QuotaPresentationMapper(
                 primaryMetric = primary,
                 metrics = metrics,
                 extraUsage = quota.extraUsage?.let { mapExtraUsage(it, locale, privacy) },
+                balance = quota.balance?.let { mapBalance(it, locale, privacy) },
+                renewal = quota.renewsAt?.takeUnless { privacy.redactSensitiveValues }?.let {
+                    RenewalPresentation(text.renewalDate(it))
+                },
                 insights = quota.notices.mapNotNull(::mapNotice),
                 freshness = FreshnessPresentation(
                     fetchedAt = quota.fetchedAt,
@@ -96,7 +101,8 @@ class QuotaPresentationMapper(
             .sortedWith(
                 compareByDescending<ServiceQuotaPresentation> {
                     it.primaryMetric?.usedFraction ?: -1.0
-                }.thenBy { it.service.ordinal }
+                }.thenByDescending { it.balance != null }
+                    .thenBy { it.service.ordinal }
             )
 
         return QuotaPresentationSnapshot(
@@ -361,6 +367,19 @@ class QuotaPresentationMapper(
         )
     }
 
+    private fun mapBalance(
+        balance: AccountBalance,
+        locale: Locale,
+        privacy: PrivacyPresentation
+    ): AccountBalancePresentation = AccountBalancePresentation(
+        label = text.balance(),
+        amountLabel = if (privacy.redactSensitiveValues) {
+            text.balanceHidden()
+        } else {
+            text.currencyBalance(balance.currency, String.format(locale, "%.2f", balance.amount))
+        }
+    )
+
     private fun mapError(
         service: AiService,
         error: AppError,
@@ -386,6 +405,8 @@ class QuotaPresentationMapper(
             primaryMetric = null,
             metrics = emptyList(),
             extraUsage = null,
+            balance = null,
+            renewal = null,
             insights = emptyList(),
             freshness = FreshnessPresentation(
                 fetchedAt = null,

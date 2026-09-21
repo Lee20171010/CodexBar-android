@@ -6,6 +6,8 @@ data class QuotaInfo(
     val service: AiService,
     val windows: List<UsageWindow>,
     val extraUsage: ExtraUsage?,
+    val balance: AccountBalance? = null,
+    val renewsAt: Instant? = null,
     val tier: String? = null,
     val fetchedAt: Instant,
     val notices: Set<QuotaNotice> = emptySet(),
@@ -16,6 +18,11 @@ data class QuotaInfo(
 data class CodexResetCredits(
     val availableCount: Int,
     val expiresAt: List<Instant>
+)
+
+data class AccountBalance(
+    val amount: Double,
+    val currency: String
 )
 
 sealed interface QuotaNotice {

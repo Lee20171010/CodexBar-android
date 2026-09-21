@@ -18,6 +18,8 @@ data class ServiceQuotaPresentation(
     val primaryMetric: QuotaMetricPresentation?,
     val metrics: List<QuotaMetricPresentation>,
     val extraUsage: ExtraUsagePresentation?,
+    val balance: AccountBalancePresentation?,
+    val renewal: RenewalPresentation?,
     val insights: List<ServiceInsightPresentation> = emptyList(),
     val freshness: FreshnessPresentation,
     val supportedActions: Set<QuotaAction>,
@@ -128,6 +130,15 @@ data class ExtraUsagePresentation(
     val remainingLabel: String,
     val utilizationFraction: Double,
     val severity: QuotaSeverity
+)
+
+data class AccountBalancePresentation(
+    val label: String,
+    val amountLabel: String
+)
+
+data class RenewalPresentation(
+    val valueLabel: String
 )
 
 data class FreshnessPresentation(

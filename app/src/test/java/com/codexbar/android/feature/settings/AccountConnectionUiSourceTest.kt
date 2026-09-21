@@ -1,6 +1,7 @@
 package com.codexbar.android.feature.settings
 
 import java.io.File
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -76,6 +77,18 @@ class AccountConnectionUiSourceTest {
         assertFalse(source.contains("GEMINI_STATS_COMMAND"))
         assertFalse(source.contains("R.string.credential_google_client_support"))
         assertFalse(source.contains("R.string.credential_oauth_client_id"))
+    }
+
+    @Test
+    fun `OpenCode Go fields are locked while validation runs`() {
+        val fields = settingsSource()
+            .substringAfter("private fun ManualCredentialFields(")
+            .substringBefore("private fun CredentialValidationResult(")
+
+        assertEquals(
+            2,
+            fields.split("enabled = service != AiService.OPENCODE_GO || !state.isValidating").size - 1
+        )
     }
 
     private fun settingsSource(): String {

@@ -39,6 +39,20 @@ class WidgetDataSynchronizationSourceTest {
         assertTrue(cachePresentation.contains("_status_message"))
     }
 
+    @Test
+    fun `balance-only providers cache their balance after any stale reason`() {
+        val prefs = sourceFile("core/widget/WidgetPrefsManager.kt")
+        val cachePresentation = prefs.substringAfter("fun cachePresentation(")
+            .substringBefore("private fun SharedPreferences.Editor.cacheMetric")
+        val staleReason = cachePresentation.indexOf("service.freshness.staleReason")
+        val balance = cachePresentation.indexOf("service.balance?.let", startIndex = staleReason)
+
+        assertTrue(staleReason >= 0)
+        assertTrue(balance > staleReason)
+        assertTrue(cachePresentation.contains("it.label"))
+        assertTrue(cachePresentation.contains("it.amountLabel"))
+    }
+
     private fun sourceFile(relativePath: String): String {
         return File(
             appDir,

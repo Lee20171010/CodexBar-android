@@ -79,4 +79,59 @@ class LiveNotificationSourceTest {
         assertTrue(monitoring.contains("primaryMetric?.usedPercent?.coerceIn(0, 100)"))
         assertFalse(monitoring.contains("barProgress?.times(100)"))
     }
+
+    @Test
+    fun `balance-only snapshot shows its amount instead of waiting`() {
+        val source = File(
+            appDir,
+            "src/main/java/com/codexbar/android/core/notification/QuotaNotificationService.kt"
+        ).readText().replace("\r\n", "\n")
+        val formatterIndex = source.indexOf("private fun formatRemaining(")
+        val localizedStringIndex = source.indexOf("private fun localizedString(")
+        val formatter = source.substring(formatterIndex, localizedStringIndex)
+        val monitoringIndex = source.indexOf("fun showMonitoringNotification(")
+        val platformBuilderIndex = source.indexOf("private fun buildPlatformMonitoringNotification(")
+        val monitoring = source.substring(monitoringIndex, platformBuilderIndex)
+        val staleReasonIndex = formatter.indexOf("service.freshness.staleReason")
+        val balanceIndex = formatter.indexOf("service.balance?.amountLabel")
+
+        assertTrue(monitoring.contains("primaryMetric == null && primaryService.balance == null"))
+        assertTrue(staleReasonIndex >= 0)
+        assertTrue(balanceIndex > staleReasonIndex)
+    }
+
+    @Test
+    fun `error-only snapshot shows its error instead of waiting`() {
+        val source = File(
+            appDir,
+            "src/main/java/com/codexbar/android/core/notification/QuotaNotificationService.kt"
+        ).readText().replace("\r\n", "\n")
+        val monitoringIndex = source.indexOf("fun showMonitoringNotification(")
+        val platformBuilderIndex = source.indexOf("private fun buildPlatformMonitoringNotification(")
+        val monitoring = source.substring(monitoringIndex, platformBuilderIndex)
+
+        assertTrue(
+            monitoring.contains(
+                "primaryMetric == null && primaryService.balance == null && " +
+                    "primaryService.freshness.staleReason == null"
+            )
+        )
+    }
+
+    @Test
+    fun `balance-only monitoring omits misleading progress`() {
+        val source = File(
+            appDir,
+            "src/main/java/com/codexbar/android/core/notification/QuotaNotificationService.kt"
+        ).readText().replace("\r\n", "\n")
+        val monitoringIndex = source.indexOf("fun showMonitoringNotification(")
+        val platformBuilderIndex = source.indexOf("private fun buildPlatformMonitoringNotification(")
+        val monitoring = source.substring(monitoringIndex, platformBuilderIndex)
+        val platformBuilder = source.substring(platformBuilderIndex)
+
+        assertTrue(monitoring.contains("val showProgress = primaryMetric != null ||"))
+        assertTrue(monitoring.contains("if (showProgress)"))
+        assertTrue(platformBuilder.contains(".setStyle(progressStyle.takeIf { showProgress })"))
+        assertTrue(monitoring.contains("showProgress = showProgress"))
+    }
 }

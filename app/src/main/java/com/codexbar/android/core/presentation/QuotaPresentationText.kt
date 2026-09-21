@@ -25,6 +25,10 @@ interface QuotaPresentationText {
     fun limitHidden(): String
     fun currencyLimit(currency: String, amount: String): String
     fun currencyRemaining(currency: String, amount: String): String
+    fun balance(): String
+    fun balanceHidden(): String
+    fun currencyBalance(currency: String, amount: String): String
+    fun renewalDate(renewsAt: Instant): String
     fun noFreshData(): String
     fun reauthenticationRequired(): String
     fun authenticationFailed(): String
@@ -91,6 +95,10 @@ object EnglishQuotaPresentationText : QuotaPresentationText {
     override fun limitHidden(): String = "Limit hidden"
     override fun currencyLimit(currency: String, amount: String): String = "$currency $amount limit"
     override fun currencyRemaining(currency: String, amount: String): String = "$currency $amount left"
+    override fun balance(): String = "Zen balance"
+    override fun balanceHidden(): String = "Balance hidden"
+    override fun currencyBalance(currency: String, amount: String): String = "$currency $amount"
+    override fun renewalDate(renewsAt: Instant): String = formatDateTime(renewsAt, locale)
     override fun noFreshData(): String = "No fresh data"
     override fun reauthenticationRequired(): String = "Reauthentication required"
     override fun authenticationFailed(): String = "Authentication failed"
@@ -191,6 +199,11 @@ class AndroidQuotaPresentationText(
         string(R.string.presentation_currency_limit, currency, amount)
     override fun currencyRemaining(currency: String, amount: String): String =
         string(R.string.presentation_currency_remaining, currency, amount)
+    override fun balance(): String = string(R.string.presentation_balance)
+    override fun balanceHidden(): String = string(R.string.presentation_balance_hidden)
+    override fun currencyBalance(currency: String, amount: String): String =
+        string(R.string.presentation_currency_balance, currency, amount)
+    override fun renewalDate(renewsAt: Instant): String = formatDateTime(renewsAt, locale)
     override fun noFreshData(): String = string(R.string.presentation_no_fresh_data)
     override fun reauthenticationRequired(): String =
         string(R.string.presentation_reauthentication_required)
@@ -199,7 +212,7 @@ class AndroidQuotaPresentationText(
     override fun networkUnavailable(): String = string(R.string.presentation_network_unavailable)
     override fun rateLimitedUntil(retryAt: Instant): String = string(
         R.string.presentation_rate_limited_until,
-        formatInstant(retryAt)
+        formatDateTime(retryAt, locale)
     )
     override fun rateLimited(): String = string(R.string.status_rate_limited)
     override fun providerResponseInvalid(): String = string(R.string.presentation_provider_response_invalid)
@@ -286,10 +299,11 @@ class AndroidQuotaPresentationText(
         return languageContext.getString(resourceId, *formatArgs)
     }
 
-    private fun formatInstant(instant: Instant): String {
-        return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
-            .withLocale(locale)
-            .withZone(ZoneId.systemDefault())
-            .format(instant)
-    }
+    private fun formatInstant(instant: Instant): String = formatDateTime(instant, locale)
 }
+
+private fun formatDateTime(instant: Instant, locale: Locale): String =
+    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+        .withLocale(locale)
+        .withZone(ZoneId.systemDefault())
+        .format(instant)

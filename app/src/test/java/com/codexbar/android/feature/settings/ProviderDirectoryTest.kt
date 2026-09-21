@@ -51,6 +51,19 @@ class ProviderDirectoryTest {
     }
 
     @Test
+    fun `OpenCode Go search returns Go provider`() {
+        assertEquals(
+            setOf(AiService.OPENCODE_GO),
+            filterProviders(
+                "opencode",
+                ProviderConnectionFilter.ALL,
+                ProviderCategoryFilter.ALL,
+                states
+            ).toSet()
+        )
+    }
+
+    @Test
     fun `connection filters partition the provider list`() {
         val connected = filterProviders(
             "",

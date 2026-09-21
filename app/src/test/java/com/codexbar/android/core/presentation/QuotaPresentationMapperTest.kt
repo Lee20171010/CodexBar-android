@@ -1,6 +1,7 @@
 package com.codexbar.android.core.presentation
 
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountBalance
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.CodexResetCredits
 import com.codexbar.android.core.domain.model.CodexContextUsage
@@ -14,6 +15,7 @@ import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.QuotaNotice
 import com.codexbar.android.core.domain.model.UsageWindow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -78,6 +80,24 @@ class QuotaPresentationMapperTest {
         assertEquals("No fresh data", service.freshness.ageLabel)
         assertEquals("Rate limited until 2026-07-13T00:10:00Z", service.freshness.staleReason)
         assertEquals(now.plusSeconds(600), service.freshness.nextRetryAt)
+    }
+
+    @Test
+    fun `balance-only success sorts before provider error`() {
+        val snapshot = mapper.map(
+            quotas = listOf(
+                QuotaInfo(
+                    service = AiService.OPENCODE_GO,
+                    windows = emptyList(),
+                    extraUsage = null,
+                    balance = AccountBalance(12.5, "USD"),
+                    fetchedAt = now
+                )
+            ),
+            errors = mapOf(AiService.CLAUDE to AppError.NetworkError("offline"))
+        )
+
+        assertEquals(AiService.OPENCODE_GO, snapshot.services.first().service)
     }
 
     @Test
@@ -310,5 +330,41 @@ class QuotaPresentationMapperTest {
         )
 
         assertTrue(snapshot.services.single().metrics.single().history.points.isEmpty())
+    }
+
+    @Test
+    fun `balance is labelled and redacted separately from credits`() {
+        val quota = QuotaInfo(
+            service = AiService.OPENCODE_GO,
+            windows = emptyList(),
+            extraUsage = null,
+            balance = AccountBalance(12.5, "USD"),
+            fetchedAt = now
+        )
+
+        val service = mapper.map(listOf(quota), privacy = PrivacyPresentation()).services.single()
+        assertEquals("Zen balance", service.balance?.label)
+        assertEquals("USD 12.50", service.balance?.amountLabel)
+
+        val redacted = mapper.map(listOf(quota), privacy = PrivacyPresentation(true)).services.single()
+        assertEquals("Zen balance", redacted.balance?.label)
+        assertEquals("Balance hidden", redacted.balance?.amountLabel)
+        assertNull(redacted.extraUsage)
+    }
+
+    @Test
+    fun `renewal date is present normally and hidden by privacy`() {
+        val quota = QuotaInfo(
+            service = AiService.OPENCODE_GO,
+            windows = emptyList(),
+            extraUsage = null,
+            renewsAt = Instant.parse("2026-08-01T00:00:00Z"),
+            fetchedAt = now
+        )
+
+        assertNotNull(mapper.map(listOf(quota)).services.single().renewal)
+        assertNull(
+            mapper.map(listOf(quota), privacy = PrivacyPresentation(true)).services.single().renewal
+        )
     }
 }

@@ -19,6 +19,7 @@ import com.codexbar.android.core.network.ibmbob.IbmBobApiService
 import com.codexbar.android.core.network.moonshot.MoonshotApiService
 import com.codexbar.android.core.network.oauth.CodexDeviceAuthService
 import com.codexbar.android.core.network.oauth.GitHubDeviceAuthService
+import com.codexbar.android.core.network.opencode.OpenCodeApiService
 import com.codexbar.android.core.network.openrouter.OpenRouterApiService
 import com.codexbar.android.core.network.synthetic.SyntheticApiService
 import com.codexbar.android.core.network.venice.VeniceApiService
@@ -222,6 +223,22 @@ object NetworkModule {
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
             .create(CursorApiService::class.java)
+    }
+
+    // --- OpenCode Go ---
+
+    @Provides
+    @Singleton
+    fun provideOpenCodeGoApiService(
+        @ProviderCredentialClient client: OkHttpClient,
+        json: Json
+    ): OpenCodeApiService {
+        return Retrofit.Builder()
+            .baseUrl(AiService.OPENCODE_GO.baseUrl)
+            .client(client)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(OpenCodeApiService::class.java)
     }
 
     // --- z.ai ---

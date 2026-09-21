@@ -198,6 +198,8 @@ class QuotaNotificationService @Inject constructor(
         } else {
             primaryMetric?.usedPercent?.coerceIn(0, 100) ?: 0
         }
+        val showProgress = primaryMetric != null || primaryService == null ||
+            primaryService.balance == null && primaryService.freshness.staleReason == null
         val remaining = session.remainingMinutes()
         val remainingDuration = localizedString(R.string.duration_minutes, remaining)
         val title = if (
@@ -220,7 +222,7 @@ class QuotaNotificationService @Inject constructor(
             privacySettings.notificationRedactionEnabled -> {
                 localizedString(R.string.notification_monitoring_hidden, remainingDuration)
             }
-            primaryService == null || primaryMetric == null -> {
+            primaryService == null || primaryMetric == null && primaryService.balance == null && primaryService.freshness.staleReason == null -> {
                 localizedString(R.string.notification_monitoring_waiting, remainingDuration)
             }
             else -> formatRemaining(primaryService)
@@ -234,6 +236,7 @@ class QuotaNotificationService @Inject constructor(
                 overview = overview,
                 subText = subText,
                 progress = progress,
+                showProgress = showProgress,
                 primaryService = primaryService,
                 privacySettings = privacySettings,
                 endsAtMillis = session.endsAtMillis
@@ -249,7 +252,11 @@ class QuotaNotificationService @Inject constructor(
                         .setBigContentTitle(title)
                         .bigText(listOf(text, overview).filter { it.isNotBlank() }.joinToString("\n"))
                 )
-                .setProgress(100, progress, primaryMetric == null)
+                .apply {
+                    if (showProgress) {
+                        setProgress(100, progress, primaryMetric == null)
+                    }
+                }
                 .setContentIntent(dashboardPendingIntent(primaryService?.service))
                 .setOngoing(true)
                 .setSilent(true)
@@ -369,6 +376,7 @@ class QuotaNotificationService @Inject constructor(
         overview: String,
         subText: String,
         progress: Int,
+        showProgress: Boolean,
         primaryService: ServiceQuotaPresentation?,
         privacySettings: PrivacySettings,
         endsAtMillis: Long
@@ -421,7 +429,7 @@ class QuotaNotificationService @Inject constructor(
             .setContentTitle(title)
             .setContentText(listOf(text, overview).filter { it.isNotBlank() }.joinToString(" — "))
             .setSubText(subText)
-            .setStyle(progressStyle)
+            .setStyle(progressStyle.takeIf { showProgress })
             .setColor(progressColor)
             .setContentIntent(dashboardPendingIntent(primaryService?.service))
             .setOngoing(true)
@@ -518,6 +526,7 @@ class QuotaNotificationService @Inject constructor(
         val primaryMetric = service.primaryMetric
         if (primaryMetric == null) {
             return service.freshness.staleReason
+                ?: service.balance?.amountLabel
                 ?: localizedString(R.string.notification_waiting_for_data)
         }
         val resetText = primaryMetric.resetLabel?.let { " - $it" } ?: ""

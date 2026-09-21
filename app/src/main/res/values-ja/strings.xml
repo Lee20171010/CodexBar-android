@@ -109,6 +109,7 @@
     <string name="detail_pace">ペース</string>
     <string name="detail_forecast">予測</string>
     <string name="detail_reset_time">リセット日時</string>
+    <string name="detail_renews">更新日時</string>
     <string name="detail_limit">上限</string>
     <string name="detail_remaining">残り</string>
     <string name="status_fresh">最新</string>
@@ -124,6 +125,7 @@
     <string name="status_quota_hidden">使用枠を非表示</string>
     <string name="status_hidden">非表示</string>
     <string name="extra_usage_summary">%1$s: %2$s / %3$s（%4$s）</string>
+    <string name="renewal_summary">%1$sに更新</string>
     <string name="quota_metric_description">%1$s: %2$s</string>
     <string name="quota_percent_value">%1$d%%</string>
     <string name="action_cancel">キャンセル</string>
@@ -188,6 +190,9 @@
     <string name="credential_cursor_setup_title">Cursor Webセッション</string>
     <string name="credential_cursor_setup_body">Cursorには対応済みのモバイル向けデバイスコード認証がありません。PCのブラウザでcursor.comへログインし、/api/usage-summaryリクエストのCookieヘッダーをコピーして下へ貼り付けてください。パスワードと同様に扱ってください。CodexBarはcursor.comに対してだけ検証し、リダイレクトせず、検証成功後に暗号化します。</string>
     <string name="credential_cursor_cookie_header">Cursor Cookieヘッダー</string>
+    <string name="credential_opencode_go_setup_title">OpenCode Go Webセッション</string>
+    <string name="credential_opencode_go_setup_body">opencode.aiにログインしたPCブラウザで、OpenCode GoページからCookieリクエストヘッダーをコピーし、下へ貼り付けてください。Cookieはパスワードと同様に扱ってください。Cookieは固定のopencode.aiにのみ送信され、リダイレクトは無効化され、検証後にのみAndroid Keystoreで暗号化されます。ワークスペースIDは任意で、wrk_... IDまたはOpenCodeワークスペースURLを受け付けます。</string>
+    <string name="credential_workspace_id_optional">ワークスペースID（任意）</string>
     <string name="credential_zai_setup_title">z.ai Coding Plan</string>
     <string name="credential_zai_setup_body">z.ai Coding PlanのダッシュボードでAPIトークンを作成またはコピーしてください。このリリースは固定されたGlobalエンドポイント（api.z.ai）だけへ接続します。BigModel中国リージョンとチーム用セレクターは、個別に安全な保存・検証を実装するまで無効です。</string>
     <string name="credential_zai_api_key">z.ai APIトークン</string>
@@ -376,6 +381,9 @@
     <string name="presentation_limit_hidden">上限を非表示</string>
     <string name="presentation_currency_limit">%1$s %2$s 上限</string>
     <string name="presentation_currency_remaining">残り %1$s %2$s</string>
+    <string name="presentation_balance">Zen 残高</string>
+    <string name="presentation_balance_hidden">残高を非表示</string>
+    <string name="presentation_currency_balance">%1$s %2$s</string>
     <string name="presentation_no_fresh_data">最新データがありません</string>
     <string name="presentation_reauthentication_required">再認証が必要です</string>
     <string name="presentation_authentication_failed">認証に失敗しました</string>

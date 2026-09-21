@@ -113,5 +113,11 @@ enum class AiService(
         brandColor = 0xFFF45B3A,
         baseUrl = "https://api.fireworks.ai/",
         requiresManualCredentials = true
+    ),
+    OPENCODE_GO(
+        displayName = "OpenCode Go",
+        brandColor = 0xFF2563EB,
+        baseUrl = "https://opencode.ai/",
+        requiresManualCredentials = true
     )
 }

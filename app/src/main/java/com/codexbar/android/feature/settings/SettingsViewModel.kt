@@ -8,6 +8,7 @@ import com.codexbar.android.core.auth.AccountLinkManager
 import com.codexbar.android.core.auth.DeviceAuthSession
 import com.codexbar.android.core.data.QuotaHistoryStore
 import com.codexbar.android.core.data.QuotaRepositoryRegistry
+import com.codexbar.android.core.data.canonicalOpenCodeCookieOrNull
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppThemeStyle
 import com.codexbar.android.core.domain.model.AppError
@@ -174,7 +175,11 @@ class SettingsViewModel @Inject constructor(
                 Credential.ProviderSecretCredential(
                     service = service,
                     kind = checkNotNull(service.providerMetadata.secretKind),
-                    accessToken = state.accessToken.trim(),
+                    accessToken = if (service == AiService.OPENCODE_GO) {
+                        state.accessToken
+                    } else {
+                        state.accessToken.trim()
+                    },
                     accountReference = state.accountReference.trim().ifBlank { null }
                 )
             }
@@ -213,7 +218,15 @@ class SettingsViewModel @Inject constructor(
             val result = repo.validateCredential(credential)
             val validationResult = when (result) {
                 is Result.Success -> {
-                    prefsManager.saveCredential(service, credential)
+                    val credentialToSave = if (
+                        credential is Credential.ProviderSecretCredential &&
+                        service == AiService.OPENCODE_GO
+                    ) {
+                        credential.copy(accessToken = checkNotNull(canonicalOpenCodeCookieOrNull(credential.accessToken)))
+                    } else {
+                        credential
+                    }
+                    prefsManager.saveCredential(service, credentialToSave)
                     connectionHealthStore.update(service, ConnectionHealth.CONNECTED)
                     ValidationResult.Success
                 }

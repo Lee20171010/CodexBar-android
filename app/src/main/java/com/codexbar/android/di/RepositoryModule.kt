@@ -14,6 +14,7 @@ import com.codexbar.android.core.data.KimiRepositoryImpl
 import com.codexbar.android.core.data.IbmBobRepositoryImpl
 import com.codexbar.android.core.data.MoonshotRepositoryImpl
 import com.codexbar.android.core.data.OpenRouterRepositoryImpl
+import com.codexbar.android.core.data.OpenCodeRepositoryImpl
 import com.codexbar.android.core.data.SyntheticRepositoryImpl
 import com.codexbar.android.core.data.VeniceRepositoryImpl
 import com.codexbar.android.core.data.ZaiRepositoryImpl
@@ -37,6 +38,7 @@ import com.codexbar.android.core.network.kimi.KimiApiService
 import com.codexbar.android.core.network.ibmbob.IbmBobApiService
 import com.codexbar.android.core.network.moonshot.MoonshotApiService
 import com.codexbar.android.core.network.openrouter.OpenRouterApiService
+import com.codexbar.android.core.network.opencode.OpenCodeApiService
 import com.codexbar.android.core.network.synthetic.SyntheticApiService
 import com.codexbar.android.core.network.venice.VeniceApiService
 import com.codexbar.android.core.network.zai.ZaiApiService
@@ -112,6 +114,15 @@ object RepositoryModule {
         apiService: CursorApiService,
         prefsManager: EncryptedPrefsManager
     ): QuotaRepository = CursorRepositoryImpl(apiService, prefsManager)
+
+    @Provides
+    @Singleton
+    @IntoMap
+    @AiServiceKey(AiService.OPENCODE_GO)
+    fun provideOpenCodeGoRepository(
+        apiService: OpenCodeApiService,
+        prefsManager: EncryptedPrefsManager
+    ): QuotaRepository = OpenCodeRepositoryImpl(apiService, prefsManager)
 
     @Provides
     @Singleton

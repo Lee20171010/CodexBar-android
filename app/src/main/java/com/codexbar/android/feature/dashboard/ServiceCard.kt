@@ -265,6 +265,24 @@ fun ServiceCard(
                 )
             }
 
+            service.balance?.let { balance ->
+                Spacer(modifier = Modifier.height(CodexBarSpacing.medium))
+                Text(
+                    text = "${balance.label}: ${balance.amountLabel}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            service.renewal?.let { renewal ->
+                Spacer(modifier = Modifier.height(CodexBarSpacing.medium))
+                Text(
+                    text = stringResource(R.string.renewal_summary, renewal.valueLabel),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             Spacer(modifier = Modifier.height(CodexBarSpacing.small))
             Text(
                 text = service.freshness.ageLabel,

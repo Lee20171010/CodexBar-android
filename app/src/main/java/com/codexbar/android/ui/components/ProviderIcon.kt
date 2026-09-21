@@ -38,5 +38,6 @@ fun AiService.providerIcon(): ImageVector {
         AiService.CLINEPASS -> Icons.Rounded.Code
         AiService.IBM_BOB -> Icons.Rounded.DataUsage
         AiService.FIREWORKS -> Icons.Rounded.Bolt
+        AiService.OPENCODE_GO -> Icons.Rounded.Bolt
     }
 }

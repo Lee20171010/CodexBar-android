@@ -98,16 +98,18 @@ class WidgetPrefsManager @Inject constructor(
         editor.putLong("${prefix}_updated_at", System.currentTimeMillis())
         editor.putString("${prefix}_status", service.status.name)
         editor.putString("${prefix}_freshness", service.freshness.ageLabel)
+        service.tier?.let { editor.putString("${prefix}_tier", it) }
         service.freshness.staleReason?.let {
             editor.putString("${prefix}_status_message", it)
         }
-
-        service.tier?.let { editor.putString("${prefix}_tier", it) }
         if (service.metrics.isEmpty()) {
-            val message = service.tier
-                ?: ContextCompat.getContextForLanguage(context)
-                    .getString(R.string.widget_no_bounded_quota)
-            editor.putString("${prefix}_status_message", message)
+            if (service.freshness.staleReason == null) {
+                val message = service.balance?.let { "${it.label}: ${it.amountLabel}" }
+                    ?: service.tier
+                    ?: ContextCompat.getContextForLanguage(context)
+                        .getString(R.string.widget_no_bounded_quota)
+                editor.putString("${prefix}_status_message", message)
+            }
         }
 
         for (metric in service.metrics) {

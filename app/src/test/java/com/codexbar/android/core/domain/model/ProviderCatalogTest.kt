@@ -2,6 +2,7 @@ package com.codexbar.android.core.domain.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ProviderCatalogTest {
@@ -69,5 +70,18 @@ class ProviderCatalogTest {
             AiService.CURSOR.providerMetadata.secretKind
         )
         assertNull(AiService.CODEX.providerMetadata.secretKind)
+    }
+
+    @Test
+    fun `OpenCode Go uses one internal identity and cookie-auth catalog entry`() {
+        val service = AiService.entries.single { it.displayName == "OpenCode Go" }
+        assertEquals("OPENCODE_GO", service.name)
+        assertEquals(ProviderAuthMode.SESSION_COOKIE, service.providerMetadata.authMode)
+        assertEquals(ProviderSecretKind.COOKIE_HEADER, service.providerMetadata.secretKind)
+        assertEquals("opencode-go", service.providerMetadata.guideAnchor)
+        assertTrue("opencode" in service.providerMetadata.aliases)
+        assertTrue("open code" in service.providerMetadata.aliases)
+        assertTrue("opencode go" in service.providerMetadata.aliases)
+        assertTrue("open code go" in service.providerMetadata.aliases)
     }
 }

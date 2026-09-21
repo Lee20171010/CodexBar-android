@@ -75,4 +75,16 @@ class SecurePreferencesImplementationTest {
         assertFalse(appBuild.contains("security.crypto"))
         assertFalse(versionCatalog.contains("security-crypto"))
     }
+
+    @Test
+    fun `account reference follows encrypted provider-secret persistence`() {
+        val source = File(
+            appDir,
+            "src/main/java/com/codexbar/android/core/security/EncryptedPrefsManager.kt"
+        ).readText()
+
+        assertTrue(source.contains("credential.accountReference"))
+        assertTrue(source.contains("\${prefix}_account_reference"))
+        assertTrue(source.contains("getEncryptedString(\"\${prefix}_account_reference\")"))
+    }
 }

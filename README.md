@@ -2,7 +2,7 @@
 
 > Android port of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete) — the macOS menu bar app for monitoring AI service quotas.
 
-Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT), GitHub Copilot, Gemini, Cursor, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI usage in one place. Optional private companions keep Claude and Gemini authentication inside their official CLIs and add local Codex context/token telemetry without exporting session content.
+Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT), GitHub Copilot, Gemini, Cursor, OpenCode Go, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI usage in one place. Optional private companions keep Claude and Gemini authentication inside their official CLIs and add local Codex context/token telemetry without exporting session content.
 
 <p align="center">
   <img src="docs/images/releases/v0.9.0/dashboard-material3.png" width="320" alt="v0.9.0 Material 3 dashboard in light mode" />
@@ -14,7 +14,7 @@ Monitor AI service quotas from your Android device. Track Claude, Codex (ChatGPT
 
 ## Features
 
-- Unified quota monitoring for 18 providers: Claude, Codex, GitHub Copilot, Gemini, Cursor, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI
+- Unified quota monitoring for 19 providers: Claude, Codex, GitHub Copilot, Gemini, Cursor, OpenCode Go, z.ai, ZenMux, Kimi Code, ElevenLabs, OpenRouter, Synthetic, Chutes, DeepSeek, Venice, Moonshot API, Cline, IBM Bob, and Fireworks AI
 - Four complete selectable design systems: the existing Material 3 UI, Liquid Glass, WinUI 3, and Aurora, each with light/dark support
 - A dashboard summary that leads with the quota window running out first, a tappable strip of every provider's remaining quota, and a needs-attention filter
 - Provider cards with animated rings, bars, exact values, reset countdowns, pace forecasts, and retained history charts
@@ -224,6 +224,14 @@ Cursor does not currently expose a supported mobile device-code flow. The origin
 The app rejects malformed or multi-line values before network access, sends the cookie only to `https://cursor.com`, refuses HTTP and HTTPS redirects, and encrypts it with Android Keystore only after the usage endpoint accepts it. Never paste this value into an issue or chat. Signing out of Cursor invalidates the session.
 
 Cursor cards show the billing-cycle Total, Auto, and API percentages, legacy request-plan usage when available, the cycle reset, plan name, and capped on-demand USD usage. Team and Enterprise personal/shared-cap fallbacks follow the original CodexBar mapping.
+
+### OpenCode Go
+
+In a desktop browser, sign in to `opencode.ai`, open the OpenCode Go page, and copy its `Cookie` request header. In Connections, open OpenCode Go, paste the header, and select **Validate & connect**. Treat this value as a password; do not share it in screenshots, logs, chats, or issues.
+
+Workspace ID is optional. Leave it empty for automatic selection, or enter a `wrk_...` ID or an OpenCode workspace URL containing one. The app sends the cookie only to `opencode.ai`, disables redirects, and encrypts it with Android Keystore only after validation succeeds.
+
+OpenCode Go cards show the rolling 5-hour window, optional weekly and monthly windows, renewal information when available, and Zen balance. Desktop SQLite cost history is not available on Android.
 
 ### z.ai
 
