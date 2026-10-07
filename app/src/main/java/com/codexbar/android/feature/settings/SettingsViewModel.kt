@@ -208,7 +208,8 @@ class SettingsViewModel @Inject constructor(
         prefsManager.deleteAllCredentials()
         _uiState.update {
             SettingsUiState(
-                refreshIntervalMinutes = it.refreshIntervalMinutes
+                refreshIntervalMinutes = it.refreshIntervalMinutes,
+                notificationsEnabled = it.notificationsEnabled
             )
         }
     }

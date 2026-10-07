@@ -22,6 +22,34 @@ does not establish Android support for every upstream provider or desktop source
 
 ## 2. Components and ownership
 
+### Account-storage transition
+
+`AccountConnection` separates a local connection ID, provider, editable name and
+configuration generation. New IDs/generations are random UUIDs; adopted legacy IDs
+retain their provider namespace for downgrade compatibility. `EncryptedPrefsManager`
+keeps the existing encrypted file/Keystore and adopts legacy entries without moving
+or deleting credentials. Metadata discovery is idempotent and preserves global
+settings and reset receipts. No DataStore or encryption-format migration occurs.
+
+Draft objects are not persisted. The caller validates first, then publishes with
+`saveValidatedConnection`; reconnect compares the captured generation and keeps the
+connection ID. Rename preserves generation; token rotation compares both generation
+and expected credentials. Optional credential fields are cleared on replacement.
+`publishIfCurrent` excludes deletion/reconnect during a small synchronous publication;
+network/suspending work must remain outside that lock. Deleted accounts cannot be
+recreated by these connection-aware APIs. Failed synchronous writes fail closed until
+restart, because SharedPreferences may change its memory before reporting disk failure.
+
+Rollback: an older build can still read unchanged legacy credential namespaces from
+the same encrypted file. New UUID accounts remain on disk but are invisible to that
+build. Do not use an old build to edit accounts or run its destructive credential
+reset; restore the newer build to recover access to new accounts. Android Keystore
+backup/restore is not replaced by this source-level compatibility path.
+
+This is the storage foundation. Existing repository/UI/worker entry points still use
+the legacy APIs until all-surface routing lands; end-user multi-account support and
+foreground/background lifecycle acceptance are not yet complete.
+
 Settings includes an offline About/license reader. The checked-in asset bundle
 contains original Android and native upstream notices, static runtime dependencies
 and provenance hashes. `NOTICE.md` records unofficial identity, research credit

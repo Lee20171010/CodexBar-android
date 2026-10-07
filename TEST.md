@@ -26,7 +26,7 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher and tile visual runtime acceptance remain pending.
 
-The JVM suite currently contains **33 tests**:
+The JVM suite currently contains **41 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -36,6 +36,13 @@ The JVM suite currently contains **33 tests**:
 | OpenCode Go repository | 2 | Missing key avoids execution; rejected keys are retained |
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |
 | Go CLI parser | 5 | Window mapping, provider/source isolation, invalid data, truncation, sanitized errors |
+| Account storage | 8 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes and invalid identities |
+
+Account storage tests use an in-memory SharedPreferences double, including the
+memory-before-disk-failure behavior. They do not verify Android Keystore encryption
+or claim multi-account UI/worker/widget acceptance. Existing legacy credential keys
+and global settings survive adoption; returning to an older build only exposes the
+legacy accounts. See SPEC for the rollback restrictions.
 
 The process checks use real Linux child processes (`/bin/sh`, `head`, `sleep` and
 `/proc`) on the build host. They are not Android device tests. Other provider

@@ -4,32 +4,63 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.Credential
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.io.IOException
 import java.time.Instant
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class EncryptedPrefsManager @Inject constructor(
-    @ApplicationContext private val context: Context
+class EncryptedPrefsManager internal constructor(
+    private val prefs: SharedPreferences
 ) {
-    private val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-
-    private val prefs: SharedPreferences by lazy {
+    @Inject
+    constructor(@ApplicationContext context: Context) : this(
         EncryptedSharedPreferences.create(
             "codexbar_secure_prefs",
-            masterKeyAlias,
+            MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
             context,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-    }
+    )
 
+    private val connectionState = MutableStateFlow<List<AccountConnection>>(emptyList())
+    val connections = connectionState.asStateFlow()
+    private var writeFailed = false
+
+    @Synchronized
     fun saveCredential(service: AiService, credential: Credential) {
         val editor = prefs.edit()
         val prefix = service.name
+        writeCredential(editor, prefix, service, credential)
+        editor.putString("${prefix}_connection_provider", service.name)
+        editor.putString("${prefix}_connection_generation", UUID.randomUUID().toString())
+        commit(editor)
+        loadConnections()
+    }
+
+    private fun writeCredential(
+        editor: SharedPreferences.Editor,
+        prefix: String,
+        service: AiService,
+        credential: Credential
+    ) {
+        val owner = when (credential) {
+            is Credential.ClaudeCredential -> AiService.CLAUDE
+            is Credential.CodexCredential -> AiService.CODEX
+            is Credential.GeminiCredential -> AiService.GEMINI
+            is Credential.OpenCodeGoCredential -> AiService.OPENCODE_GO
+        }
+        require(owner == service) { "Credential provider mismatch" }
+        require(credential.accessToken.isNotBlank()) { "Access token is required" }
+        CREDENTIAL_FIELDS.forEach { editor.remove("${prefix}_$it") }
 
         editor.putString("${prefix}_access_token", credential.accessToken)
         editor.putString("${prefix}_refresh_token", credential.refreshToken)
@@ -59,11 +90,15 @@ class EncryptedPrefsManager @Inject constructor(
             is Credential.OpenCodeGoCredential -> Unit
         }
 
-        editor.apply() // atomic write via SharedPreferences commit semantics
     }
 
+    @Synchronized
     fun loadCredential(service: AiService): Credential? {
-        val prefix = service.name
+        checkReadable()
+        return readCredential(service, service.name)
+    }
+
+    private fun readCredential(service: AiService, prefix: String): Credential? {
         val accessToken = prefs.getString("${prefix}_access_token", null) ?: return null
 
         return when (service) {
@@ -109,21 +144,31 @@ class EncryptedPrefsManager @Inject constructor(
         }
     }
 
+    @Synchronized
     fun deleteCredential(service: AiService) {
         val prefix = service.name
         val editor = prefs.edit()
 
-        val keys = prefs.all.keys.filter { it.startsWith(prefix) }
+        val keys = prefs.all.keys.filter { it.startsWith("${prefix}_") }
         keys.forEach { editor.remove(it) }
 
-        editor.apply()
+        commit(editor)
+        loadConnections()
     }
 
+    @Synchronized
     fun deleteAllCredentials() {
-        prefs.edit().clear().apply()
+        val prefixes = (loadConnections().map { it.id } + AiService.entries.map { it.name })
+            .map { "${it}_" }
+        val editor = prefs.edit()
+        prefs.all.keys.filter { key -> prefixes.any(key::startsWith) }.forEach(editor::remove)
+        commit(editor)
+        loadConnections()
     }
 
+    @Synchronized
     fun hasCredential(service: AiService): Boolean {
+        checkReadable()
         return prefs.getString("${service.name}_access_token", null) != null
     }
 
@@ -143,21 +188,43 @@ class EncryptedPrefsManager @Inject constructor(
         prefs.edit().putBoolean("notifications_enabled", enabled).apply()
     }
 
+    @Synchronized
     fun saveResetTimes(service: AiService, windows: List<Pair<String, Instant?>>) {
+        writeResetTimes(service.name, windows)
+    }
+
+    @Synchronized
+    fun saveResetTimes(connection: AccountConnection, windows: List<Pair<String, Instant?>>): Boolean {
+        if (!isCurrent(connection)) return false
+        writeResetTimes(connection.id, windows)
+        return true
+    }
+
+    private fun writeResetTimes(prefix: String, windows: List<Pair<String, Instant?>>) {
         val editor = prefs.edit()
         windows.forEach { (label, resetsAt) ->
-            val key = "${service.name}_${label}_resets_at"
+            val key = "${prefix}_${label}_resets_at"
             if (resetsAt != null) {
                 editor.putLong(key, resetsAt.epochSecond)
             } else {
                 editor.remove(key)
             }
         }
-        editor.apply()
+        commit(editor)
     }
 
+    @Synchronized
     fun loadResetTimes(service: AiService): Map<String, Instant> {
-        val prefix = "${service.name}_"
+        checkReadable()
+        return readResetTimes(service.name)
+    }
+
+    @Synchronized
+    fun loadResetTimes(connection: AccountConnection): Map<String, Instant> =
+        if (isCurrent(connection)) readResetTimes(connection.id) else emptyMap()
+
+    private fun readResetTimes(id: String): Map<String, Instant> {
+        val prefix = "${id}_"
         val suffix = "_resets_at"
         return prefs.all
             .filter { it.key.startsWith(prefix) && it.key.endsWith(suffix) }
@@ -167,5 +234,136 @@ class EncryptedPrefsManager @Inject constructor(
                 label to Instant.ofEpochSecond(epochSecond)
             }
             .toMap()
+    }
+
+    /** Adopts existing namespaces in place. No credential or global setting is removed. */
+    @Synchronized
+    fun loadConnections(): List<AccountConnection> {
+        checkReadable()
+        val editor = prefs.edit()
+        var migrated = false
+        AiService.entries.forEach { service ->
+            val prefix = service.name
+            if (prefs.contains("${prefix}_access_token") &&
+                !prefs.contains("${prefix}_connection_generation")) {
+                editor.putString("${prefix}_connection_provider", service.name)
+                editor.putString("${prefix}_connection_generation", UUID.randomUUID().toString())
+                migrated = true
+            }
+        }
+        if (migrated) commit(editor)
+        val result = prefs.all.keys.filter { it.endsWith("_connection_provider") }.map { key ->
+            val id = key.removeSuffix("_connection_provider")
+            val service = AiService.valueOf(requireNotNull(prefs.getString(key, null)))
+            AccountConnection(
+                id, service,
+                prefs.getString("${id}_connection_name", null) ?: service.displayName,
+                requireNotNull(prefs.getString("${id}_connection_generation", null))
+            )
+        }.sortedWith(compareBy(
+            { prefs.getLong("${it.id}_connection_created", it.service.ordinal.toLong()) },
+            AccountConnection::id
+        ))
+        connectionState.value = result
+        return result
+    }
+
+    @Synchronized
+    fun isCurrent(connection: AccountConnection): Boolean = loadConnections().any {
+        it.id == connection.id && it.service == connection.service && it.generation == connection.generation
+    }
+
+    /** The caller must validate a private draft before committing. Reconnect is compare-and-set. */
+    @Synchronized
+    fun saveValidatedConnection(
+        connection: AccountConnection,
+        credential: Credential,
+        previous: AccountConnection? = null
+    ): Boolean {
+        val current = loadConnections()
+        if (previous == null) {
+            require(connection.id != connection.service.name) { "New accounts require a unique ID" }
+            if (current.any { it.id == connection.id }) return false
+        } else {
+            require(previous.id == connection.id && previous.service == connection.service)
+            require(previous.generation != connection.generation) { "Reconnect requires a new generation" }
+            if (!isCurrent(previous)) return false
+        }
+        val editor = prefs.edit()
+        if (previous != null) removeConnectionEntries(editor, connection.id)
+        writeCredential(editor, connection.id, connection.service, credential)
+        editor.putString("${connection.id}_connection_provider", connection.service.name)
+        editor.putString("${connection.id}_connection_name", connection.name)
+        editor.putString("${connection.id}_connection_generation", connection.generation)
+        editor.putLong("${connection.id}_connection_created",
+            prefs.getLong("${connection.id}_connection_created", System.currentTimeMillis()))
+        commit(editor)
+        loadConnections()
+        return true
+    }
+
+    @Synchronized
+    fun loadCredential(connection: AccountConnection): Credential? =
+        if (isCurrent(connection)) readCredential(connection.service, connection.id) else null
+
+    /** Token rotation keeps identity/generation and cannot resurrect a deleted or reconnected account. */
+    @Synchronized
+    fun replaceCredential(connection: AccountConnection, expected: Credential, replacement: Credential): Boolean {
+        val current = loadCredential(connection) ?: return false
+        val same = current == expected || (current is Credential.OpenCodeGoCredential &&
+            expected is Credential.OpenCodeGoCredential && current.accessToken == expected.accessToken)
+        if (!same) return false
+        val editor = prefs.edit()
+        writeCredential(editor, connection.id, connection.service, replacement)
+        commit(editor)
+        return true
+    }
+
+    @Synchronized
+    fun renameConnection(connection: AccountConnection, name: String): Boolean {
+        val renamed = connection.copy(name = name.trim())
+        if (!isCurrent(connection)) return false
+        commit(prefs.edit().putString("${connection.id}_connection_name", renamed.name))
+        loadConnections()
+        return true
+    }
+
+    @Synchronized
+    fun deleteConnection(connection: AccountConnection): Boolean {
+        if (!isCurrent(connection)) return false
+        val editor = prefs.edit()
+        removeConnectionEntries(editor, connection.id)
+        commit(editor)
+        loadConnections()
+        return true
+    }
+
+    /** Small synchronous publication only; never perform network or suspend work under this lock. */
+    @Synchronized
+    fun <T> publishIfCurrent(connection: AccountConnection, publish: () -> T): T? =
+        if (isCurrent(connection)) publish() else null
+
+    private fun removeConnectionEntries(editor: SharedPreferences.Editor, id: String) {
+        prefs.all.keys.filter { it.startsWith("${id}_") }.forEach(editor::remove)
+    }
+
+    private fun checkReadable() {
+        if (writeFailed) throw IOException("Account storage unavailable until restart")
+    }
+
+    private fun commit(editor: SharedPreferences.Editor) {
+        checkReadable()
+        if (!editor.commit()) {
+            // SharedPreferences may update memory even when its disk write fails. Fail closed.
+            writeFailed = true
+            throw IOException("Unable to persist account data")
+        }
+    }
+
+    private companion object {
+        val CREDENTIAL_FIELDS = listOf(
+            "access_token", "refresh_token", "expires_at", "scopes", "rate_limit_tier",
+            "account_id", "expires_at_ms", "oauth_client_id", "oauth_client_secret"
+        )
     }
 }

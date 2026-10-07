@@ -8,6 +8,9 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Connection-aware encrypted storage foundation: stable local IDs, names, generation
+  guards, in-place legacy adoption and credential compare-and-set. Multi-account UI
+  and repository/worker/widget routing remain pending.
 - Offline Settings → About & licenses, explicit unofficial-port attribution,
   dependency license texts with source hashes, and Android artwork provenance.
 - Android/Bionic builds of upstream CodexBar Core/CLI with pinned source, an Android
