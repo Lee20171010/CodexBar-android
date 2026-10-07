@@ -1,0 +1,98 @@
+{
+  "About.txt": {
+    "source": "NOTICE.md",
+    "sha256": "b88bcf7c0ccfc4f5a7ff90789e43c3961e41fdc68527b570b29c3776ac30b59e"
+  },
+  "Android-origin.txt": {
+    "source": "LICENSE",
+    "sha256": "3b86da7377aaf92220769f8e6c87daa21167e4a48fd6645dbf2414602bc219ce"
+  },
+  "BoringSSL.txt": {
+    "source": "https://raw.githubusercontent.com/google/boringssl/fips-20220613/LICENSE",
+    "sha256": "60bd7c54856bf9387221bde5ab55d516d7cea15870d0fed69406bcd1c8ec7c9d"
+  },
+  "CodexBar-Core-CLI.txt": {
+    "source": "https://github.com/steipete/CodexBar/blob/cb5f0cbe88615a441272c6f9e44675bf594a3fa3/LICENSE",
+    "sha256": "14293556b79940745123d0160c71d27ed0e9fe9b8a848093f3ed78f4853caafe"
+  },
+  "Commander-LICENSE.txt": {
+    "source": "https://github.com/steipete/Commander/blob/bd219c4ee9032fee3e009856f81fcc6ec09a85f4/LICENSE",
+    "sha256": "14293556b79940745123d0160c71d27ed0e9fe9b8a848093f3ed78f4853caafe"
+  },
+  "ICU.txt": {
+    "source": "https://raw.githubusercontent.com/unicode-org/icu/release-76-1/LICENSE",
+    "sha256": "01edac20612b1e590c1c1cfb02b7218c6adc7b0a944eda7a1e03aeee10725aed"
+  },
+  "NDK-runtime.txt": {
+    "source": "Android NDK r30: LLVM NOTICE (includes additional toolchain notices)",
+    "sha256": "f96f763beb66a7ba7a667647fc64c0226ace875e590c831fdd9579ec1c1d91e1"
+  },
+  "QuickJS.txt": {
+    "source": "https://github.com/steipete/CodexBar/blob/cb5f0cbe88615a441272c6f9e44675bf594a3fa3/Sources/CQuickJS/LICENSE",
+    "sha256": "96f73f9d2a16c21a36b418f06073be26e7d6d5e7c1bc99756b21a4f2c74ef171"
+  },
+  "SQLite.txt": {
+    "source": "https://www.sqlite.org/2025/sqlite-amalgamation-3500400.zip",
+    "sha256": "85806d613cfda5901f848b3b5b4b04396c8c64e89c97c0af3706c42b0c44bb47"
+  },
+  "SweetCookieKit-LICENSE.txt": {
+    "source": "https://github.com/steipete/SweetCookieKit/blob/b118aa1ddec43f3883b72771b94657e3fbf55e27/LICENSE",
+    "sha256": "14293556b79940745123d0160c71d27ed0e9fe9b8a848093f3ed78f4853caafe"
+  },
+  "Swift-runtime.txt": {
+    "source": "Swift Android SDK 6.4.0: usr/share/swift/LICENSE.txt",
+    "sha256": "770af8291f708538d8ff885a0bbc4e045cd700531741c4f99528d435c14d7f55"
+  },
+  "curl.txt": {
+    "source": "https://raw.githubusercontent.com/curl/curl/curl-8_9_1/COPYING",
+    "sha256": "adb1fc06547fd136244179809f7b7c2d2ae6c4534f160aa513af9b6a12866a32"
+  },
+  "libxml2.txt": {
+    "source": "https://raw.githubusercontent.com/GNOME/libxml2/v2.11.5/Copyright",
+    "sha256": "c5c63674f8a83c4d2e385d96d1c670a03cb871ba2927755467017317878574bd"
+  },
+  "swift-asn1-LICENSE.txt": {
+    "source": "https://github.com/apple/swift-asn1/blob/d9a5b37470adc940d22c3bcd5ca6953a516b727f/LICENSE.txt",
+    "sha256": "8c6db340475136df3c1201d458fa5755698eace76e510471ecc9d857d6083dac"
+  },
+  "swift-asn1-NOTICE.txt": {
+    "source": "https://github.com/apple/swift-asn1/blob/d9a5b37470adc940d22c3bcd5ca6953a516b727f/NOTICE.txt",
+    "sha256": "11dd3b3b783e6ec26098dd38ebc962986ea109b85447e28e62867b83bd0f8c5b"
+  },
+  "swift-corelibs-foundation-LICENSE.txt": {
+    "source": "https://raw.githubusercontent.com/swiftlang/swift-corelibs-foundation/swift-6.4.0-RELEASE/LICENSE",
+    "sha256": "0ca84095d1de77cad1a866ebbad28f8db98a0826c6055d92b0608c5baa1643e2"
+  },
+  "swift-corelibs-libdispatch-LICENSE.txt": {
+    "source": "https://raw.githubusercontent.com/swiftlang/swift-corelibs-libdispatch/swift-6.4.0-RELEASE/LICENSE",
+    "sha256": "0ca84095d1de77cad1a866ebbad28f8db98a0826c6055d92b0608c5baa1643e2"
+  },
+  "swift-crypto-LICENSE.txt": {
+    "source": "https://github.com/apple/swift-crypto/blob/da9d28d69ebe3894b18376c8f2395c2f37b8448f/LICENSE.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  "swift-crypto-NOTICE.txt": {
+    "source": "https://github.com/apple/swift-crypto/blob/da9d28d69ebe3894b18376c8f2395c2f37b8448f/NOTICE.txt",
+    "sha256": "b3ddc2ae068e76b3beb71be03c0400f90090f9469aa491bf7b1ac42320af37b8"
+  },
+  "swift-foundation-LICENSE.txt": {
+    "source": "https://raw.githubusercontent.com/swiftlang/swift-foundation/swift-6.4.0-RELEASE/LICENSE.md",
+    "sha256": "2245a990b635558be210fb3eb4f8a6f7a49aebc0fefbf5859146a65ddc7ddcf3"
+  },
+  "swift-foundation-NOTICE.txt": {
+    "source": "https://raw.githubusercontent.com/swiftlang/swift-foundation/swift-6.4.0-RELEASE/NOTICE.txt",
+    "sha256": "c2e757911b86a76230099804831d8d847a865e88b5912171627492a7a49f0456"
+  },
+  "swift-foundation-icu-LICENSE.txt": {
+    "source": "https://raw.githubusercontent.com/swiftlang/swift-foundation-icu/swift-6.4.0-RELEASE/LICENSE.md",
+    "sha256": "2245a990b635558be210fb3eb4f8a6f7a49aebc0fefbf5859146a65ddc7ddcf3"
+  },
+  "swift-log-LICENSE.txt": {
+    "source": "https://github.com/apple/swift-log/blob/9c6fb14227f55d8f711ce3847dc2f419fb0ecacb/LICENSE.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  "swift-log-NOTICE.txt": {
+    "source": "https://github.com/apple/swift-log/blob/9c6fb14227f55d8f711ce3847dc2f419fb0ecacb/NOTICE.txt",
+    "sha256": "879b241d49b407215a0ad8e1c6a71c358d7b29591b090cf379d37a5f50cff918"
+  }
+}

@@ -18,6 +18,13 @@ PYTHONDONTWRITEBYTECODE=1 python3 native/test_runtime_config.py
 git diff --check
 ```
 
+Attribution checks: `python3 native/collect_notices.py --check` verifies all 24
+checked-in notice assets and their hashes, including exact copies of the Android
+license and the root attribution document. The About screen compiles and the
+33 JVM tests pass. The initial full lint run also identified an existing
+`QuotaTileService.startActivityAndCollapse(Intent)` API-34 compatibility error;
+this is not suppressed. About/launcher visual runtime acceptance remains pending.
+
 The JVM suite currently contains **33 tests**:
 
 | Suite | Count | Coverage |

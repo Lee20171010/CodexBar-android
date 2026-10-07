@@ -22,6 +22,12 @@ does not establish Android support for every upstream provider or desktop source
 
 ## 2. Components and ownership
 
+Settings includes an offline About/license reader. The checked-in asset bundle
+contains original Android and native upstream notices, static runtime dependencies
+and provenance hashes. `NOTICE.md` records unofficial identity, research credit
+and the decision to retain the Android-origin launcher vectors. License collection
+is a developer operation; app builds and the reader need no network or toolchain.
+
 ```text
 app/src/main/java/com/codexbar/android/
 ├── feature/dashboard/       Compose cards and foreground refresh state

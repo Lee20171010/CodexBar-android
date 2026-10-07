@@ -8,6 +8,8 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Offline Settings → About & licenses, explicit unofficial-port attribution,
+  dependency license texts with source hashes, and Android artwork provenance.
 - Android/Bionic builds of upstream CodexBar Core/CLI with pinned source, an Android
   compatibility patch and verified official toolchain setup.
 - OpenCode Go API-key settings and native quota fetching through the existing

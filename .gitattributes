@@ -1,2 +1,2 @@
-# Unified patches encode unchanged blank lines as a single space.
-native/*.patch whitespace=-blank-at-eol
+# Preserve third-party license texts byte-for-byte, including upstream whitespace.
+app/src/main/assets/licenses/*.txt -whitespace

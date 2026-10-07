@@ -1,6 +1,6 @@
 # CodexBar for Android
 
-> Android port of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete) — the macOS menu bar app for monitoring AI service quotas.
+> **Unofficial Android port** of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete). Independently maintained; not published, endorsed or supported by the macOS upstream or service providers.
 
 Monitor AI-service quotas on Android. This fork integrates an Android-native Swift Core/CLI alongside the existing Kotlin app. **OpenCode Go uses the native engine**; Claude, Codex (ChatGPT), and Gemini retain their Kotlin implementations.
 
@@ -161,4 +161,7 @@ The Android UI and original Kotlin provider implementation originate from [hyunn
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). Upstream attribution, native dependency notices and artwork provenance
+are recorded in [NOTICE.md](NOTICE.md). Full license texts are included in every APK
+and available offline under **Settings → About & licenses**. Download/release
+descriptions must identify the app as an unofficial Android port.
