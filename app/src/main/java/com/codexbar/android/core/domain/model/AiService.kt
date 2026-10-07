@@ -23,5 +23,11 @@ enum class AiService(
         brandColor = 0xFF4285F4,
         baseUrl = "https://cloudcode-pa.googleapis.com/",
         requiresManualCredentials = true
+    ),
+    OPENCODE_GO(
+        displayName = "OpenCode Go",
+        brandColor = 0xFF3B82F6,
+        baseUrl = "https://opencode.ai/",
+        requiresManualCredentials = true
     )
 }

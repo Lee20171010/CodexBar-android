@@ -1,0 +1,961 @@
+diff --git a/Package.swift b/Package.swift
+index dc07ea1..aa7c3e9 100644
+--- a/Package.swift
++++ b/Package.swift
+@@ -13,7 +13,7 @@ let sweetCookieKitDependency: Package.Dependency =
+ let sqlite3LibDir = ProcessInfo.processInfo.environment["CODEXBAR_SQLITE3_LIB_DIR"]?
+     .trimmingCharacters(in: .whitespacesAndNewlines)
+ let sqlite3LinkerSettings: [LinkerSetting] = if let sqlite3LibDir, !sqlite3LibDir.isEmpty {
+-    [.unsafeFlags(["-L\(sqlite3LibDir)"], .when(platforms: [.linux]))]
++    [.unsafeFlags(["-L\(sqlite3LibDir)"], .when(platforms: [.linux, .android]))]
+ } else {
+     []
+ }
+@@ -76,7 +76,7 @@ let package = Package(
+                 name: "CodexBarCore",
+                 dependencies: [
+                     "CQuickJS",
+-                    .target(name: "CSQLite3", condition: .when(platforms: [.linux])),
++                    .target(name: "CSQLite3", condition: .when(platforms: [.linux, .android])),
+                     .product(name: "Crypto", package: "swift-crypto"),
+                     .product(name: "Logging", package: "swift-log"),
+                     .product(name: "SweetCookieKit", package: "SweetCookieKit"),
+@@ -101,7 +101,12 @@ let package = Package(
+                 swiftSettings: [
+                     .enableUpcomingFeature("StrictConcurrency"),
+                 ],
+-                linkerSettings: sqlite3LinkerSettings),
++                linkerSettings: sqlite3LinkerSettings + [
++                    .linkedLibrary("ssl", .when(platforms: [.android])),
++                    .linkedLibrary("crypto", .when(platforms: [.android])),
++                    .linkedLibrary("z", .when(platforms: [.android])),
++                    .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "$ORIGIN"], .when(platforms: [.android])),
++                ]),
+             // Crash-test subprocess: tests SIGKILL it mid-save to prove the cost store's
+             // save cycle is atomic. Not shipped; built only as a test dependency.
+             .executableTarget(
+diff --git a/Sources/CodexBarCLI/CLICardsRenderer.swift b/Sources/CodexBarCLI/CLICardsRenderer.swift
+index 7014233..a23a3f0 100644
+--- a/Sources/CodexBarCLI/CLICardsRenderer.swift
++++ b/Sources/CodexBarCLI/CLICardsRenderer.swift
+@@ -2,6 +2,8 @@ import CodexBarCore
+ import Foundation
+ #if canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #elseif canImport(Darwin)
+diff --git a/Sources/CodexBarCLI/CLIDashboardCommand.swift b/Sources/CodexBarCLI/CLIDashboardCommand.swift
+index 1110fab..6a8c748 100644
+--- a/Sources/CodexBarCLI/CLIDashboardCommand.swift
++++ b/Sources/CodexBarCLI/CLIDashboardCommand.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCLI/CLIEntry.swift b/Sources/CodexBarCLI/CLIEntry.swift
+index 324f395..ed2f35f 100644
+--- a/Sources/CodexBarCLI/CLIEntry.swift
++++ b/Sources/CodexBarCLI/CLIEntry.swift
+@@ -7,6 +7,8 @@ import CoreFoundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -23,6 +25,8 @@ enum CodexBarCLI {
+             Darwin.exit(CodexBarCoreResourceSmoke.run())
+             #elseif canImport(Glibc)
+             Glibc.exit(CodexBarCoreResourceSmoke.run())
++            #elseif canImport(Android)
++            Android.exit(CodexBarCoreResourceSmoke.run())
+             #elseif canImport(Musl)
+             Musl.exit(CodexBarCoreResourceSmoke.run())
+             #endif
+diff --git a/Sources/CodexBarCLI/CLIHelpers.swift b/Sources/CodexBarCLI/CLIHelpers.swift
+index 99bd472..12ea189 100644
+--- a/Sources/CodexBarCLI/CLIHelpers.swift
++++ b/Sources/CodexBarCLI/CLIHelpers.swift
+@@ -7,6 +7,8 @@ import FoundationNetworking
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCLI/CLIIO.swift b/Sources/CodexBarCLI/CLIIO.swift
+index 0c460ec..597ea0f 100644
+--- a/Sources/CodexBarCLI/CLIIO.swift
++++ b/Sources/CodexBarCLI/CLIIO.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -162,6 +164,8 @@ extension CodexBarCLI {
+         Darwin.exit(code)
+         #elseif canImport(Glibc)
+         Glibc.exit(code)
++        #elseif canImport(Android)
++        Android.exit(code)
+         #elseif canImport(Musl)
+         Musl.exit(code)
+         #endif
+diff --git a/Sources/CodexBarCLI/CLILocalHTTPServer.swift b/Sources/CodexBarCLI/CLILocalHTTPServer.swift
+index 9be204e..dca464c 100644
+--- a/Sources/CodexBarCLI/CLILocalHTTPServer.swift
++++ b/Sources/CodexBarCLI/CLILocalHTTPServer.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -332,7 +334,7 @@ final class CLILocalHTTPServer: @unchecked Sendable {
+         let streamType = SOCK_STREAM
+         #elseif canImport(Glibc)
+         let streamType = Int32(SOCK_STREAM.rawValue)
+-        #elseif canImport(Musl)
++        #elseif canImport(Musl) || canImport(Android)
+         let streamType = Int32(SOCK_STREAM)
+         #endif
+ 
+@@ -577,6 +579,8 @@ private func ignoreSIGPIPE() {
+     _ = Darwin.signal(SIGPIPE, SIG_IGN)
+     #elseif canImport(Glibc)
+     _ = Glibc.signal(SIGPIPE, SIG_IGN)
++    #elseif canImport(Android)
++    _ = Android.signal(SIGPIPE, SIG_IGN)
+     #elseif canImport(Musl)
+     _ = Musl.signal(SIGPIPE, SIG_IGN)
+     #endif
+@@ -587,6 +591,8 @@ private func closeSocket(_ fd: Int32) {
+     Darwin.close(fd)
+     #elseif canImport(Glibc)
+     Glibc.close(fd)
++    #elseif canImport(Android)
++    Android.close(fd)
+     #elseif canImport(Musl)
+     Musl.close(fd)
+     #endif
+diff --git a/Sources/CodexBarCLI/CLIPluginsCommand.swift b/Sources/CodexBarCLI/CLIPluginsCommand.swift
+index de46731..cc085e1 100644
+--- a/Sources/CodexBarCLI/CLIPluginsCommand.swift
++++ b/Sources/CodexBarCLI/CLIPluginsCommand.swift
+@@ -4,6 +4,8 @@ import Commander
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift b/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift
+index 61dc2f4..1be63a7 100644
+--- a/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift
++++ b/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift
+@@ -5,6 +5,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -62,6 +64,8 @@ final class CLITerminationSignalMonitor: @unchecked Sendable {
+         _ = Darwin.signal(signalNumber, handleCLITerminationSignal)
+         #elseif canImport(Glibc)
+         _ = Glibc.signal(signalNumber, handleCLITerminationSignal)
++        #elseif canImport(Android)
++        _ = Android.signal(signalNumber, handleCLITerminationSignal)
+         #elseif canImport(Musl)
+         _ = Musl.signal(signalNumber, handleCLITerminationSignal)
+         #endif
+@@ -72,6 +76,8 @@ final class CLITerminationSignalMonitor: @unchecked Sendable {
+         _ = Darwin.signal(signalNumber, SIG_DFL)
+         #elseif canImport(Glibc)
+         _ = Glibc.signal(signalNumber, SIG_DFL)
++        #elseif canImport(Android)
++        _ = Android.signal(signalNumber, SIG_DFL)
+         #elseif canImport(Musl)
+         _ = Musl.signal(signalNumber, SIG_DFL)
+         #endif
+diff --git a/Sources/CodexBarCore/AutoreleasePoolCompat.swift b/Sources/CodexBarCore/AutoreleasePoolCompat.swift
+index 7d0d32c..c22f873 100644
+--- a/Sources/CodexBarCore/AutoreleasePoolCompat.swift
++++ b/Sources/CodexBarCore/AutoreleasePoolCompat.swift
+@@ -1,6 +1,6 @@
+ import Foundation
+ 
+-#if os(Linux)
++#if os(Linux) || os(Android)
+ @discardableResult
+ func autoreleasepool<Result>(_ work: () throws -> Result) rethrows -> Result {
+     try work()
+diff --git a/Sources/CodexBarCore/CodexBarCoreResources.swift b/Sources/CodexBarCore/CodexBarCoreResources.swift
+index d6cb9f0..827f0a7 100644
+--- a/Sources/CodexBarCore/CodexBarCoreResources.swift
++++ b/Sources/CodexBarCore/CodexBarCoreResources.swift
+@@ -20,6 +20,13 @@ public enum CodexBarCoreResources {
+         executableURL: URL? = nil,
+         swiftPMBuildDirectory: URL? = Self.defaultSwiftPMBuildDirectory) -> Bundle?
+     {
++        #if os(Android)
++        // Android extracts executable libraries and app assets into separate directories.
++        if let path = ProcessInfo.processInfo.environment["CODEXBAR_RESOURCE_BUNDLE_PATH"] {
++            guard path.hasPrefix("/") else { return nil }
++            return Bundle(url: URL(fileURLWithPath: path, isDirectory: true))
++        }
++        #endif
+         let name = "CodexBar_CodexBarCore"
+         let bundleName = "\(name).bundle"
+         let swiftPMBundleNames = [bundleName, "\(name).resources"]
+diff --git a/Sources/CodexBarCore/CodexCredentialFileAccess.swift b/Sources/CodexBarCore/CodexCredentialFileAccess.swift
+index 94c3e3d..2a57249 100644
+--- a/Sources/CodexBarCore/CodexCredentialFileAccess.swift
++++ b/Sources/CodexBarCore/CodexCredentialFileAccess.swift
+@@ -1,4 +1,7 @@
+ import Foundation
++#if canImport(Android)
++import Android
++#endif
+ 
+ /// Codex-owned test isolation. Credential environments select paths; they never authorize them.
+ public enum CodexCredentialFileAccess {
+@@ -139,7 +142,7 @@ public enum CodexCredentialFileAccess {
+             // existing reader/writer classify that fixture error instead of masking it as denial.
+             return (error.domain == NSCocoaErrorDomain && error.code == CocoaError.fileReadNoSuchFile.rawValue)
+                 || (underlying.domain == NSPOSIXErrorDomain
+-                    && [POSIXErrorCode.ENOENT.rawValue, POSIXErrorCode.ENOTDIR.rawValue]
++                    && [ENOENT, ENOTDIR]
+                     .contains(Int32(underlying.code)))
+         }
+     }
+diff --git a/Sources/CodexBarCore/Config/CodexBarConfigStore.swift b/Sources/CodexBarCore/Config/CodexBarConfigStore.swift
+index 7a6465f..bae3b51 100644
+--- a/Sources/CodexBarCore/Config/CodexBarConfigStore.swift
++++ b/Sources/CodexBarCore/Config/CodexBarConfigStore.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/CookieHeaderCache.swift b/Sources/CodexBarCore/CookieHeaderCache.swift
+index 2ee08c1..8f907bb 100644
+--- a/Sources/CodexBarCore/CookieHeaderCache.swift
++++ b/Sources/CodexBarCore/CookieHeaderCache.swift
+@@ -6,6 +6,8 @@ import CryptoKit
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/CredentialFileWriter.swift b/Sources/CodexBarCore/CredentialFileWriter.swift
+index 17db4f2..9cc68e4 100644
+--- a/Sources/CodexBarCore/CredentialFileWriter.swift
++++ b/Sources/CodexBarCore/CredentialFileWriter.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift b/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift
+index f03dd5a..025268b 100644
+--- a/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift
++++ b/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift
+index e436a80..d43c44a 100644
+--- a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift
++++ b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift
+index 9f3a96a..12c36a7 100644
+--- a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift
++++ b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -31,6 +33,12 @@ enum PosixSpawnFileActionsCompatibility {
+     {
+         #if canImport(Glibc)
+         glibc_posix_spawn_file_actions_addchdir_np(&fileActions, path)
++        #elseif os(Android)
++        if #available(Android 34, *) {
++            posix_spawn_file_actions_addchdir_np(&fileActions, path)
++        } else {
++            ENOTSUP
++        }
+         #else
+         posix_spawn_file_actions_addchdir_np(&fileActions, path)
+         #endif
+diff --git a/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift b/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift
+index ae4b70c..f76d9fc 100644
+--- a/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift
++++ b/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift b/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift
+index 287bd64..d8c4d13 100644
+--- a/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift
++++ b/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift
+@@ -1,6 +1,8 @@
+ import Foundation
+ #if canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift b/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift
+index 6e6db18..36fdd1b 100644
+--- a/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift
++++ b/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -357,6 +359,9 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+     {
+         #if canImport(Darwin)
+         var fileActions: posix_spawn_file_actions_t?
++        #elseif os(Android)
++        // Bionic's output-only init parameter is nonnullable; init replaces this sentinel.
++        var fileActions = posix_spawn_file_actions_t(bitPattern: 1)!
+         #else
+         var fileActions = posix_spawn_file_actions_t()
+         #endif
+@@ -392,7 +397,7 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+             throw LaunchError.setupFailed("posix_spawn file actions")
+         }
+ 
+-        #if canImport(Darwin)
++        #if canImport(Darwin) || canImport(Android)
+         var attributes: posix_spawnattr_t?
+         #else
+         var attributes = posix_spawnattr_t()
+@@ -400,6 +405,9 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+         guard posix_spawnattr_init(&attributes) == 0 else {
+             throw LaunchError.setupFailed("posix_spawnattr_init")
+         }
++        #if os(Android)
++        guard var attributes else { throw LaunchError.setupFailed("posix_spawnattr_init returned nil") }
++        #endif
+         defer { posix_spawnattr_destroy(&attributes) }
+ 
+         var emptySignalMask = sigset_t()
+@@ -439,7 +447,11 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+ 
+         var pid: pid_t = 0
+         let spawnResult = binary.withCString { path in
+-            posix_spawn(&pid, path, &fileActions, &attributes, cArguments, cEnvironment)
++            #if os(Android)
++            var fileActions: posix_spawn_file_actions_t? = fileActions
++            var attributes: posix_spawnattr_t? = attributes
++            #endif
++            return posix_spawn(&pid, path, &fileActions, &attributes, cArguments, cEnvironment)
+         }
+         stdoutPipe.fileHandleForWriting.closeFile()
+         stderrPipe.fileHandleForWriting.closeFile()
+@@ -466,6 +478,9 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+         }
+         #if canImport(Darwin)
+         var fileActions: posix_spawn_file_actions_t?
++        #elseif os(Android)
++        // Bionic's output-only init parameter is nonnullable; init replaces this sentinel.
++        var fileActions = posix_spawn_file_actions_t(bitPattern: 1)!
+         #else
+         var fileActions = posix_spawn_file_actions_t()
+         #endif
+@@ -500,7 +515,7 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+             throw LaunchError.setupFailed("posix_spawn PTY file actions")
+         }
+ 
+-        #if canImport(Darwin)
++        #if canImport(Darwin) || canImport(Android)
+         var attributes: posix_spawnattr_t?
+         #else
+         var attributes = posix_spawnattr_t()
+@@ -508,6 +523,9 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+         guard posix_spawnattr_init(&attributes) == 0 else {
+             throw LaunchError.setupFailed("posix_spawnattr_init")
+         }
++        #if os(Android)
++        guard var attributes else { throw LaunchError.setupFailed("posix_spawnattr_init returned nil") }
++        #endif
+         defer { posix_spawnattr_destroy(&attributes) }
+ 
+         var emptySignalMask = sigset_t()
+@@ -547,7 +565,11 @@ package final class SpawnedProcessGroup: @unchecked Sendable {
+ 
+         var pid: pid_t = 0
+         let spawnResult = binary.withCString { path in
+-            posix_spawn(&pid, path, &fileActions, &attributes, cArguments, cEnvironment)
++            #if os(Android)
++            var fileActions: posix_spawn_file_actions_t? = fileActions
++            var attributes: posix_spawnattr_t? = attributes
++            #endif
++            return posix_spawn(&pid, path, &fileActions, &attributes, cArguments, cEnvironment)
+         }
+         guard spawnResult == 0 else {
+             throw LaunchError.spawnFailed(String(cString: strerror(spawnResult)))
+diff --git a/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift b/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift
+index ddd4930..a985508 100644
+--- a/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift
++++ b/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift b/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift
+index 2caff24..4dc16b9 100644
+--- a/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift
++++ b/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift
+@@ -4,6 +4,8 @@ import Logging
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/PathEnvironment.swift b/Sources/CodexBarCore/PathEnvironment.swift
+index 2f2d24b..8c5a239 100644
+--- a/Sources/CodexBarCore/PathEnvironment.swift
++++ b/Sources/CodexBarCore/PathEnvironment.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -918,6 +920,9 @@ public enum ShellCommandLocator {
+         // Darwin and a struct on Linux C modules.
+         #if canImport(Darwin)
+         var fileActions: posix_spawn_file_actions_t?
++        #elseif os(Android)
++        // Bionic's output-only init parameter is nonnullable; init replaces this sentinel.
++        var fileActions = posix_spawn_file_actions_t(bitPattern: 1)!
+         #else
+         var fileActions = posix_spawn_file_actions_t()
+         #endif
+@@ -938,7 +943,7 @@ public enum ShellCommandLocator {
+         // Build attributes: detach the child into a new session before exec. This
+         // prevents interactive shell startup from changing the caller's foreground
+         // process group while retaining a stable process group for cleanup.
+-        #if canImport(Darwin)
++        #if canImport(Darwin) || canImport(Android)
+         var attr: posix_spawnattr_t?
+         #else
+         var attr = posix_spawnattr_t()
+@@ -948,6 +953,9 @@ public enum ShellCommandLocator {
+             close(stderrFds.read); close(stderrFds.write)
+             return nil
+         }
++        #if os(Android)
++        guard var attr else { return nil }
++        #endif
+         defer { posix_spawnattr_destroy(&attr) }
+         guard posix_spawnattr_setflags(&attr, self.shellSpawnFlags) == 0 else {
+             close(stdoutFds.read); close(stdoutFds.write)
+@@ -989,7 +997,11 @@ public enum ShellCommandLocator {
+ 
+         var pid: pid_t = 0
+         let spawnResult = shell.withCString { execPath in
+-            posix_spawn(&pid, execPath, &fileActions, &attr, cArgs, cEnv)
++            #if os(Android)
++            var fileActions: posix_spawn_file_actions_t? = fileActions
++            var attr: posix_spawnattr_t? = attr
++            #endif
++            return posix_spawn(&pid, execPath, &fileActions, &attr, cArgs, cEnv)
+         }
+ 
+         // Close the write ends in the parent so EOF will arrive on the read ends
+diff --git a/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift b/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift
+index 8c701ec..2a05e27 100644
+--- a/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift
++++ b/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/ProviderHTTPClient.swift b/Sources/CodexBarCore/ProviderHTTPClient.swift
+index 43255f3..5adce85 100644
+--- a/Sources/CodexBarCore/ProviderHTTPClient.swift
++++ b/Sources/CodexBarCore/ProviderHTTPClient.swift
+@@ -7,7 +7,7 @@ public protocol ProviderHTTPTransport: Sendable {
+     func data(for request: URLRequest) async throws -> (Data, URLResponse)
+ }
+ 
+-#if !os(Linux)
++#if !canImport(FoundationNetworking)
+ extension URLSession: ProviderHTTPTransport {}
+ #endif
+ 
+@@ -178,7 +178,7 @@ public final class ProviderHTTPClient: ProviderHTTPTransport, @unchecked Sendabl
+         let configuration = URLSessionConfiguration.default
+         configuration.timeoutIntervalForRequest = 30
+         configuration.timeoutIntervalForResource = 90
+-        #if !os(Linux)
++        #if !canImport(FoundationNetworking)
+         configuration.waitsForConnectivity = false
+         #endif
+         return configuration
+diff --git a/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift b/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift
+index 4acdbd5..e75d8ef 100644
+--- a/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift
++++ b/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -870,6 +872,9 @@ struct AntigravityPTYProcessLauncher: AntigravityCLIProcessLaunching {
+ 
+         #if canImport(Darwin)
+         var fileActions: posix_spawn_file_actions_t?
++        #elseif os(Android)
++        // Bionic's output-only init parameter is nonnullable; init replaces this sentinel.
++        var fileActions = posix_spawn_file_actions_t(bitPattern: 1)!
+         #else
+         var fileActions = posix_spawn_file_actions_t()
+         #endif
+@@ -900,7 +905,7 @@ struct AntigravityPTYProcessLauncher: AntigravityCLIProcessLaunching {
+         }
+         #endif
+ 
+-        #if canImport(Darwin)
++        #if canImport(Darwin) || canImport(Android)
+         var attr: posix_spawnattr_t?
+         #else
+         var attr = posix_spawnattr_t()
+@@ -910,6 +915,13 @@ struct AntigravityPTYProcessLauncher: AntigravityCLIProcessLaunching {
+             try? secondaryHandle.close()
+             throw AntigravityCLISession.SessionError.launchFailed("posix_spawnattr_init failed")
+         }
++        #if os(Android)
++        guard var attr else {
++            try? primaryHandle.close()
++            try? secondaryHandle.close()
++            throw AntigravityCLISession.SessionError.launchFailed("posix_spawnattr_init returned nil")
++        }
++        #endif
+         defer { posix_spawnattr_destroy(&attr) }
+         var defaultSignals = Self.defaultSignalsForSpawn()
+         posix_spawnattr_setsigdefault(&attr, &defaultSignals)
+@@ -950,7 +962,11 @@ struct AntigravityPTYProcessLauncher: AntigravityCLIProcessLaunching {
+         var pid: pid_t = 0
+         let spawnResult = Self.spawnWithTextBusyRetry {
+             binary.withCString { execPath in
+-                posix_spawn(&pid, execPath, &fileActions, &attr, cArgs, cEnv)
++                #if os(Android)
++                var fileActions: posix_spawn_file_actions_t? = fileActions
++                var attr: posix_spawnattr_t? = attr
++                #endif
++                return posix_spawn(&pid, execPath, &fileActions, &attr, cArgs, cEnv)
+             }
+         }
+         guard spawnResult == 0 else {
+diff --git a/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift b/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift
+index 5a372ea..5a238ad 100644
+--- a/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift
++++ b/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift
+@@ -9,7 +9,7 @@ enum LocalhostTrustPolicy {
+         authenticationMethod: String,
+         hasServerTrust: Bool) -> Bool
+     {
+-        #if !os(Linux)
++        #if !canImport(FoundationNetworking)
+         guard authenticationMethod == NSURLAuthenticationMethodServerTrust else { return false }
+         #endif
+         let normalizedHost = host.lowercased()
+@@ -46,7 +46,7 @@ final class LocalhostSessionDelegate: NSObject {
+         disposition: URLSession.AuthChallengeDisposition,
+         credential: URLCredential?)
+     {
+-        #if os(Linux)
++        #if canImport(FoundationNetworking)
+         return (.performDefaultHandling, nil)
+         #else
+         let protectionSpace = challenge.protectionSpace
+diff --git a/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift b/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift
+index 11ec0d7..b1e3ece 100644
+--- a/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift
++++ b/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift
+@@ -859,7 +859,7 @@ public struct AntigravityStatusProbe: Sendable {
+         let config = URLSessionConfiguration.ephemeral
+         config.timeoutIntervalForRequest = 30
+         config.timeoutIntervalForResource = 120
+-        #if !os(Linux)
++        #if !canImport(FoundationNetworking)
+         config.waitsForConnectivity = false
+         #endif
+         return URLSession(configuration: config, delegate: Self.localhostDelegate, delegateQueue: nil)
+diff --git a/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift b/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift
+index 996dcc0..1a3484b 100644
+--- a/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift
++++ b/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift
+index a4ae355..3f7e712 100644
+--- a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift
++++ b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift
+@@ -5,6 +5,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift
+index edd58bc..dc7f0ae 100644
+--- a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift
++++ b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift b/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift
+index d568723..0957309 100644
+--- a/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift
++++ b/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift b/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift
+index c2e6607..9747082 100644
+--- a/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift
++++ b/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift
+@@ -4,6 +4,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift b/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift
+index 048e4c7..7d4512f 100644
+--- a/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift
++++ b/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift
+@@ -6,6 +6,8 @@ import FoundationNetworking
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift b/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift
+index 19629f8..f96b83a 100644
+--- a/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift
++++ b/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift
+@@ -95,7 +95,7 @@ final class GrokRPCClient: @unchecked Sendable {
+             }
+             guard let text = String(data: data, encoding: .utf8), !text.isEmpty else { return }
+             for line in text.split(whereSeparator: \.isNewline) {
+-                #if !os(Linux)
++                #if !os(Linux) && !os(Android)
+                 fputs("[grok stderr] \(line)\n", stderr)
+                 #endif
+             }
+diff --git a/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift b/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift
+index 089ec9b..fe802e2 100644
+--- a/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift
++++ b/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift
+@@ -6,6 +6,8 @@ import FoundationNetworking
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift
+index 9ac8981..3d0cc51 100644
+--- a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift
++++ b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+@@ -91,7 +93,7 @@ struct MuseLocalUsageCache: Codable {
+ 
+         private static func make(_ info: stat) -> Self? {
+             guard info.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG), info.st_size >= 0 else { return nil }
+-            #if os(Linux)
++            #if os(Linux) || os(Android)
+             let modified = info.st_mtim
+             let changed = info.st_ctim
+             #else
+diff --git a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift
+index 0c26e05..fae7b66 100644
+--- a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift
++++ b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift
+@@ -4,6 +4,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift b/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift
+index 5f8c751..70f5fee 100644
+--- a/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift
++++ b/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift
+index 8d3ce10..9a4d6ee 100644
+--- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift
++++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift
+@@ -1,5 +1,8 @@
+ import Crypto
+ import Foundation
++#if canImport(Android)
++import Android
++#endif
+ 
+ struct CostUsageClaudeFileStamp: Equatable, Sendable, Codable {
+     let fileID: String
+@@ -15,7 +18,7 @@ struct CostUsageClaudeFileStamp: Equatable, Sendable, Codable {
+         var info = stat()
+         guard url.path.withCString({ fstatat(AT_FDCWD, $0, &info, 0) }) == 0 else { return nil }
+         guard info.st_mode & mode_t(S_IFMT) == mode_t(S_IFREG) else { return nil }
+-        #if os(Linux)
++        #if os(Linux) || os(Android)
+         let modifiedTime = info.st_mtim
+         #else
+         let modifiedTime = info.st_mtimespec
+diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift
+index 55e1451..bea3a60 100644
+--- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift
++++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift
+index 0a57412..dcbfb57 100644
+--- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift
++++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Musl
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #else
+ import Darwin
+ #endif
+@@ -663,7 +665,7 @@ extension CostUsageScanner {
+         guard path.withCString({ fstatat(AT_FDCWD, $0, &info, 0) }) == 0 else {
+             return CodexFileMetadata(path: path, mtimeUnixMs: 0, size: 0, fileId: nil)
+         }
+-        #if os(Linux)
++        #if os(Linux) || os(Android)
+         let modifiedSeconds = Int64(info.st_mtim.tv_sec)
+         let modifiedNanoseconds = Int64(info.st_mtim.tv_nsec)
+         #else
+diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift
+index a494a6b..026fed6 100644
+--- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift
++++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift
+@@ -3,6 +3,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift
+index 5e33706..c35eaed 100644
+--- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift
++++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift
+@@ -9,6 +9,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #endif
+ 
+ // swiftlint:disable type_body_length file_length
+@@ -2564,7 +2566,7 @@ enum CostUsageScanner {
+         }
+     }
+ 
+-    #if os(Linux)
++    #if os(Linux) || os(Android)
+     private typealias CodexDirectoryHandle = OpaquePointer
+     #else
+     private typealias CodexDirectoryHandle = UnsafeMutablePointer<DIR>
+diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift
+index 121f4c3..a9805a0 100644
+--- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift
++++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift
+@@ -4,6 +4,8 @@ import Foundation
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #endif
+ 
+ /// Crash-safety harness for the SQLite cost store. The `CodexBarCostStoreCrashProbe`
+diff --git a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift
+index c024338..43940a4 100644
+--- a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift
++++ b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift
+@@ -2,6 +2,8 @@
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif
+diff --git a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
+index 7b7dcaf..54670b6 100644
+--- a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
++++ b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
+@@ -12,6 +12,8 @@ import Crypto
+ import Darwin
+ #elseif canImport(Glibc)
+ import Glibc
++#elseif canImport(Android)
++import Android
+ #elseif canImport(Musl)
+ import Musl
+ #endif

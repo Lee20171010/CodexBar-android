@@ -19,6 +19,16 @@ android {
         versionName = "0.0.3-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "false")
+    }
+
+    signingConfigs {
+        create("nativeAcceptance") {
+            storeFile = System.getenv("ANDROID_KEYSTORE_PATH")?.let { file(it) }
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+        }
     }
 
     buildTypes {
@@ -35,6 +45,35 @@ android {
             )
             buildConfigField("Boolean", "IS_DEBUG", "false")
         }
+        create("nativeDebug") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".native"
+            signingConfig = signingConfigs.getByName("nativeAcceptance")
+            matchingFallbacks += "debug"
+            buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "true")
+        }
+        create("nativeRelease") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            applicationIdSuffix = ".native"
+            signingConfig = signingConfigs.getByName("nativeAcceptance")
+            matchingFallbacks += "release"
+            ndk.abiFilters += "arm64-v8a"
+            versionNameSuffix = "-native-go"
+            buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "true")
+        }
+    }
+
+    sourceSets.getByName("nativeDebug") {
+        val nativeAbi = providers.gradleProperty("nativeAbi").getOrElse("x86_64")
+        require(nativeAbi in listOf("x86_64", "arm64-v8a")) { "Unsupported nativeAbi" }
+        jniLibs.srcDir(rootProject.file("build/native/package/$nativeAbi/jniLibs"))
+        assets.srcDir(rootProject.file("build/native/package/$nativeAbi/assets"))
+    }
+    sourceSets.getByName("nativeRelease") {
+        java.srcDir("src/nativeDebug/java")
+        jniLibs.srcDir(rootProject.file("build/native/package/release/arm64-v8a/jniLibs"))
+        assets.srcDir(rootProject.file("build/native/package/release/arm64-v8a/assets"))
     }
 
     compileOptions {
@@ -52,6 +91,7 @@ android {
     }
 
     packaging {
+        jniLibs.useLegacyPackaging = true
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
@@ -61,6 +101,19 @@ android {
     bundle {
         storeArchive {
             enable = true
+        }
+    }
+}
+
+tasks.matching { it.name in listOf("preNativeDebugBuild", "preNativeReleaseBuild") }.configureEach {
+    doFirst {
+        val release = name == "preNativeReleaseBuild"
+        val abi = if (release) "arm64-v8a" else providers.gradleProperty("nativeAbi").getOrElse("x86_64")
+        val payload = rootProject.file("build/native/package/${if (release) "release/" else ""}$abi")
+        check(file("$payload/jniLibs/$abi/libcodexbar.so").isFile &&
+            file("$payload/jniLibs/$abi/libc++_shared.so").isFile &&
+            file("$payload/assets/codexbar/CodexBar_CodexBarCore.bundle").isDirectory) {
+            "Missing native payload. Run native/build.py --tools <toolchain-root> --abi $abi --configuration ${if (release) "release" else "debug"} first."
         }
     }
 }

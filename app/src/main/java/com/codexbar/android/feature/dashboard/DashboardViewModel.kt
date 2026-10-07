@@ -11,6 +11,7 @@ import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.di.ClaudeRepository
 import com.codexbar.android.di.CodexRepository
 import com.codexbar.android.di.GeminiRepository
+import com.codexbar.android.di.OpenCodeGoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +26,7 @@ class DashboardViewModel @Inject constructor(
     @ClaudeRepository private val claudeRepository: QuotaRepository,
     @CodexRepository private val codexRepository: QuotaRepository,
     @GeminiRepository private val geminiRepository: QuotaRepository,
+    @OpenCodeGoRepository private val openCodeGoRepository: QuotaRepository,
     private val prefsManager: EncryptedPrefsManager
 ) : ViewModel() {
 
@@ -47,6 +49,7 @@ class DashboardViewModel @Inject constructor(
                 if (prefsManager.hasCredential(AiService.CLAUDE)) add(AiService.CLAUDE to claudeRepository)
                 if (prefsManager.hasCredential(AiService.CODEX)) add(AiService.CODEX to codexRepository)
                 if (prefsManager.hasCredential(AiService.GEMINI)) add(AiService.GEMINI to geminiRepository)
+                if (prefsManager.hasCredential(AiService.OPENCODE_GO)) add(AiService.OPENCODE_GO to openCodeGoRepository)
             }
 
             if (repos.isEmpty()) {

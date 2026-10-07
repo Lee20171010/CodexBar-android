@@ -56,6 +56,7 @@ class EncryptedPrefsManager @Inject constructor(
                 editor.putString("${prefix}_oauth_client_id", credential.oauthClientId)
                 editor.putString("${prefix}_oauth_client_secret", credential.oauthClientSecret)
             }
+            is Credential.OpenCodeGoCredential -> Unit
         }
 
         editor.apply() // atomic write via SharedPreferences commit semantics
@@ -66,6 +67,7 @@ class EncryptedPrefsManager @Inject constructor(
         val accessToken = prefs.getString("${prefix}_access_token", null) ?: return null
 
         return when (service) {
+            AiService.OPENCODE_GO -> Credential.OpenCodeGoCredential(accessToken)
             AiService.CLAUDE -> {
                 val refreshToken = prefs.getString("${prefix}_refresh_token", null)
                 val expiresAt = prefs.getLong("${prefix}_expires_at", -1L)

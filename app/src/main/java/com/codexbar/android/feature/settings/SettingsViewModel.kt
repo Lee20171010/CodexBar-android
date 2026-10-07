@@ -11,6 +11,7 @@ import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.di.ClaudeRepository
 import com.codexbar.android.di.CodexRepository
 import com.codexbar.android.di.GeminiRepository
+import com.codexbar.android.di.OpenCodeGoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -30,6 +31,7 @@ class SettingsViewModel @Inject constructor(
     @ClaudeRepository private val claudeRepository: QuotaRepository,
     @CodexRepository private val codexRepository: QuotaRepository,
     @GeminiRepository private val geminiRepository: QuotaRepository,
+    @OpenCodeGoRepository private val openCodeGoRepository: QuotaRepository,
     private val prefsManager: EncryptedPrefsManager
 ) : ViewModel() {
 
@@ -54,6 +56,7 @@ class SettingsViewModel @Inject constructor(
         for (service in AiService.entries) {
             val credential = prefsManager.loadCredential(service) ?: continue
             val state = when (credential) {
+                is Credential.OpenCodeGoCredential -> ServiceCredentialState(accessToken = credential.accessToken)
                 is Credential.ClaudeCredential -> ServiceCredentialState(
                     accessToken = credential.accessToken,
                     refreshToken = credential.refreshToken ?: ""
@@ -112,9 +115,13 @@ class SettingsViewModel @Inject constructor(
 
     private fun saveCredential(service: AiService) {
         val state = _uiState.value.serviceStates[service] ?: return
-        if (state.accessToken.isBlank()) return
+        if (state.accessToken.isBlank()) {
+            if (service == AiService.OPENCODE_GO) prefsManager.deleteCredential(service)
+            return
+        }
 
         val credential = when (service) {
+            AiService.OPENCODE_GO -> Credential.OpenCodeGoCredential(state.accessToken.trim())
             AiService.CLAUDE -> Credential.ClaudeCredential(
                 accessToken = state.accessToken,
                 refreshToken = state.refreshToken.ifBlank { null }
@@ -147,6 +154,7 @@ class SettingsViewModel @Inject constructor(
             AiService.CLAUDE -> claudeRepository
             AiService.CODEX -> codexRepository
             AiService.GEMINI -> geminiRepository
+            AiService.OPENCODE_GO -> openCodeGoRepository
         }
 
         // Ensure saved before validation
@@ -219,7 +227,8 @@ class SettingsViewModel @Inject constructor(
     private fun formatAppError(error: AppError): String {
         return when (error) {
             is AppError.NetworkError -> "Network error: ${error.message}"
-            is AppError.AuthError -> if (error.isTerminal) "Authentication failed (re-login required)" else "Authentication error"
+            is AppError.AuthError -> if (error.service == AiService.OPENCODE_GO) "API key rejected. Check your OpenCode Go key."
+                else if (error.isTerminal) "Authentication failed (re-login required)" else "Authentication error"
             is AppError.RateLimited -> "Rate limited — try again later"
             is AppError.ParseError -> "Parse error: ${error.message}"
             is AppError.CredentialNotFound -> "No credentials saved"

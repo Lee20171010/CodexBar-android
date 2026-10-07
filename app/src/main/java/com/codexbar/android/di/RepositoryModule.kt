@@ -3,6 +3,8 @@ package com.codexbar.android.di
 import com.codexbar.android.core.data.ClaudeRepositoryImpl
 import com.codexbar.android.core.data.CodexRepositoryImpl
 import com.codexbar.android.core.data.GeminiRepositoryImpl
+import com.codexbar.android.core.data.OpenCodeGoRepositoryImpl
+import com.codexbar.android.core.nativecli.NativeCodexBarClient
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.network.claude.ClaudeApiService
 import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
@@ -30,9 +32,21 @@ annotation class CodexRepository
 @Retention(AnnotationRetention.BINARY)
 annotation class GeminiRepository
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class OpenCodeGoRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    @OpenCodeGoRepository
+    fun provideOpenCodeGoRepository(
+        client: NativeCodexBarClient,
+        prefsManager: EncryptedPrefsManager
+    ): QuotaRepository = OpenCodeGoRepositoryImpl(client, prefsManager)
 
     @Provides
     @Singleton

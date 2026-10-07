@@ -1,10 +1,10 @@
-> **⚠️ Known Issue:** Claude's refresh token is consistently failing to renew. Investigating workarounds.
-
 # CodexBar for Android
 
 > Android port of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete) — the macOS menu bar app for monitoring AI service quotas.
 
-Monitor your AI service quotas from your Android device. Track remaining usage for Claude, Codex (ChatGPT), and Gemini in one place.
+Monitor AI-service quotas on Android. This fork integrates an Android-native Swift Core/CLI alongside the existing Kotlin app. **OpenCode Go uses the native engine**; Claude, Codex (ChatGPT), and Gemini retain their Kotlin implementations.
+
+The native integration is currently an experimental build. Its automated acceptance covers synthetic credentials; see [TEST.md](TEST.md) for results and remaining real-account/device checks.
 
 <p align="center">
   <img src="docs/Screenshot_20260305_025201_CodexBar.jpg" width="320" alt="Dashboard" />
@@ -12,32 +12,42 @@ Monitor your AI service quotas from your Android device. Track remaining usage f
   <img src="docs/Screenshot_20260305_025207_CodexBar.jpg" width="320" alt="Settings" />
 </p>
 
+These screenshots show the original Android UI. Native-engine builds additionally expose OpenCode Go settings.
+
 ## Features
 
-- Real-time quota monitoring for Claude, Codex, and Gemini (more services coming soon)
+- On-demand quota monitoring for Claude, Codex, Gemini, and OpenCode Go in native-engine builds
+- OpenCode Go API-key configuration with 5-hour, weekly, and monthly windows when supplied by the provider
 - Animated gauge bars showing remaining usage percentage
 - Quick Settings tile for at-a-glance status
-- Background refresh with configurable intervals
+- WorkManager-based background refresh
 - Persistent notification with per-service breakdown
-- Push alert when quota resets (fully replenished)
+- Local alerts for detected quota reset times
 - Encrypted credential storage
 - Material 3 with Dynamic Color
 
-## Download
+## Builds and requirements
 
-Pre-built APKs are available on the [Releases](https://github.com/hyunnnchoi/codexbar-android/releases) page. 
+| Build | Purpose |
+| --- | --- |
+| `debug` / `release` | Existing Kotlin provider paths; no bundled CLI or Go setting |
+| `nativeDebug` | Native diagnostics for a selected ABI |
+| `nativeRelease` | Optimized ARM64 native test build with OpenCode Go |
 
-I do **system software** for a living — I'm not smart enough to sneak viruses into an Android app. 
+The app minimum is Android 8.0 / API 26; the native engine requires Android 9 / API 28. The native test package is `com.codexbar.android.native`, separate from the original app.
 
-No backend server — all tokens are processed and stored strictly on-device. 
+For the native build, follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [native build guide](native/README.md). Prefer `nativeRelease` for remote testing and phone delivery. The measured Go APK is approximately **33.3 MiB**.
 
+Credentials are stored encrypted on-device and sent directly to the corresponding provider for authenticated requests. There is no project-operated quota backend.
 
-## Setup
+## OpenCode Go setup
 
-1. Install [OpenJDK 17](https://formulae.brew.sh/formula/openjdk@17) (or any JDK 17+)
-2. Clone and open in Android Studio
-3. Build and install the debug APK
-4. Open the app and go to **Settings** to enter your API tokens
+1. Install the ARM64 `nativeRelease` APK and open **CodexBar Native Test**.
+2. Open the dashboard using its button, then navigate to **Settings → OpenCode Go**.
+3. Paste your **OpenCode Go API key** and press **Validate**.
+4. Return to the dashboard and pull to refresh.
+
+This source needs no refresh token, browser cookie or workspace ID. Clearing its field removes the saved key. The launcher self-test does not use your saved credentials.
 
 ## Getting Your Tokens
 
@@ -55,7 +65,7 @@ print('Refresh Token:', d['refreshToken'])
 "
 ```
 
-Paste **both** tokens into the Claude fields in Settings. The refresh token is required — access tokens expire every 8 hours, and the app uses the refresh token to renew them automatically in the background.
+Paste the tokens into the Claude fields in Settings. Access tokens expire; the existing renewal path uses the refresh token, but Claude renewal is affected by the known upstream issue noted below.
 
 ### Codex (OpenAI / ChatGPT)
 
@@ -110,22 +120,44 @@ Paste all four values into the Gemini fields in Settings.
 
 ## Build
 
+For the original Kotlin-only development variant, with JDK 21 and Android SDK platform 35 configured:
+
 ```bash
-./gradlew assembleDebug
+bash ./gradlew :app:assembleDebug --max-workers=2
 ```
 
 APK output: `app/build/outputs/apk/debug/app-debug.apk`
 
+Native toolchain setup, Release packaging and signing are documented in [native/README.md](native/README.md).
+
 ## Tech Stack
 
-- Kotlin 2.1.0, Jetpack Compose, Material 3
+- Kotlin, Jetpack Compose, Material 3
 - Hilt (DI), Retrofit2 + OkHttp (networking)
 - WorkManager (background sync), EncryptedSharedPreferences (security)
 - KSP, kotlinx.serialization
+- Swift Core/CLI compiled for Android/Bionic, with the existing provider logic reused through a bounded process adapter
+
+## Known limitations
+
+- Claude refresh-token renewal failures reported by the Android upstream are not fixed by this integration.
+- The refresh-interval setting currently persists a preference without rescheduling WorkManager. Background scheduling is best-effort, not a precise timer.
+- Physical ARM64, real-account quota accuracy, minimum-API and 16 KiB-page coverage remain acceptance targets; see [TEST.md](TEST.md).
+
+## Documentation
+
+| Document | Purpose |
+| --- | --- |
+| [SPEC.md](SPEC.md) | Architecture, data flow, ownership and behavior contracts |
+| [TEST.md](TEST.md) | Test commands, evidence and remaining acceptance |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Developer setup and contribution workflow |
+| [CHANGELOG.md](CHANGELOG.md) | Changes maintained in this fork |
+| [native/README.md](native/README.md) | Pinned native toolchain, packaging and build commands |
 
 ## Acknowledgments
 
 Based on [CodexBar](https://github.com/steipete/CodexBar) by Peter Steinberger.
+The Android UI and original Kotlin provider implementation originate from [hyunnnchoi/CodexBar-android](https://github.com/hyunnnchoi/CodexBar-android).
 
 ## License
 

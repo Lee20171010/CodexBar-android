@@ -27,4 +27,8 @@ sealed class Credential {
         val oauthClientId: String,
         val oauthClientSecret: String
     ) : Credential()
+
+    class OpenCodeGoCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

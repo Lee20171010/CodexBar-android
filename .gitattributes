@@ -1,0 +1,2 @@
+# Unified patches encode unchanged blank lines as a single space.
+native/*.patch whitespace=-blank-at-eol

@@ -52,6 +52,7 @@ class TokenRefreshWorker @AssistedInject constructor(
             is Credential.ClaudeCredential -> refreshClaude(credential)
             is Credential.CodexCredential -> refreshCodex(credential)
             is Credential.GeminiCredential -> refreshGemini(credential)
+            is Credential.OpenCodeGoCredential -> true // API keys have no OAuth refresh token.
         }
     }
 

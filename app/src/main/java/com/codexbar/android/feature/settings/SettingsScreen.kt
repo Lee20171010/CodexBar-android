@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.BuildConfig
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +92,7 @@ fun SettingsScreen(
             )
 
             // Service credential sections
-            AiService.entries.forEach { service ->
+            AiService.entries.filter { it != AiService.OPENCODE_GO || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
                 val state = uiState.serviceStates[service] ?: ServiceCredentialState()
                 ServiceCredentialSection(
                     service = service,
@@ -160,7 +161,11 @@ private fun ServiceCredentialSection(
             OutlinedTextField(
                 value = state.accessToken,
                 onValueChange = { onFieldChange("accessToken", it) },
-                label = { Text("Access Token") },
+                label = { Text(if (service == AiService.OPENCODE_GO) "OpenCode Go API Key" else "Access Token") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                supportingText = if (service == AiService.OPENCODE_GO) {
+                    { Text("Paste your OpenCode Go API key. Stored encrypted; quota is fetched by the native Core/CLI.") }
+                } else null,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -168,7 +173,7 @@ private fun ServiceCredentialSection(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            OutlinedTextField(
+            if (service != AiService.OPENCODE_GO) OutlinedTextField(
                 value = state.refreshToken,
                 onValueChange = { onFieldChange("refreshToken", it) },
                 label = { Text("Refresh Token") },
