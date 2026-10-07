@@ -5,6 +5,7 @@ import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 
 interface QuotaRepository {
+    suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError>
     suspend fun fetchQuota(): Result<QuotaInfo, AppError>
     suspend fun validateCredential(): Result<Unit, AppError>
 }

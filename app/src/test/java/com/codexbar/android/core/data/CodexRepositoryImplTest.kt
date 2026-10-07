@@ -5,6 +5,10 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
+import com.codexbar.android.core.domain.model.AccountConnection
+import com.codexbar.android.core.domain.repository.CredentialSession
+import kotlinx.coroutines.CancellationException
+import org.mockito.Mockito.verifyNoInteractions
 import com.codexbar.android.core.network.codex.CodexApiService
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
 import com.codexbar.android.core.security.EncryptedPrefsManager
@@ -69,6 +73,55 @@ class CodexRepositoryImplTest {
     @After
     fun tearDown() {
         mockWebServer.shutdown()
+    }
+
+    @Test
+    fun `draft refresh stays in request memory without overwriting saved credentials`() = runTest {
+        val draft = CredentialSession(AccountConnection.create(AiService.CODEX), testCredential)
+        mockWebServer.enqueue(MockResponse().setResponseCode(401))
+        mockWebServer.enqueue(MockResponse().setBody("""{"access_token":"synthetic-rotated","refresh_token":"synthetic-refresh-next"}"""))
+        mockWebServer.enqueue(MockResponse().setBody("""{"plan_type":"pro"}"""))
+
+        assertTrue(repository.fetchQuota(draft) is Result.Success)
+        assertEquals("synthetic-rotated", draft.credential?.accessToken)
+        assertEquals("synthetic-refresh-next", draft.credential?.refreshToken)
+        assertEquals("Bearer test-access-token", mockWebServer.takeRequest().getHeader("Authorization"))
+        mockWebServer.takeRequest()
+        assertEquals("Bearer synthetic-rotated", mockWebServer.takeRequest().getHeader("Authorization"))
+        verifyNoInteractions(prefsManager)
+    }
+
+    @Test
+    fun `rejected generation publication cancels before retrying with late tokens`() = runTest {
+        val request = CredentialSession(AccountConnection.create(AiService.CODEX), testCredential) { _, _ -> false }
+        mockWebServer.enqueue(MockResponse().setResponseCode(401))
+        mockWebServer.enqueue(MockResponse().setBody("""{"access_token":"synthetic-late","refresh_token":"synthetic-late-refresh"}"""))
+
+        val failure = runCatching { repository.fetchQuota(request) }.exceptionOrNull()
+        assertTrue(failure is CancellationException)
+        assertEquals(testCredential, request.credential)
+        assertEquals(2, mockWebServer.requestCount)
+        verifyNoInteractions(prefsManager)
+    }
+
+    @Test
+    fun `same-provider sessions send their own credentials and retain rejected accounts`() = runTest {
+        val first = CredentialSession(AccountConnection.create(AiService.CODEX), testCredential)
+        val secondCredential = testCredential.copy(accessToken = "synthetic-second", accountId = "synthetic-owner-two")
+        val second = CredentialSession(AccountConnection.create(AiService.CODEX), secondCredential)
+        mockWebServer.enqueue(MockResponse().setBody("""{"plan_type":"pro"}"""))
+        mockWebServer.enqueue(MockResponse().setResponseCode(401))
+        mockWebServer.enqueue(MockResponse().setResponseCode(400).setBody("""{"error":"invalid_grant"}"""))
+
+        assertTrue(repository.fetchQuota(first) is Result.Success)
+        assertTrue(repository.fetchQuota(second) is Result.Failure)
+        assertEquals("Bearer test-access-token", mockWebServer.takeRequest().getHeader("Authorization"))
+        val secondRequest = mockWebServer.takeRequest()
+        assertEquals("Bearer synthetic-second", secondRequest.getHeader("Authorization"))
+        assertEquals("synthetic-owner-two", secondRequest.getHeader("ChatGPT-Account-Id"))
+        assertEquals(secondCredential, second.credential)
+        assertEquals(testCredential, first.credential)
+        verifyNoInteractions(prefsManager)
     }
 
     @Test

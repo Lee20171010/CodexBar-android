@@ -8,6 +8,9 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Explicit credential sessions for provider fetches; draft token rotation stays in
+  memory and rejected credential publication cancels before retry. Surface routing
+  and the shared refresh coordinator remain pending.
 - Connection-aware encrypted storage foundation: stable local IDs, names, generation
   guards, in-place legacy adoption and credential compare-and-set. Multi-account UI
   and repository/worker/widget routing remain pending.

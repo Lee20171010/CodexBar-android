@@ -7,6 +7,9 @@ import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.repository.QuotaRepository
+import com.codexbar.android.core.domain.repository.CredentialSession
+import com.codexbar.android.core.domain.model.AccountConnection
+import kotlinx.coroutines.CancellationException
 import com.codexbar.android.core.network.gemini.GeminiApiService
 import com.codexbar.android.core.network.gemini.GeminiDto
 import com.codexbar.android.core.network.gemini.GeminiTokenRefreshService
@@ -24,19 +27,27 @@ class GeminiRepositoryImpl @Inject constructor(
     private val prefsManager: EncryptedPrefsManager
 ) : QuotaRepository {
 
-    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> {
-        val credential = prefsManager.loadCredential(AiService.GEMINI)
+    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> = fetchQuota(
+        CredentialSession(AccountConnection.create(AiService.GEMINI), prefsManager.loadCredential(AiService.GEMINI)) { _, updated ->
+            prefsManager.saveCredential(AiService.GEMINI, updated)
+            true
+        }
+    )
+
+    override suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError> {
+        require(session.connection.service == AiService.GEMINI)
+        val credential = session.credential
             as? Credential.GeminiCredential
             ?: return Result.Failure(AppError.CredentialNotFound(AiService.GEMINI))
 
-        val workingCredential = ensureValidToken(credential)
+        val workingCredential = ensureValidToken(credential, session)
             ?: return Result.Failure(AppError.AuthError(AiService.GEMINI, isTerminal = true))
 
         return try {
             val result = fetchQuotaWithToken(workingCredential)
             if (result is Result.Failure && result.error is AppError.AuthError) {
                 // Token might be expired despite expiresAtMs — try refresh once
-                val refreshed = refreshToken(workingCredential)
+                val refreshed = refreshToken(workingCredential, session)
                 if (refreshed != null) {
                     fetchQuotaWithToken(refreshed)
                 } else {
@@ -45,6 +56,8 @@ class GeminiRepositoryImpl @Inject constructor(
             } else {
                 result
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: IOException) {
             Result.Failure(AppError.NetworkError(e.message ?: "Network error", e))
         } catch (e: Exception) {
@@ -151,14 +164,14 @@ class GeminiRepositoryImpl @Inject constructor(
         )
     }
 
-    private suspend fun ensureValidToken(credential: Credential.GeminiCredential): Credential.GeminiCredential? {
+    private suspend fun ensureValidToken(credential: Credential.GeminiCredential, session: CredentialSession): Credential.GeminiCredential? {
         if (System.currentTimeMillis() < credential.expiresAtMs - 60_000) {
             return credential
         }
-        return refreshToken(credential)
+        return refreshToken(credential, session)
     }
 
-    private suspend fun refreshToken(credential: Credential.GeminiCredential): Credential.GeminiCredential? {
+    private suspend fun refreshToken(credential: Credential.GeminiCredential, session: CredentialSession): Credential.GeminiCredential? {
         return try {
             val request = GeminiDto.TokenRefreshRequest(
                 refreshToken = credential.refreshToken,
@@ -176,11 +189,13 @@ class GeminiRepositoryImpl @Inject constructor(
                     oauthClientId = credential.oauthClientId,
                     oauthClientSecret = credential.oauthClientSecret
                 )
-                prefsManager.saveCredential(AiService.GEMINI, newCredential)
+                session.replace(newCredential)
                 newCredential
             } else {
                 null
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             null
         }

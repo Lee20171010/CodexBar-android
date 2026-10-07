@@ -50,6 +50,13 @@ This is the storage foundation. Existing repository/UI/worker entry points still
 the legacy APIs until all-surface routing lands; end-user multi-account support and
 foreground/background lifecycle acceptance are not yet complete.
 
+Repositories also accept a `CredentialSession` containing an explicit connection and
+request-local credentials. Draft rotation changes memory only; saved-account callers
+supply a generation/credential compare-and-set writer. A rejected write propagates
+cancellation before retrying with late tokens. Codex fetch rejection retains the
+account for reconnect. Legacy no-argument entry points remain during the transition;
+this overload alone does not establish a single foreground/background refresh owner.
+
 Settings includes an offline About/license reader. The checked-in asset bundle
 contains original Android and native upstream notices, static runtime dependencies
 and provenance hashes. `NOTICE.md` records unofficial identity, research credit

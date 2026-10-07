@@ -7,6 +7,9 @@ import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.repository.QuotaRepository
+import com.codexbar.android.core.domain.repository.CredentialSession
+import com.codexbar.android.core.domain.model.AccountConnection
+import kotlinx.coroutines.CancellationException
 import com.codexbar.android.core.network.codex.CodexApiService
 import com.codexbar.android.core.network.codex.CodexDto
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
@@ -23,8 +26,16 @@ class CodexRepositoryImpl @Inject constructor(
     private val prefsManager: EncryptedPrefsManager
 ) : QuotaRepository {
 
-    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> {
-        val credential = prefsManager.loadCredential(AiService.CODEX)
+    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> = fetchQuota(
+        CredentialSession(AccountConnection.create(AiService.CODEX), prefsManager.loadCredential(AiService.CODEX)) { _, updated ->
+            prefsManager.saveCredential(AiService.CODEX, updated)
+            true
+        }
+    )
+
+    override suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError> {
+        require(session.connection.service == AiService.CODEX)
+        val credential = session.credential
             as? Credential.CodexCredential
             ?: return Result.Failure(AppError.CredentialNotFound(AiService.CODEX))
 
@@ -41,7 +52,7 @@ class CodexRepositoryImpl @Inject constructor(
                     Result.Success(mapToQuotaInfo(body))
                 }
                 401 -> {
-                    val refreshed = refreshToken(credential)
+                    val refreshed = refreshToken(credential, session)
                     if (refreshed != null) {
                         val retryResponse = apiService.getUsage(
                             authorization = "Bearer ${refreshed.accessToken}",
@@ -63,6 +74,8 @@ class CodexRepositoryImpl @Inject constructor(
                     AppError.NetworkError("HTTP ${response.code()}: ${response.message()}")
                 )
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: IOException) {
             Result.Failure(AppError.NetworkError(e.message ?: "Network error", e))
         } catch (e: Exception) {
@@ -77,7 +90,7 @@ class CodexRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun refreshToken(credential: Credential.CodexCredential): Credential.CodexCredential? {
+    private suspend fun refreshToken(credential: Credential.CodexCredential, session: CredentialSession): Credential.CodexCredential? {
         return try {
             val request = CodexDto.TokenRefreshRequest(refreshToken = credential.refreshToken)
             val response = tokenRefreshService.refreshToken(request)
@@ -89,16 +102,14 @@ class CodexRepositoryImpl @Inject constructor(
                     refreshToken = body.refreshToken ?: credential.refreshToken,
                     accountId = credential.accountId
                 )
-                prefsManager.saveCredential(AiService.CODEX, newCredential)
+                session.replace(newCredential)
                 newCredential
             } else {
-                val errorBody = response.errorBody()?.string() ?: ""
-                val isTerminal = CodexDto.TERMINAL_ERROR_CODES.any { errorBody.contains(it) }
-                if (isTerminal) {
-                    prefsManager.deleteCredential(AiService.CODEX)
-                }
+                // Keep the account available for reconnect; never delete a sibling or draft owner.
                 null
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             null
         }

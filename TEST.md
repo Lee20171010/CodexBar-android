@@ -26,12 +26,12 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher and tile visual runtime acceptance remain pending.
 
-The JVM suite currently contains **41 tests**:
+The JVM suite currently contains **44 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
 | Claude repository | 9 | Existing HTTP/credential behavior |
-| Codex repository | 8 | Existing HTTP/credential behavior |
+| Codex repository | 11 | HTTP/credential behavior; request-local draft rotation, late-write cancellation, same-provider session isolation |
 | Gemini repository | 6 | Existing HTTP/credential behavior |
 | OpenCode Go repository | 2 | Missing key avoids execution; rejected keys are retained |
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |

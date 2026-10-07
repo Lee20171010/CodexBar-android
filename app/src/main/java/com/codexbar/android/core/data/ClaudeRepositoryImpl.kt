@@ -8,6 +8,9 @@ import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.repository.QuotaRepository
+import com.codexbar.android.core.domain.repository.CredentialSession
+import com.codexbar.android.core.domain.model.AccountConnection
+import kotlinx.coroutines.CancellationException
 import com.codexbar.android.core.network.claude.ClaudeApiService
 import com.codexbar.android.core.network.claude.ClaudeDto
 import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
@@ -25,12 +28,20 @@ class ClaudeRepositoryImpl @Inject constructor(
     private val prefsManager: EncryptedPrefsManager
 ) : QuotaRepository {
 
-    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> {
-        val credential = prefsManager.loadCredential(AiService.CLAUDE)
+    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> = fetchQuota(
+        CredentialSession(AccountConnection.create(AiService.CLAUDE), prefsManager.loadCredential(AiService.CLAUDE)) { _, updated ->
+            prefsManager.saveCredential(AiService.CLAUDE, updated)
+            true
+        }
+    )
+
+    override suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError> {
+        require(session.connection.service == AiService.CLAUDE)
+        val credential = session.credential
             as? Credential.ClaudeCredential
             ?: return Result.Failure(AppError.CredentialNotFound(AiService.CLAUDE))
 
-        val workingCredential = ensureValidToken(credential)
+        val workingCredential = ensureValidToken(credential, session)
             ?: return Result.Failure(AppError.AuthError(AiService.CLAUDE, isTerminal = true))
 
         return try {
@@ -44,16 +55,13 @@ class ClaudeRepositoryImpl @Inject constructor(
                         ?: extractTierFromJwt(workingCredential.accessToken)
                     val effectiveTier = discoveredTier ?: workingCredential.rateLimitTier
                     if (discoveredTier != null && discoveredTier != workingCredential.rateLimitTier) {
-                        prefsManager.saveCredential(
-                            AiService.CLAUDE,
-                            workingCredential.copy(rateLimitTier = discoveredTier)
-                        )
+                        session.replace(workingCredential.copy(rateLimitTier = discoveredTier))
                     }
                     Result.Success(mapToQuotaInfo(body, effectiveTier))
                 }
                 401 -> {
                     // Try refresh once, then retry
-                    val refreshed = refreshToken(workingCredential)
+                    val refreshed = refreshToken(workingCredential, session)
                     if (refreshed != null) {
                         val retryResponse = apiService.getUsage("Bearer ${refreshed.accessToken}")
                         if (retryResponse.isSuccessful) {
@@ -63,10 +71,7 @@ class ClaudeRepositoryImpl @Inject constructor(
                                 ?: extractTierFromJwt(refreshed.accessToken)
                             val effectiveTier = discoveredTier ?: refreshed.rateLimitTier
                             if (discoveredTier != null && discoveredTier != refreshed.rateLimitTier) {
-                                prefsManager.saveCredential(
-                                    AiService.CLAUDE,
-                                    refreshed.copy(rateLimitTier = discoveredTier)
-                                )
+                                session.replace(refreshed.copy(rateLimitTier = discoveredTier))
                             }
                             Result.Success(mapToQuotaInfo(body, effectiveTier))
                         } else {
@@ -81,6 +86,8 @@ class ClaudeRepositoryImpl @Inject constructor(
                     AppError.NetworkError("HTTP ${response.code()}: ${response.message()}")
                 )
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (e: IOException) {
             Result.Failure(AppError.NetworkError(e.message ?: "Network error", e))
         } catch (e: Exception) {
@@ -95,15 +102,15 @@ class ClaudeRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun ensureValidToken(credential: Credential.ClaudeCredential): Credential.ClaudeCredential? {
+    private suspend fun ensureValidToken(credential: Credential.ClaudeCredential, session: CredentialSession): Credential.ClaudeCredential? {
         val expiresAt = credential.expiresAt ?: return credential
         if (Instant.now().isBefore(expiresAt.minusSeconds(60))) {
             return credential
         }
-        return refreshToken(credential)
+        return refreshToken(credential, session)
     }
 
-    private suspend fun refreshToken(credential: Credential.ClaudeCredential): Credential.ClaudeCredential? {
+    private suspend fun refreshToken(credential: Credential.ClaudeCredential, session: CredentialSession): Credential.ClaudeCredential? {
         val refreshToken = credential.refreshToken ?: return null
 
         return try {
@@ -117,11 +124,13 @@ class ClaudeRepositoryImpl @Inject constructor(
                     scopes = credential.scopes,
                     rateLimitTier = credential.rateLimitTier
                 )
-                prefsManager.saveCredential(AiService.CLAUDE, newCredential)
+                session.replace(newCredential)
                 newCredential
             } else {
                 null
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             null
         }
