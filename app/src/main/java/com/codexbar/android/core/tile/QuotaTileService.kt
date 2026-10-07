@@ -1,9 +1,12 @@
 package com.codexbar.android.core.tile
 
+import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import com.codexbar.android.MainActivity
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,14 +23,23 @@ class QuotaTileService : TileService() {
         updateTile()
     }
 
+    // The Intent overload is required below API 34; lint does not honor this SDK guard.
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
-        val intent = Intent().apply {
+        val intent = Intent(this, MainActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             data = android.net.Uri.parse("codexbar://dashboard")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-        startActivityAndCollapse(intent)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startActivityAndCollapse(PendingIntent.getActivity(
+                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            ))
+        } else {
+            @Suppress("DEPRECATION")
+            startActivityAndCollapse(intent)
+        }
     }
 
     private fun updateTile() {

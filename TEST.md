@@ -21,9 +21,10 @@ git diff --check
 Attribution checks: `python3 native/collect_notices.py --check` verifies all 24
 checked-in notice assets and their hashes, including exact copies of the Android
 license and the root attribution document. The About screen compiles and the
-33 JVM tests pass. The initial full lint run also identified an existing
-`QuotaTileService.startActivityAndCollapse(Intent)` API-34 compatibility error;
-this is not suppressed. About/launcher visual runtime acceptance remains pending.
+33 JVM tests pass. Debug lint passes after routing API-34+ Quick Settings launches
+through an explicit, immutable PendingIntent. The legacy overload remains guarded
+to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
+About/launcher and tile visual runtime acceptance remain pending.
 
 The JVM suite currently contains **33 tests**:
 

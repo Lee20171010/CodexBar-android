@@ -22,6 +22,8 @@ from the pinned Swift Core/CLI source revision.
 
 ### Changed
 
+- Use an explicit, immutable PendingIntent for Quick Settings launches on Android
+  14+, preserving the legacy launch path on earlier supported versions.
 - Optimized the ARM64 native APK with Swift Release/`-Osize`, stripped binaries,
   linker section collection, R8/resource shrinking and single-ABI packaging.
   The initial APK measurement decreased from 76.91 to 33.28 MiB.
