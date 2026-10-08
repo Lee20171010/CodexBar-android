@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.BuildConfig
 import com.codexbar.android.R
 
@@ -67,6 +68,9 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showAbout by remember { mutableStateOf(false) }
+    var renameAccount by remember { mutableStateOf<AccountConnection?>(null) }
+    var renameText by remember { mutableStateOf("") }
+    var deleteAccount by remember { mutableStateOf<AccountConnection?>(null) }
 
     Scaffold(
         topBar = {
@@ -94,14 +98,32 @@ fun SettingsScreen(
                 onToggle = { viewModel.setNotificationsEnabled(it) }
             )
 
-            // Service credential sections
+            Text("Accounts", style = MaterialTheme.typography.titleLarge)
+            uiState.connections.forEach { account ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(account.name, style = MaterialTheme.typography.titleMedium)
+                        Text(account.service.displayName, style = MaterialTheme.typography.bodySmall)
+                        Row {
+                            TextButton(onClick = { renameAccount = account; renameText = account.name }) { Text("Rename") }
+                            TextButton(onClick = { viewModel.beginReconnect(account) }) { Text("Reconnect") }
+                            TextButton(onClick = { deleteAccount = account }) { Text("Delete") }
+                        }
+                    }
+                }
+            }
+
             AiService.entries.filter { it != AiService.OPENCODE_GO || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
                 val state = uiState.serviceStates[service] ?: ServiceCredentialState()
-                ServiceCredentialSection(
+                if (state.connection == null) OutlinedButton(
+                    onClick = { viewModel.beginAdd(service) }, modifier = Modifier.fillMaxWidth()
+                ) { Text("Add ${service.displayName} account") }
+                else ServiceCredentialSection(
                     service = service,
                     state = state,
                     onFieldChange = { field, value -> viewModel.updateField(service, field, value) },
-                    onValidate = { viewModel.validateCredential(service) }
+                    onValidate = { viewModel.validateCredential(service) },
+                    onCancel = { viewModel.cancelDraft(service) }
                 )
             }
 
@@ -125,6 +147,30 @@ fun SettingsScreen(
 
     if (showAbout) AboutDialog(onDismiss = { showAbout = false })
 
+    renameAccount?.let { account ->
+        AlertDialog(
+            onDismissRequest = { renameAccount = null },
+            title = { Text("Rename account") },
+            text = { OutlinedTextField(value = renameText, onValueChange = { renameText = it }, label = { Text("Account name") }, singleLine = true) },
+            confirmButton = {
+                TextButton(
+                    enabled = renameText.trim().isNotEmpty() && renameText.trim().length <= 80 && renameText.none(Char::isISOControl),
+                    onClick = { viewModel.rename(account, renameText); renameAccount = null }
+                ) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renameAccount = null }) { Text("Cancel") } }
+        )
+    }
+    deleteAccount?.let { account ->
+        AlertDialog(
+            onDismissRequest = { deleteAccount = null },
+            title = { Text("Delete ${account.name}?") },
+            text = { Text("Removes this account's credentials and cached data. Widgets pinned to it will show account unavailable.") },
+            confirmButton = { TextButton(onClick = { viewModel.delete(account); deleteAccount = null }) { Text("Delete") } },
+            dismissButton = { TextButton(onClick = { deleteAccount = null }) { Text("Cancel") } }
+        )
+    }
+
     // Delete confirmation dialog
     if (uiState.showDeleteConfirmDialog) {
         DeleteConfirmDialog(
@@ -142,7 +188,8 @@ private fun ServiceCredentialSection(
     service: AiService,
     state: ServiceCredentialState,
     onFieldChange: (String, String) -> Unit,
-    onValidate: () -> Unit
+    onValidate: () -> Unit,
+    onCancel: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -165,6 +212,16 @@ private fun ServiceCredentialSection(
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
+            Text(if (state.previous == null) "New account" else "Reconnect ${state.previous.name}")
+            OutlinedTextField(
+                value = state.name,
+                onValueChange = { onFieldChange("name", it) },
+                label = { Text("Account name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = state.accessToken,
@@ -252,7 +309,7 @@ private fun ServiceCredentialSection(
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    Text("Validate")
+                    Text("Validate & save")
                 }
 
                 Spacer(modifier = Modifier.width(12.dp))
@@ -286,6 +343,7 @@ private fun ServiceCredentialSection(
                     null -> {}
                 }
             }
+            TextButton(onClick = onCancel) { Text("Cancel") }
         }
     }
 }

@@ -8,12 +8,12 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Multi-account Settings, Dashboard, background refresh, widgets, tile and notification
+  routing, with private validated drafts and one serialized refresh writer per account.
 - Explicit credential sessions for provider fetches; draft token rotation stays in
-  memory and rejected credential publication cancels before retry. Surface routing
-  and the shared refresh coordinator remain pending.
+  memory and rejected credential publication cancels before retry.
 - Connection-aware encrypted storage foundation: stable local IDs, names, generation
-  guards, in-place legacy adoption and credential compare-and-set. Multi-account UI
-  and repository/worker/widget routing remain pending.
+  guards, in-place legacy adoption and credential compare-and-set.
 - Offline Settings → About & licenses, explicit unofficial-port attribution,
   dependency license texts with source hashes, and Android artwork provenance.
 - Android/Bionic builds of upstream CodexBar Core/CLI with pinned source, an Android
@@ -38,7 +38,8 @@ from the pinned Swift Core/CLI source revision.
 
 ### Verification
 
-- 33 JVM tests and toolchain-integrity checks passed.
+- 53 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
+  device acceptance remains separate from these synthetic tests.
 - The Go Release APK passed five runtime probes and Settings validation on an
   API 36 emulator's ARM64 native-bridge path. See [TEST.md](TEST.md) for exact scope.
 - Physical ARM64, real-account quota accuracy and complete migration of the other

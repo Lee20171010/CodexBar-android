@@ -7,7 +7,8 @@ import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.network.gemini.GeminiApiService
 import com.codexbar.android.core.network.gemini.GeminiTokenRefreshService
-import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.domain.model.AccountConnection
+import com.codexbar.android.core.domain.repository.CredentialSession
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -28,7 +29,10 @@ class GeminiRepositoryImplTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var apiService: GeminiApiService
     private lateinit var tokenRefreshService: GeminiTokenRefreshService
-    private lateinit var prefsManager: EncryptedPrefsManager
+    private var credential: Credential? = null
+    private suspend fun GeminiRepositoryImpl.fetchQuota() = fetchQuota(
+        CredentialSession(AccountConnection.create(AiService.GEMINI), credential)
+    )
     private lateinit var repository: GeminiRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
 
@@ -62,10 +66,8 @@ class GeminiRepositoryImplTest {
             .build()
             .create(GeminiTokenRefreshService::class.java)
 
-        prefsManager = mock(EncryptedPrefsManager::class.java)
-        `when`(prefsManager.loadCredential(AiService.GEMINI)).thenReturn(testCredential)
-
-        repository = GeminiRepositoryImpl(apiService, tokenRefreshService, prefsManager)
+        credential = testCredential
+        repository = GeminiRepositoryImpl(apiService, tokenRefreshService)
     }
 
     @After
@@ -192,7 +194,7 @@ class GeminiRepositoryImplTest {
 
     @Test
     fun `fetchQuota returns CredentialNotFound when no credential`() = runTest {
-        `when`(prefsManager.loadCredential(AiService.GEMINI)).thenReturn(null)
+        credential = null
 
         val result = repository.fetchQuota()
 

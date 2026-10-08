@@ -1,6 +1,7 @@
 package com.codexbar.android.feature.dashboard
 
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.AppError
 import java.time.Instant
 
@@ -14,20 +15,22 @@ sealed class DashboardUiState {
 
     data class PartialSuccess(
         val cards: List<ServiceCardData>,
-        val errors: Map<AiService, AppError>
+        val errors: Map<AccountConnection, AppError>
     ) : DashboardUiState()
 
     data class Error(val error: AppError) : DashboardUiState()
 }
 
 data class ServiceCardData(
-    val service: AiService,
+    val connection: AccountConnection,
     val windows: List<UsageWindowUi>,
     val extraUsage: ExtraUsageUi?,
     val tier: String?,
     val isLoading: Boolean = false,
     val error: AppError? = null
-)
+) {
+    val service: AiService get() = connection.service
+}
 
 data class UsageWindowUi(
     val label: String,

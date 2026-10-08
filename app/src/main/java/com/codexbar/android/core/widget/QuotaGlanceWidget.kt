@@ -40,27 +40,43 @@ import androidx.glance.unit.ColorProvider
 import com.codexbar.android.MainActivity
 import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountConnection
+import com.codexbar.android.core.domain.model.UsageWindow
+import com.codexbar.android.core.security.EncryptedPrefsManager
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import dagger.hilt.android.EntryPointAccessors
 import java.time.Duration
 import java.time.Instant
 import kotlin.math.roundToInt
 
 class QuotaGlanceWidget : GlanceAppWidget() {
 
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface Dependencies {
+        fun accounts(): EncryptedPrefsManager
+        fun widgets(): WidgetPrefsManager
+    }
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val widgetPrefs = WidgetPrefsManager(context)
+        val dependencies = EntryPointAccessors.fromApplication(context, Dependencies::class.java)
+        val widgetPrefs = dependencies.widgets()
         val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val selectedServices = widgetPrefs.getSelectedServices(appWidgetId)
+        val selectedIds = widgetPrefs.getSelectedConnections(appWidgetId)
+        val accounts = dependencies.accounts().loadConnections().associateBy { it.id }
 
         provideContent {
             GlanceTheme {
-                WidgetContent(selectedServices.toList().sortedBy { it.ordinal }, widgetPrefs)
+                WidgetContent(selectedIds.sorted().map { accounts[it] }, widgetPrefs)
             }
         }
     }
 
     @Composable
     private fun WidgetContent(
-        services: List<AiService>,
+        services: List<AccountConnection?>,
         widgetPrefs: WidgetPrefsManager
     ) {
         Box(
@@ -81,7 +97,8 @@ class QuotaGlanceWidget : GlanceAppWidget() {
                             Divider()
                             Spacer(modifier = GlanceModifier.height(8.dp))
                         }
-                        ServiceSection(service, widgetPrefs, showRefresh = index == 0)
+                        if (service == null) Text("Account unavailable", style = TextStyle(color = ColorProvider(Color.White)))
+                        else ServiceSection(service, widgetPrefs, showRefresh = index == 0)
                     }
                 }
             }
@@ -113,12 +130,14 @@ class QuotaGlanceWidget : GlanceAppWidget() {
 
     @Composable
     private fun ServiceSection(
-        service: AiService,
+        connection: AccountConnection,
         widgetPrefs: WidgetPrefsManager,
         showRefresh: Boolean
     ) {
-        val labels = widgetPrefs.getCachedLabels(service)
-        val tier = widgetPrefs.getCachedTier(service)
+        val service = connection.service
+        val quota = widgetPrefs.getCachedQuota(connection)
+        val windows = quota?.windows.orEmpty()
+        val tier = quota?.tier
 
         Column(modifier = GlanceModifier.fillMaxWidth()) {
             // Header: service name + tier + refresh button
@@ -136,7 +155,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
                 Spacer(modifier = GlanceModifier.width(8.dp))
 
                 Text(
-                    text = service.displayName,
+                    text = connection.name,
                     style = TextStyle(
                         color = ColorProvider(Color.White),
                         fontSize = 15.sp,
@@ -179,13 +198,13 @@ class QuotaGlanceWidget : GlanceAppWidget() {
             Spacer(modifier = GlanceModifier.height(8.dp))
 
             // Each usage window — same layout as app dashboard
-            for ((index, label) in labels.withIndex()) {
+            for ((index, window) in windows.withIndex()) {
                 if (index > 0) Spacer(modifier = GlanceModifier.height(6.dp))
-                WindowRow(service, label, widgetPrefs)
+                WindowRow(window)
             }
 
             // Show placeholder if no cached data yet
-            if (labels.isEmpty()) {
+            if (windows.isEmpty()) {
                 Text(
                     text = "Waiting for data...",
                     style = TextStyle(
@@ -199,13 +218,11 @@ class QuotaGlanceWidget : GlanceAppWidget() {
 
     @Composable
     private fun WindowRow(
-        service: AiService,
-        label: String,
-        widgetPrefs: WidgetPrefsManager
+        window: UsageWindow
     ) {
-        val utilization = widgetPrefs.getCachedUtilization(service, label)
+        val utilization = window.utilization.toFloat()
         val remaining = ((1f - utilization) * 100).toInt()
-        val resetsAt = widgetPrefs.getCachedResetsAt(service, label)
+        val resetsAt = window.resetsAt?.epochSecond
         val resetText = resetsAt?.let { formatResetTime(it) } ?: ""
 
         Column(modifier = GlanceModifier.fillMaxWidth()) {
@@ -215,7 +232,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = label,
+                    text = window.label,
                     style = TextStyle(
                         color = ColorProvider(Color.White.copy(alpha = 0.7f)),
                         fontSize = 12.sp

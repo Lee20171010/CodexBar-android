@@ -29,6 +29,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.lifecycle.lifecycleScope
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.ui.theme.CodexBarTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -71,16 +74,15 @@ class WidgetConfigurationActivity : ComponentActivity() {
         }
 
         enableEdgeToEdge()
+        encryptedPrefsManager.loadConnections()
 
         setContent {
             CodexBarTheme {
-                val availableServices = AiService.entries.filter {
-                    encryptedPrefsManager.hasCredential(it)
-                }
-                val checkedState = remember {
-                    mutableStateMapOf<AiService, Boolean>().apply {
+                val availableServices by encryptedPrefsManager.connections.collectAsStateWithLifecycle()
+                val checkedState = remember(availableServices.map { it.id }) {
+                    mutableStateMapOf<String, Boolean>().apply {
                         // Pre-check all available services
-                        availableServices.forEach { this[it] = true }
+                        availableServices.forEach { this[it.id] = true }
                     }
                 }
                 val anyChecked = checkedState.values.any { it }
@@ -101,7 +103,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Select services to display in this widget:",
+                            text = "Select accounts to display in this widget:",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -115,13 +117,12 @@ class WidgetConfigurationActivity : ComponentActivity() {
                                 color = MaterialTheme.colorScheme.error
                             )
                         } else {
-                            for (service in AiService.entries) {
-                                val hasCredential = service in availableServices
+                            for (service in availableServices) {
                                 ServiceCheckRow(
                                     service = service,
-                                    checked = checkedState[service] ?: false,
-                                    enabled = hasCredential,
-                                    onCheckedChange = { checkedState[service] = it }
+                                    checked = checkedState[service.id] ?: false,
+                                    enabled = true,
+                                    onCheckedChange = { checkedState[service.id] = it }
                                 )
                             }
                         }
@@ -160,13 +161,13 @@ class WidgetConfigurationActivity : ComponentActivity() {
         }
     }
 
-    private fun confirmSelection(checkedState: Map<AiService, Boolean>) {
+    private fun confirmSelection(checkedState: Map<String, Boolean>) {
         val selectedServices = checkedState
             .filter { it.value }
             .keys
 
         // commit() ensures data is persisted before the widget reads it
-        widgetPrefsManager.saveSelectedServices(appWidgetId, selectedServices)
+        widgetPrefsManager.saveSelectedConnections(appWidgetId, selectedServices)
 
         // Return RESULT_OK first so the launcher places the widget
         val resultValue = Intent().apply {
@@ -190,7 +191,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
 
 @Composable
 private fun ServiceCheckRow(
-    service: AiService,
+    service: AccountConnection,
     checked: Boolean,
     enabled: Boolean,
     onCheckedChange: (Boolean) -> Unit
@@ -211,12 +212,12 @@ private fun ServiceCheckRow(
             imageVector = Icons.Default.Cloud,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = if (enabled) Color(service.brandColor) else Color.Gray
+            tint = if (enabled) Color(service.service.brandColor) else Color.Gray
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(
-                text = service.displayName,
+                text = "${service.name} · ${service.service.displayName}",
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
             )

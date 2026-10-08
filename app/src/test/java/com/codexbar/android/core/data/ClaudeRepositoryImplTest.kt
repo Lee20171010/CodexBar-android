@@ -6,7 +6,8 @@ import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.network.claude.ClaudeApiService
 import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
-import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.domain.model.AccountConnection
+import com.codexbar.android.core.domain.repository.CredentialSession
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -29,7 +30,10 @@ class ClaudeRepositoryImplTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var apiService: ClaudeApiService
     private lateinit var tokenRefreshService: ClaudeTokenRefreshService
-    private lateinit var prefsManager: EncryptedPrefsManager
+    private var credential: Credential? = null
+    private suspend fun ClaudeRepositoryImpl.fetchQuota() = fetchQuota(
+        CredentialSession(AccountConnection.create(AiService.CLAUDE), credential)
+    )
     private lateinit var repository: ClaudeRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
 
@@ -60,10 +64,8 @@ class ClaudeRepositoryImplTest {
             .build()
             .create(ClaudeTokenRefreshService::class.java)
 
-        prefsManager = mock(EncryptedPrefsManager::class.java)
-        `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(testCredential)
-
-        repository = ClaudeRepositoryImpl(apiService, tokenRefreshService, prefsManager)
+        credential = testCredential
+        repository = ClaudeRepositoryImpl(apiService, tokenRefreshService)
     }
 
     @After
@@ -153,7 +155,7 @@ class ClaudeRepositoryImplTest {
 
     @Test
     fun `fetchQuota returns CredentialNotFound when no credential saved`() = runTest {
-        `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(null)
+        credential = null
 
         val result = repository.fetchQuota()
 
@@ -215,7 +217,7 @@ class ClaudeRepositoryImplTest {
             accessToken = fakeJwt,
             refreshToken = "test-refresh-token"
         )
-        `when`(prefsManager.loadCredential(AiService.CLAUDE)).thenReturn(jwtCredential)
+        credential = jwtCredential
 
         val responseJson = """
         {

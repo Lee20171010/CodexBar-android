@@ -57,34 +57,9 @@ class WorkManagerInitializer : Initializer<Unit> {
             )
         }
 
-        fun scheduleTokenRefresh(context: Context, intervalMinutes: Long = 30) {
-            if (intervalMinutes <= 0) {
-                WorkManager.getInstance(context).cancelUniqueWork(TOKEN_WORK_NAME)
-                return
-            }
-
-            val effectiveInterval = intervalMinutes.coerceAtLeast(15)
-
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build()
-
-            val request = PeriodicWorkRequestBuilder<TokenRefreshWorker>(
-                effectiveInterval, TimeUnit.MINUTES
-            )
-                .setConstraints(constraints)
-                .setBackoffCriteria(
-                    BackoffPolicy.EXPONENTIAL,
-                    1, TimeUnit.MINUTES
-                )
-                .addTag("token_refresh")
-                .build()
-
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                TOKEN_WORK_NAME,
-                ExistingPeriodicWorkPolicy.UPDATE,
-                request
-            )
+        fun scheduleTokenRefresh(context: Context) {
+            // Migrate old installs away from a second, uncoordinated refresh-token writer.
+            WorkManager.getInstance(context).cancelUniqueWork(TOKEN_WORK_NAME)
         }
     }
 }

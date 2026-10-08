@@ -11,6 +11,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.workmanager.QuotaRefreshWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -58,11 +59,17 @@ class QuotaNotificationService @Inject constructor(
         manager.createNotificationChannels(listOf(monitorChannel, resetChannel))
     }
 
-    fun showQuotaNotification(quotas: List<QuotaInfo>) {
+    fun showQuotaNotification(quotas: List<Pair<AccountConnection, QuotaInfo>>) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (quotas.isEmpty()) {
+            manager.cancel(NOTIFICATION_ID)
+            return
+        }
+        if (!manager.areNotificationsEnabled()) return
         val remoteViews = RemoteViews(context.packageName, R.layout.notification_compact)
 
         // Populate service data
-        quotas.forEachIndexed { index, quota ->
+        quotas.forEachIndexed { index, (connection, quota) ->
             if (index >= 3) return@forEachIndexed // Max 3 services
 
             val maxUtilization = quota.windows.maxOfOrNull { it.utilization } ?: 0.0
@@ -70,24 +77,24 @@ class QuotaNotificationService @Inject constructor(
 
             when (index) {
                 0 -> {
-                    remoteViews.setTextViewText(R.id.service_name_1, quota.service.displayName)
+                    remoteViews.setTextViewText(R.id.service_name_1, connection.name)
                     remoteViews.setProgressBar(R.id.progress_bar_1, 100, progress, false)
                     remoteViews.setTextViewText(R.id.progress_text_1, "${progress}%")
                 }
                 1 -> {
-                    remoteViews.setTextViewText(R.id.service_name_2, quota.service.displayName)
+                    remoteViews.setTextViewText(R.id.service_name_2, connection.name)
                     remoteViews.setProgressBar(R.id.progress_bar_2, 100, progress, false)
                     remoteViews.setTextViewText(R.id.progress_text_2, "${progress}%")
                 }
                 2 -> {
-                    remoteViews.setTextViewText(R.id.service_name_3, quota.service.displayName)
+                    remoteViews.setTextViewText(R.id.service_name_3, connection.name)
                     remoteViews.setProgressBar(R.id.progress_bar_3, 100, progress, false)
                     remoteViews.setTextViewText(R.id.progress_text_3, "${progress}%")
                 }
             }
         }
 
-        val elapsed = formatElapsed(quotas.firstOrNull()?.fetchedAt)
+        val elapsed = formatElapsed(quotas.minOfOrNull { it.second.fetchedAt })
         remoteViews.setTextViewText(R.id.update_time, "Updated: $elapsed")
 
         // Refresh action
@@ -119,11 +126,12 @@ class QuotaNotificationService @Inject constructor(
             .addAction(R.drawable.ic_refresh, "Refresh", refreshPendingIntent)
             .build()
 
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICATION_ID, notification)
     }
 
-    fun showResetNotification(service: AiService, windowLabel: String) {
+    fun showResetNotification(connection: AccountConnection, windowLabel: String) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (!manager.areNotificationsEnabled()) return
         val dashboardIntent = Intent().apply {
             action = Intent.ACTION_VIEW
             data = android.net.Uri.parse("codexbar://dashboard")
@@ -136,15 +144,19 @@ class QuotaNotificationService @Inject constructor(
 
         val notification = NotificationCompat.Builder(context, RESET_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quota)
-            .setContentTitle("${service.displayName} quota reset")
+            .setContentTitle("${connection.name} quota reset")
             .setContentText("$windowLabel window has been reset. Your quota is fully available.")
             .setContentIntent(dashboardPendingIntent)
             .setAutoCancel(true)
             .build()
 
-        val notificationId = RESET_NOTIFICATION_ID_BASE + "${service.name}_$windowLabel".hashCode().and(0xFFFF)
+        manager.notify("${connection.id}:$windowLabel", RESET_NOTIFICATION_ID_BASE, notification)
+    }
+
+    fun clearAccount(connection: AccountConnection) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(notificationId, notification)
+        manager.activeNotifications.filter { it.tag?.startsWith("${connection.id}:") == true }
+            .forEach { manager.cancel(it.tag, it.id) }
     }
 
     private fun formatElapsed(fetchedAt: Instant?): String {

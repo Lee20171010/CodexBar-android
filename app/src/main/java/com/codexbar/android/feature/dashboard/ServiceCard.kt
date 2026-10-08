@@ -58,7 +58,7 @@ fun ServiceCard(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = cardData.service.displayName,
+                    text = "${cardData.connection.name} · ${cardData.service.displayName}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
                 )

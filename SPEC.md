@@ -46,16 +46,22 @@ build. Do not use an old build to edit accounts or run its destructive credentia
 reset; restore the newer build to recover access to new accounts. Android Keystore
 backup/restore is not replaced by this source-level compatibility path.
 
-This is the storage foundation. Existing repository/UI/worker entry points still use
-the legacy APIs until all-surface routing lands; end-user multi-account support and
-foreground/background lifecycle acceptance are not yet complete.
+Settings supports adding, naming, reconnecting and deleting individual accounts.
+Draft credentials remain in memory until a successful fetch validates them. Dashboard,
+workers, widgets, Quick Settings and notifications use explicit connection identity.
+Widget selections retain deleted IDs and show unavailable instead of choosing a sibling.
 
-Repositories also accept a `CredentialSession` containing an explicit connection and
+Repositories require a `CredentialSession` containing an explicit connection and
 request-local credentials. Draft rotation changes memory only; saved-account callers
 supply a generation/credential compare-and-set writer. A rejected write propagates
 cancellation before retrying with late tokens. Codex fetch rejection retains the
-account for reconnect. Legacy no-argument entry points remain during the transition;
-this overload alone does not establish a single foreground/background refresh owner.
+account for reconnect. `AccountQuotaCoordinator` serializes foreground/background
+requests per connection and reloads credentials after obtaining the lock. Generation
+checks guard token persistence, quota publication and caches. The old independent
+token worker is cancelled; already queued instances finish without refreshing tokens.
+Widget cache reads use one generation-checked preference snapshot with the original
+measurement time. Android runtime and real-account acceptance are separate from JVM
+concurrency/storage tests.
 
 Settings includes an offline About/license reader. The checked-in asset bundle
 contains original Android and native upstream notices, static runtime dependencies
@@ -72,7 +78,7 @@ app/src/main/java/com/codexbar/android/
 ├── core/nativecli/          Native process execution and OpenCode Go result mapping
 ├── core/network/            Existing Kotlin HTTP clients and OAuth refresh services
 ├── core/security/           Encrypted preference storage
-├── core/workmanager/        Scheduled quota and token refresh
+├── core/workmanager/        Scheduled account refresh and legacy work cancellation
 ├── core/widget/             Widget configuration and cached quota presentation
 ├── core/notification/       Snapshot/reset notifications
 ├── core/tile/               Quick Settings presentation
@@ -94,9 +100,9 @@ ViewModels and workers own the lifetime of their suspending requests.
 ## 3. OpenCode Go data flow
 
 ```text
-Settings input → EncryptedPrefsManager
+Settings draft / DashboardViewModel / QuotaRefreshWorker
                          ↓
-Settings Validate / DashboardViewModel / QuotaRefreshWorker
+AccountQuotaCoordinator ↔ EncryptedPrefsManager (validated accounts only)
                          ↓
 OpenCodeGoRepositoryImpl → NativeCodexBarClient
                          ↓
@@ -114,12 +120,13 @@ estimates, browser-cookie discovery or another tool's saved account.
 ### Credential contract
 
 - The Settings field is masked and uses the existing encrypted preference store.
-- Surrounding whitespace is trimmed when saving. Blank input removes the saved Go
-  credential; the native client rejects remaining whitespace/control characters.
+- Surrounding whitespace is trimmed before validation. Blank input is rejected;
+  removing a saved key requires explicit account deletion. The native client rejects
+  remaining whitespace/control characters.
 - The key is supplied through the child's `OPENCODE_API_KEY` environment variable,
   not command arguments or a plaintext credential file.
-- Go API keys have no OAuth refresh token. `TokenRefreshWorker` skips renewal for
-  this credential type, and authentication failures do not delete the saved key.
+- Go API keys have no OAuth refresh token. Authentication failures do not delete
+  saved accounts; failed drafts are not saved.
 - The client starts with an explicitly constructed environment, including isolated
   provider homes and XDG paths. Only selected Android platform variables are inherited.
 - Raw child stderr, provider error messages and request exceptions are not forwarded

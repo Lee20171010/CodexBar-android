@@ -9,12 +9,10 @@ import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.domain.repository.CredentialSession
-import com.codexbar.android.core.domain.model.AccountConnection
 import kotlinx.coroutines.CancellationException
 import com.codexbar.android.core.network.claude.ClaudeApiService
 import com.codexbar.android.core.network.claude.ClaudeDto
 import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
-import com.codexbar.android.core.security.EncryptedPrefsManager
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -24,16 +22,8 @@ import javax.inject.Inject
 
 class ClaudeRepositoryImpl @Inject constructor(
     private val apiService: ClaudeApiService,
-    private val tokenRefreshService: ClaudeTokenRefreshService,
-    private val prefsManager: EncryptedPrefsManager
+    private val tokenRefreshService: ClaudeTokenRefreshService
 ) : QuotaRepository {
-
-    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> = fetchQuota(
-        CredentialSession(AccountConnection.create(AiService.CLAUDE), prefsManager.loadCredential(AiService.CLAUDE)) { _, updated ->
-            prefsManager.saveCredential(AiService.CLAUDE, updated)
-            true
-        }
-    )
 
     override suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError> {
         require(session.connection.service == AiService.CLAUDE)
@@ -92,13 +82,6 @@ class ClaudeRepositoryImpl @Inject constructor(
             Result.Failure(AppError.NetworkError(e.message ?: "Network error", e))
         } catch (e: Exception) {
             Result.Failure(AppError.ParseError(e.message ?: "Parse error", e))
-        }
-    }
-
-    override suspend fun validateCredential(): Result<Unit, AppError> {
-        return when (val result = fetchQuota()) {
-            is Result.Success -> Result.Success(Unit)
-            is Result.Failure -> Result.Failure(result.error)
         }
     }
 

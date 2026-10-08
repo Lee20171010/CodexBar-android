@@ -52,6 +52,10 @@ def verify_go_settings(run_id):
         width, height = size
         for _ in range(8):
             tree = snapshot()
+            add_buttons = [n for n in tree.iter("node") if n.get("text") == "Add OpenCode Go account"]
+            if add_buttons:
+                tap(add_buttons[0])
+                continue
             fields = [n for n in tree.iter("node") if n.get("class") == "android.widget.EditText" and
                       any(c.get("text") == "OpenCode Go API Key" for c in n.iter("node"))]
             if fields:
@@ -64,12 +68,19 @@ def verify_go_settings(run_id):
                 adb("shell", "input", "swipe", str(width // 2), str(height * 3 // 4),
                     str(width // 2), str(height // 2), "350")
                 tree = snapshot()
-                buttons = [n for n in tree.iter("node") if n.get("text") == "Validate"]
+                buttons = [n for n in tree.iter("node") if n.get("text") == "Validate & save"]
                 tap(max(buttons, key=lambda n: bounds(n)[1]))
                 for _ in range(20):
                     tree = snapshot()
-                    if any(n.get("text") == "API key rejected. Check your OpenCode Go key." for n in tree.iter("node")):
-                        print("OpenCode Go settings: masked key → encrypted save → native validation → expected rejection", flush=True)
+                    if any(n.get("text") == "Credentials rejected. Check this account's credentials." for n in tree.iter("node")):
+                        tap(next(n for n in tree.iter("node") if n.get("text") == "Cancel"))
+                        # Failed validation remains an unpublished draft, including after reopening Settings.
+                        adb("shell", "input", "keyevent", "4")
+                        tree = snapshot()
+                        tap(next(n for n in tree.iter("node") if n.get("content-desc") == "Settings"))
+                        tree = snapshot()
+                        assert not any(n.get("text") in ("Reconnect", "Rename") for n in tree.iter("node")), "Rejected draft was saved"
+                        print("OpenCode Go settings: masked draft → native validation → expected rejection → no saved account", flush=True)
                         return True
                     time.sleep(1)
                 raise RuntimeError("Go settings did not display the expected API-key rejection")

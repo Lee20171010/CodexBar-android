@@ -168,7 +168,7 @@ class AccountStorageTest {
 }
 
 /** Exercises Android preference semantics, not encryption; Keystore needs a device. */
-private class MemoryPreferences {
+internal class MemoryPreferences {
     val values = mutableMapOf<String, Any?>()
     var failWrites = false
     val prefs: SharedPreferences = mock(SharedPreferences::class.java) { call ->

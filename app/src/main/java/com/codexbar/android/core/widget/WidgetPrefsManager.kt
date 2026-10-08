@@ -2,116 +2,74 @@ package com.codexbar.android.core.widget
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.QuotaInfo
+import com.codexbar.android.core.domain.model.UsageWindow
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Manages per-widget configuration (selected services) and cached quota data.
- * Uses plain SharedPreferences (not encrypted) since widget data is non-sensitive display info.
- */
+/** Widget pins and display-only cache. Credentials remain in encrypted account storage. */
 @Singleton
-class WidgetPrefsManager @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    private val prefs: SharedPreferences by lazy {
+class WidgetPrefsManager internal constructor(private val prefs: SharedPreferences) {
+    @Inject constructor(@ApplicationContext context: Context) : this(
         context.getSharedPreferences("codexbar_widget_prefs", Context.MODE_PRIVATE)
+    )
+
+    fun saveSelectedConnections(appWidgetId: Int, ids: Set<String>) {
+        check(prefs.edit().putStringSet("widget_${appWidgetId}_connections", ids).commit())
     }
 
-    // --- Per-widget service selection ---
-
-    fun saveSelectedServices(appWidgetId: Int, services: Set<AiService>) {
-        val key = "widget_${appWidgetId}_services"
-        prefs.edit().putStringSet(key, services.map { it.name }.toSet()).commit()
-    }
-
-    fun getSelectedServices(appWidgetId: Int): Set<AiService> {
-        val key = "widget_${appWidgetId}_services"
-        val names = prefs.getStringSet(key, null) ?: return emptySet()
-        return names.mapNotNull { name ->
-            try { AiService.valueOf(name) } catch (_: Exception) { null }
-        }.toSet()
+    fun getSelectedConnections(appWidgetId: Int): Set<String> {
+        prefs.getStringSet("widget_${appWidgetId}_connections", null)?.let { return it.toSet() }
+        // Legacy provider pins refer only to the adopted legacy IDs, never a new sibling.
+        return prefs.getStringSet("widget_${appWidgetId}_services", null).orEmpty()
+            .filter { name -> AiService.entries.any { it.name == name } }.toSet()
     }
 
     fun deleteWidgetConfig(appWidgetId: Int) {
         val editor = prefs.edit()
-        prefs.all.keys
-            .filter { it.startsWith("widget_${appWidgetId}_") }
-            .forEach { editor.remove(it) }
+        prefs.all.keys.filter { it.startsWith("widget_${appWidgetId}_") }.forEach(editor::remove)
         editor.apply()
     }
 
-    // --- Cached quota data for widgets ---
-
-    fun cacheQuotaData(service: AiService, label: String, utilization: Double, resetsAtEpochSecond: Long?) {
-        val prefix = "cache_${service.name}"
-        prefs.edit()
-            .putString("${prefix}_labels", getCachedLabels(service).plus(label).joinToString(","))
-            .putFloat("${prefix}_${label}_util", utilization.toFloat())
-            .apply {
-                if (resetsAtEpochSecond != null) {
-                    putLong("${prefix}_${label}_resets", resetsAtEpochSecond)
-                } else {
-                    remove("${prefix}_${label}_resets")
-                }
-            }
-            .apply()
-    }
-
-    fun cacheAllQuotaData(service: AiService, windows: List<Triple<String, Double, Long?>>) {
-        val prefix = "cache_${service.name}"
+    fun deleteAccountCache(id: String) {
         val editor = prefs.edit()
-        // Clear old cache for this service
-        prefs.all.keys.filter { it.startsWith(prefix) }.forEach { editor.remove(it) }
-
-        val labels = windows.map { it.first }
-        editor.putString("${prefix}_labels", labels.joinToString(","))
-        for ((label, utilization, resetsAt) in windows) {
-            editor.putFloat("${prefix}_${label}_util", utilization.toFloat())
-            if (resetsAt != null) {
-                editor.putLong("${prefix}_${label}_resets", resetsAt)
-            }
-        }
-        editor.putLong("${prefix}_updated_at", System.currentTimeMillis())
+        prefs.all.keys.filter { it.startsWith("cache_${id}_") }.forEach(editor::remove)
         editor.apply()
     }
 
-    fun getCachedLabels(service: AiService): List<String> {
-        val raw = prefs.getString("cache_${service.name}_labels", null) ?: return emptyList()
-        return raw.split(",").filter { it.isNotEmpty() }
-    }
-
-    fun getCachedUtilization(service: AiService, label: String): Float {
-        return prefs.getFloat("cache_${service.name}_${label}_util", 0f)
-    }
-
-    fun getCachedResetsAt(service: AiService, label: String): Long? {
-        val value = prefs.getLong("cache_${service.name}_${label}_resets", -1L)
-        return if (value > 0) value else null
-    }
-
-    fun getCachedUpdatedAt(service: AiService): Long {
-        return prefs.getLong("cache_${service.name}_updated_at", 0L)
-    }
-
-    /** Returns the highest utilization across all cached windows for this service. */
-    fun getMaxCachedUtilization(service: AiService): Float {
-        val labels = getCachedLabels(service)
-        if (labels.isEmpty()) return 0f
-        return labels.maxOf { getCachedUtilization(service, it) }
-    }
-
-    fun cacheTier(service: AiService, tier: String?) {
-        val key = "cache_${service.name}_tier"
-        if (tier != null) {
-            prefs.edit().putString(key, tier).apply()
-        } else {
-            prefs.edit().remove(key).apply()
+    fun cacheQuota(connection: AccountConnection, quota: QuotaInfo) {
+        require(quota.service == connection.service)
+        val prefix = "cache_${connection.id}_"
+        val editor = prefs.edit()
+        prefs.all.keys.filter { it.startsWith(prefix) }.forEach(editor::remove)
+        editor.putString("${prefix}generation", connection.generation)
+            .putStringSet("${prefix}labels", quota.windows.map { it.label }.toSet())
+            .putString("${prefix}tier", quota.tier)
+            .putLong("${prefix}updated_at", quota.fetchedAt.toEpochMilli())
+        quota.windows.forEach {
+            editor.putFloat("${prefix}${it.label}_util", it.utilization.toFloat())
+            it.resetsAt?.let { reset -> editor.putLong("${prefix}${it.label}_resets", reset.epochSecond) }
         }
+        editor.apply()
     }
 
-    fun getCachedTier(service: AiService): String? {
-        return prefs.getString("cache_${service.name}_tier", null)
+    fun getCachedQuota(connection: AccountConnection): QuotaInfo? {
+        // One immutable preference snapshot: reconnect cannot mix generations across window reads.
+        val snapshot = prefs.all
+        val prefix = "cache_${connection.id}_"
+        if (snapshot["${prefix}generation"] != connection.generation) return null
+        val updated = snapshot["${prefix}updated_at"] as? Long ?: return null
+        val labels = snapshot["${prefix}labels"] as? Set<*> ?: return null
+        val windows = labels.filterIsInstance<String>().sorted().map { label ->
+            val utilization = snapshot["${prefix}${label}_util"] as? Float ?: return null
+            if (!utilization.isFinite() || utilization !in 0f..1f) return null
+            UsageWindow(label, utilization.toDouble(),
+                (snapshot["${prefix}${label}_resets"] as? Long)?.let(Instant::ofEpochSecond))
+        }
+        return QuotaInfo(connection.service, windows, null, snapshot["${prefix}tier"] as? String, Instant.ofEpochMilli(updated))
     }
 }

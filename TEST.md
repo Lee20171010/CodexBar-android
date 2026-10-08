@@ -26,7 +26,7 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher and tile visual runtime acceptance remain pending.
 
-The JVM suite currently contains **44 tests**:
+The JVM suite currently contains **53 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -37,12 +37,19 @@ The JVM suite currently contains **44 tests**:
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |
 | Go CLI parser | 5 | Window mapping, provider/source isolation, invalid data, truncation, sanitized errors |
 | Account storage | 8 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes and invalid identities |
+| Account coordinator | 6 | Failed draft isolation, serialized rotation, independent siblings, late deletion results, cancellation and reconnect |
+| Widget account cache | 3 | Legacy pins, deleted-owner isolation, generation snapshots, actual measurement age and invalid/absent data |
 
 Account storage tests use an in-memory SharedPreferences double, including the
 memory-before-disk-failure behavior. They do not verify Android Keystore encryption
-or claim multi-account UI/worker/widget acceptance. Existing legacy credential keys
+or claim device-level multi-account UI/worker/widget acceptance. Existing legacy credential keys
 and global settings survive adoption; returning to an older build only exposes the
 legacy accounts. See SPEC for the rollback restrictions.
+
+Coordinator tests use synthetic credentials and controllable suspending repositories;
+they exercise the shared entry point used by foreground and background callers. The
+native Settings smoke path now opens an account draft and verifies that a rejected
+key is not published as an account. Device results must identify the APK tested.
 
 The process checks use real Linux child processes (`/bin/sh`, `head`, `sleep` and
 `/proc`) on the build host. They are not Android device tests. Other provider
@@ -108,9 +115,10 @@ The five probes are:
 5. The production Go client makes an HTTPS request with a fixed invalid key and
    maps its rejection to the expected authentication failure.
 
-With `--opencode-go`, UI automation also opens Settings, verifies masked Go key
-input, saves a synthetic key, presses Validate and checks the expected rejection.
-This exercises the Settings → encrypted store → repository → native client path.
+With `--opencode-go`, UI automation also opens an account draft in Settings, verifies
+masked Go key input, presses Validate & save and checks the expected rejection.
+Reopening Settings verifies the rejected draft did not become a saved account.
+This exercises Settings → account coordinator → repository → native client.
 It never imports a saved account or supplies a real API key.
 
 Generated reports are ignored by Git:
@@ -128,13 +136,13 @@ Latest functional verification: **2026-10-08**.
 
 | Gate | Recorded result |
 | --- | --- |
-| JVM suite | 33/33 passed |
+| JVM suite | 53/53 passed; Debug lint passed |
 | Toolchain integrity check | Passed; three official cached archive hashes matched |
 | Full Android Core/CLI compilation | x86_64 and ARM64 passed |
 | Initial App-UID smoke | 4/4 on x86_64 and 4/4 on ARM64 native-bridge path |
 | Optimized ARM64 APK | Release/R8/resource shrinking and signature checks passed |
 | Go native API acceptance | 5/5 runtime probes passed with synthetic credentials |
-| Go Settings acceptance | Masked input, save and native validation rejection passed |
+| Go Settings acceptance | Masked draft, native validation rejection and no saved account passed |
 | Test cleanup | Owned test installation removed before releasing the lock |
 
 Runtime evidence is from an **Android 16 / API 36 x86_64 emulator** supporting an
@@ -144,10 +152,10 @@ The first optimized build reduced APK size from **76.91 MiB to 33.28 MiB (56.7%)
 Uncompressed CLI size changed from 142.14 to 73.47 MiB, and the C++ runtime from
 9.05 to 1.36 MiB. These are artifact measurements, not performance benchmarks.
 
-The tested Go APK was **34,900,412 bytes**, SHA-256:
+The tested multi-account APK was **34,998,458 bytes**, SHA-256:
 
 ```text
-7a93aa6cb7b476888bd34e4a9751a89694313feb825d21dbcabfb45f4009af29
+3be1f5646fc53fa33e634ac2c0b8b8d0fcd8bd7d8db183ee64ac9ebdcc40c959
 ```
 
 This hash identifies the tested artifact; later documentation/history edits do not
@@ -166,7 +174,7 @@ and committed screenshots. Still pending:
 - [ ] Install and run on physical ARM64 hardware, including the native minimum API.
 - [ ] Validate on a 16 KiB-page device and establish production APK/AAB coverage.
 - [ ] Enter a valid Go key; compare 5-hour, weekly and monthly windows with the provider.
-- [ ] Restart the app and verify credential persistence, then clear the Go key and verify removal.
+- [ ] Restart the app and verify credential persistence, then delete one Go account and verify sibling preservation.
 - [ ] Exercise offline, timeout and rate-limit behavior through the user-facing UI.
 - [ ] Verify background Go refresh updates widgets, notifications and the tile over time.
 - [ ] Verify foreground/background overlap and cancellation during navigation on-device.

@@ -1,128 +1,91 @@
 package com.codexbar.android.feature.dashboard
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.data.AccountQuotaCoordinator
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
-import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.security.EncryptedPrefsManager
-import com.codexbar.android.di.ClaudeRepository
-import com.codexbar.android.di.CodexRepository
-import com.codexbar.android.di.GeminiRepository
-import com.codexbar.android.di.OpenCodeGoRepository
+import com.codexbar.android.core.widget.updateQuotaSurfaces
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
+import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    @ClaudeRepository private val claudeRepository: QuotaRepository,
-    @CodexRepository private val codexRepository: QuotaRepository,
-    @GeminiRepository private val geminiRepository: QuotaRepository,
-    @OpenCodeGoRepository private val openCodeGoRepository: QuotaRepository,
-    private val prefsManager: EncryptedPrefsManager
+    private val accounts: AccountQuotaCoordinator,
+    private val prefsManager: EncryptedPrefsManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
-
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
-    val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
-
+    val uiState = _uiState.asStateFlow()
     private val _isRefreshing = MutableStateFlow(false)
-    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
+    val isRefreshing = _isRefreshing.asStateFlow()
+    private var refreshJob: Job? = null
 
     init {
+        prefsManager.loadConnections()
+        viewModelScope.launch {
+            combine(prefsManager.connections, accounts.quotas) { connections, quotas ->
+                val errors = mutableMapOf<AccountConnection, AppError>()
+                val cards = connections.map { connection ->
+                    val result = quotas[connection.id]?.takeIf {
+                        it.connection.generation == connection.generation
+                    }?.result
+                    when (result) {
+                        is Result.Success -> mapToCardData(connection, result.value)
+                        is Result.Failure -> {
+                            errors[connection] = result.error
+                            ServiceCardData(connection, emptyList(), null, null, error = result.error)
+                        }
+                        null -> ServiceCardData(connection, emptyList(), null, null, isLoading = true)
+                    }
+                }.sortedByDescending { card -> card.windows.maxOfOrNull { it.utilization } ?: 0.0 }
+                when {
+                    cards.isNotEmpty() && cards.all { it.isLoading } -> DashboardUiState.Loading
+                    errors.isNotEmpty() -> DashboardUiState.PartialSuccess(cards, errors)
+                    else -> DashboardUiState.Success(cards, connections.mapNotNull { connection ->
+                        (quotas[connection.id]?.result as? Result.Success)?.value?.fetchedAt
+                    }.maxOrNull() ?: Instant.now())
+                }
+            }.collect { _uiState.value = it }
+        }
         refresh()
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        if (refreshJob?.isActive == true) return
+        refreshJob = viewModelScope.launch {
             _isRefreshing.value = true
-            _uiState.value = DashboardUiState.Loading
-
-            val repos = buildList {
-                if (prefsManager.hasCredential(AiService.CLAUDE)) add(AiService.CLAUDE to claudeRepository)
-                if (prefsManager.hasCredential(AiService.CODEX)) add(AiService.CODEX to codexRepository)
-                if (prefsManager.hasCredential(AiService.GEMINI)) add(AiService.GEMINI to geminiRepository)
-                if (prefsManager.hasCredential(AiService.OPENCODE_GO)) add(AiService.OPENCODE_GO to openCodeGoRepository)
-            }
-
-            if (repos.isEmpty()) {
-                _uiState.value = DashboardUiState.Success(emptyList(), Instant.now())
+            try {
+                prefsManager.loadConnections().map { connection ->
+                    async { accounts.refresh(connection) }
+                }.awaitAll()
+                updateQuotaSurfaces(context)
+            } catch (_: IOException) {
+                _uiState.value = DashboardUiState.Error(AppError.ParseError("Account storage unavailable. Restart the app."))
+            } finally {
                 _isRefreshing.value = false
-                return@launch
             }
-
-            val deferreds = repos.map { (service, repo) ->
-                async { service to repo.fetchQuota() }
-            }
-
-            val results = deferreds.map { it.await() }
-
-            val successCards = mutableListOf<ServiceCardData>()
-            val errors = mutableMapOf<AiService, AppError>()
-
-            for ((service, result) in results) {
-                when (result) {
-                    is Result.Success -> {
-                        successCards.add(mapToCardData(result.value))
-                    }
-                    is Result.Failure -> {
-                        errors[service] = result.error
-                        successCards.add(
-                            ServiceCardData(
-                                service = service,
-                                windows = emptyList(),
-                                extraUsage = null,
-                                tier = null,
-                                error = result.error
-                            )
-                        )
-                    }
-                }
-            }
-
-            // Sort by highest utilization first
-            val sortedCards = successCards.sortedByDescending { card ->
-                card.windows.maxOfOrNull { it.utilization } ?: 0.0
-            }
-
-            _uiState.value = if (errors.isEmpty()) {
-                DashboardUiState.Success(sortedCards, Instant.now())
-            } else if (successCards.all { it.error != null }) {
-                DashboardUiState.Error(errors.values.first())
-            } else {
-                DashboardUiState.PartialSuccess(sortedCards, errors)
-            }
-
-            _isRefreshing.value = false
         }
     }
 
-    private fun mapToCardData(quotaInfo: QuotaInfo): ServiceCardData {
-        return ServiceCardData(
-            service = quotaInfo.service,
-            windows = quotaInfo.windows.map { window ->
-                UsageWindowUi(
-                    label = window.label,
-                    utilization = window.utilization,
-                    resetsAt = window.resetsAt
-                )
-            },
-            extraUsage = quotaInfo.extraUsage?.let { extra ->
-                ExtraUsageUi(
-                    monthlyLimit = extra.monthlyLimit,
-                    usedCredits = extra.usedCredits,
-                    utilization = extra.utilization,
-                    currency = extra.currency
-                )
-            },
-            tier = quotaInfo.tier
-        )
-    }
+    private fun mapToCardData(connection: AccountConnection, quota: QuotaInfo) = ServiceCardData(
+        connection = connection,
+        windows = quota.windows.map { UsageWindowUi(it.label, it.utilization, it.resetsAt) },
+        extraUsage = quota.extraUsage?.let { ExtraUsageUi(it.monthlyLimit, it.usedCredits, it.utilization, it.currency) },
+        tier = quota.tier
+    )
 }

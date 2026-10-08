@@ -8,12 +8,10 @@ import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.domain.repository.CredentialSession
-import com.codexbar.android.core.domain.model.AccountConnection
 import kotlinx.coroutines.CancellationException
 import com.codexbar.android.core.network.gemini.GeminiApiService
 import com.codexbar.android.core.network.gemini.GeminiDto
 import com.codexbar.android.core.network.gemini.GeminiTokenRefreshService
-import com.codexbar.android.core.security.EncryptedPrefsManager
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonPrimitive
@@ -23,16 +21,8 @@ import javax.inject.Inject
 
 class GeminiRepositoryImpl @Inject constructor(
     private val apiService: GeminiApiService,
-    private val tokenRefreshService: GeminiTokenRefreshService,
-    private val prefsManager: EncryptedPrefsManager
+    private val tokenRefreshService: GeminiTokenRefreshService
 ) : QuotaRepository {
-
-    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> = fetchQuota(
-        CredentialSession(AccountConnection.create(AiService.GEMINI), prefsManager.loadCredential(AiService.GEMINI)) { _, updated ->
-            prefsManager.saveCredential(AiService.GEMINI, updated)
-            true
-        }
-    )
 
     override suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError> {
         require(session.connection.service == AiService.GEMINI)
@@ -102,13 +92,6 @@ class GeminiRepositoryImpl @Inject constructor(
             ?: return Result.Failure(AppError.ParseError("Empty quota response"))
 
         return Result.Success(mapToQuotaInfo(quotaBody, tier))
-    }
-
-    override suspend fun validateCredential(): Result<Unit, AppError> {
-        return when (val result = fetchQuota()) {
-            is Result.Success -> Result.Success(Unit)
-            is Result.Failure -> Result.Failure(result.error)
-        }
     }
 
     private fun extractProjectId(response: GeminiDto.LoadCodeAssistResponse): String? {

@@ -12,7 +12,6 @@ import com.codexbar.android.core.network.codex.CodexApiService
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
 import com.codexbar.android.core.network.gemini.GeminiApiService
 import com.codexbar.android.core.network.gemini.GeminiTokenRefreshService
-import com.codexbar.android.core.security.EncryptedPrefsManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,34 +43,30 @@ object RepositoryModule {
     @Singleton
     @OpenCodeGoRepository
     fun provideOpenCodeGoRepository(
-        client: NativeCodexBarClient,
-        prefsManager: EncryptedPrefsManager
-    ): QuotaRepository = OpenCodeGoRepositoryImpl(client, prefsManager)
+        client: NativeCodexBarClient
+    ): QuotaRepository = OpenCodeGoRepositoryImpl(client)
 
     @Provides
     @Singleton
     @ClaudeRepository
     fun provideClaudeRepository(
         apiService: ClaudeApiService,
-        tokenRefreshService: ClaudeTokenRefreshService,
-        prefsManager: EncryptedPrefsManager
-    ): QuotaRepository = ClaudeRepositoryImpl(apiService, tokenRefreshService, prefsManager)
+        tokenRefreshService: ClaudeTokenRefreshService
+    ): QuotaRepository = ClaudeRepositoryImpl(apiService, tokenRefreshService)
 
     @Provides
     @Singleton
     @CodexRepository
     fun provideCodexRepository(
         apiService: CodexApiService,
-        tokenRefreshService: CodexTokenRefreshService,
-        prefsManager: EncryptedPrefsManager
-    ): QuotaRepository = CodexRepositoryImpl(apiService, tokenRefreshService, prefsManager)
+        tokenRefreshService: CodexTokenRefreshService
+    ): QuotaRepository = CodexRepositoryImpl(apiService, tokenRefreshService)
 
     @Provides
     @Singleton
     @GeminiRepository
     fun provideGeminiRepository(
         apiService: GeminiApiService,
-        tokenRefreshService: GeminiTokenRefreshService,
-        prefsManager: EncryptedPrefsManager
-    ): QuotaRepository = GeminiRepositoryImpl(apiService, tokenRefreshService, prefsManager)
+        tokenRefreshService: GeminiTokenRefreshService
+    ): QuotaRepository = GeminiRepositoryImpl(apiService, tokenRefreshService)
 }

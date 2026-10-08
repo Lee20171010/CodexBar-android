@@ -35,17 +35,6 @@ class EncryptedPrefsManager internal constructor(
     val connections = connectionState.asStateFlow()
     private var writeFailed = false
 
-    @Synchronized
-    fun saveCredential(service: AiService, credential: Credential) {
-        val editor = prefs.edit()
-        val prefix = service.name
-        writeCredential(editor, prefix, service, credential)
-        editor.putString("${prefix}_connection_provider", service.name)
-        editor.putString("${prefix}_connection_generation", UUID.randomUUID().toString())
-        commit(editor)
-        loadConnections()
-    }
-
     private fun writeCredential(
         editor: SharedPreferences.Editor,
         prefix: String,
@@ -145,18 +134,6 @@ class EncryptedPrefsManager internal constructor(
     }
 
     @Synchronized
-    fun deleteCredential(service: AiService) {
-        val prefix = service.name
-        val editor = prefs.edit()
-
-        val keys = prefs.all.keys.filter { it.startsWith("${prefix}_") }
-        keys.forEach { editor.remove(it) }
-
-        commit(editor)
-        loadConnections()
-    }
-
-    @Synchronized
     fun deleteAllCredentials() {
         val prefixes = (loadConnections().map { it.id } + AiService.entries.map { it.name })
             .map { "${it}_" }
@@ -164,12 +141,6 @@ class EncryptedPrefsManager internal constructor(
         prefs.all.keys.filter { key -> prefixes.any(key::startsWith) }.forEach(editor::remove)
         commit(editor)
         loadConnections()
-    }
-
-    @Synchronized
-    fun hasCredential(service: AiService): Boolean {
-        checkReadable()
-        return prefs.getString("${service.name}_access_token", null) != null
     }
 
     fun getRefreshInterval(): Long {
@@ -186,11 +157,6 @@ class EncryptedPrefsManager internal constructor(
 
     fun setNotificationsEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("notifications_enabled", enabled).apply()
-    }
-
-    @Synchronized
-    fun saveResetTimes(service: AiService, windows: List<Pair<String, Instant?>>) {
-        writeResetTimes(service.name, windows)
     }
 
     @Synchronized
@@ -211,12 +177,6 @@ class EncryptedPrefsManager internal constructor(
             }
         }
         commit(editor)
-    }
-
-    @Synchronized
-    fun loadResetTimes(service: AiService): Map<String, Instant> {
-        checkReadable()
-        return readResetTimes(service.name)
     }
 
     @Synchronized

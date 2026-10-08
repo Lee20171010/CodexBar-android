@@ -1,8 +1,10 @@
 package com.codexbar.android.feature.settings
 
 import com.codexbar.android.core.domain.model.AiService
+import com.codexbar.android.core.domain.model.AccountConnection
 
 data class SettingsUiState(
+    val connections: List<AccountConnection> = emptyList(),
     val serviceStates: Map<AiService, ServiceCredentialState> = AiService.entries.associateWith {
         ServiceCredentialState()
     },
@@ -12,6 +14,9 @@ data class SettingsUiState(
 )
 
 data class ServiceCredentialState(
+    val connection: AccountConnection? = null,
+    val previous: AccountConnection? = null,
+    val name: String = "",
     val accessToken: String = "",
     val refreshToken: String = "",
     val accountId: String = "", // Codex only

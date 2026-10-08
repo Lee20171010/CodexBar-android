@@ -1,189 +1,144 @@
 package com.codexbar.android.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.codexbar.android.core.data.AccountQuotaCoordinator
+import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
-import com.codexbar.android.core.domain.repository.QuotaRepository
+import com.codexbar.android.core.domain.repository.StaleCredentialException
 import com.codexbar.android.core.security.EncryptedPrefsManager
-import com.codexbar.android.di.ClaudeRepository
-import com.codexbar.android.di.CodexRepository
-import com.codexbar.android.di.GeminiRepository
-import com.codexbar.android.di.OpenCodeGoRepository
+import com.codexbar.android.core.widget.updateQuotaSurfaces
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.FlowPreview
+import java.io.IOException
+import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    @ClaudeRepository private val claudeRepository: QuotaRepository,
-    @CodexRepository private val codexRepository: QuotaRepository,
-    @GeminiRepository private val geminiRepository: QuotaRepository,
-    @OpenCodeGoRepository private val openCodeGoRepository: QuotaRepository,
-    private val prefsManager: EncryptedPrefsManager
+    private val accounts: AccountQuotaCoordinator,
+    private val prefsManager: EncryptedPrefsManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(SettingsUiState())
-    val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
-
-    private val saveJobs = mutableMapOf<AiService, Job>()
-    private val pendingChanges = MutableStateFlow<Pair<AiService, String>?>(null)
+    private val _uiState = MutableStateFlow(SettingsUiState(
+        connections = prefsManager.loadConnections(),
+        refreshIntervalMinutes = prefsManager.getRefreshInterval(),
+        notificationsEnabled = prefsManager.isNotificationsEnabled()
+    ))
+    val uiState = _uiState.asStateFlow()
+    private val validationJobs = mutableMapOf<AiService, Job>()
 
     init {
-        loadSavedCredentials()
-        _uiState.update {
-            it.copy(
-                refreshIntervalMinutes = prefsManager.getRefreshInterval(),
-                notificationsEnabled = prefsManager.isNotificationsEnabled()
-            )
+        viewModelScope.launch {
+            prefsManager.connections.collect { connections ->
+                _uiState.update { it.copy(connections = connections) }
+            }
         }
-        observePendingChanges()
     }
 
-    private fun loadSavedCredentials() {
-        for (service in AiService.entries) {
-            val credential = prefsManager.loadCredential(service) ?: continue
-            val state = when (credential) {
-                is Credential.OpenCodeGoCredential -> ServiceCredentialState(accessToken = credential.accessToken)
-                is Credential.ClaudeCredential -> ServiceCredentialState(
-                    accessToken = credential.accessToken,
-                    refreshToken = credential.refreshToken ?: ""
-                )
-                is Credential.CodexCredential -> ServiceCredentialState(
-                    accessToken = credential.accessToken,
-                    refreshToken = credential.refreshToken,
-                    accountId = credential.accountId ?: ""
-                )
-                is Credential.GeminiCredential -> ServiceCredentialState(
-                    accessToken = credential.accessToken,
-                    refreshToken = credential.refreshToken,
-                    oauthClientId = credential.oauthClientId,
-                    oauthClientSecret = credential.oauthClientSecret,
-                    expiresAtDisplay = formatExpiryMs(credential.expiresAtMs)
-                )
-            }
-            _uiState.update {
-                it.copy(serviceStates = it.serviceStates + (service to state))
-            }
-        }
+    fun beginAdd(service: AiService) {
+        cancelDraft(service)
+        setService(service, ServiceCredentialState(connection = AccountConnection.create(service), name = service.displayName))
+    }
+
+    fun beginReconnect(connection: AccountConnection) {
+        cancelDraft(connection.service)
+        setService(connection.service, ServiceCredentialState(
+            connection = connection.reconnect(), previous = connection, name = connection.name
+        ))
+    }
+
+    fun cancelDraft(service: AiService) {
+        validationJobs.remove(service)?.cancel()
+        setService(service, ServiceCredentialState())
     }
 
     fun updateField(service: AiService, field: String, value: String) {
-        _uiState.update { state ->
-            val current = state.serviceStates[service] ?: ServiceCredentialState()
-            val updated = when (field) {
-                "accessToken" -> current.copy(accessToken = value, validationResult = null)
-                "refreshToken" -> current.copy(refreshToken = value, validationResult = null)
-                "accountId" -> current.copy(accountId = value, validationResult = null)
-                "oauthClientId" -> current.copy(oauthClientId = value, validationResult = null)
-                "oauthClientSecret" -> current.copy(oauthClientSecret = value, validationResult = null)
-                else -> current
-            }
-            state.copy(serviceStates = state.serviceStates + (service to updated))
+        validationJobs.remove(service)?.cancel()
+        val state = _uiState.value.serviceStates.getValue(service)
+        val updated = when (field) {
+            "name" -> state.copy(name = value)
+            "accessToken" -> state.copy(accessToken = value)
+            "refreshToken" -> state.copy(refreshToken = value)
+            "accountId" -> state.copy(accountId = value)
+            "oauthClientId" -> state.copy(oauthClientId = value)
+            "oauthClientSecret" -> state.copy(oauthClientSecret = value)
+            else -> state
         }
-
-        // Debounced save
-        scheduleSave(service)
-    }
-
-    @OptIn(FlowPreview::class)
-    private fun observePendingChanges() {
-        viewModelScope.launch {
-            pendingChanges
-                .debounce(500)
-                .collect { pair ->
-                    pair?.let { (service, _) -> saveCredential(service) }
-                }
-        }
-    }
-
-    private fun scheduleSave(service: AiService) {
-        pendingChanges.value = service to System.currentTimeMillis().toString()
-    }
-
-    private fun saveCredential(service: AiService) {
-        val state = _uiState.value.serviceStates[service] ?: return
-        if (state.accessToken.isBlank()) {
-            if (service == AiService.OPENCODE_GO) prefsManager.deleteCredential(service)
-            return
-        }
-
-        val credential = when (service) {
-            AiService.OPENCODE_GO -> Credential.OpenCodeGoCredential(state.accessToken.trim())
-            AiService.CLAUDE -> Credential.ClaudeCredential(
-                accessToken = state.accessToken,
-                refreshToken = state.refreshToken.ifBlank { null }
-            )
-            AiService.CODEX -> {
-                if (state.refreshToken.isBlank()) return
-                Credential.CodexCredential(
-                    accessToken = state.accessToken,
-                    refreshToken = state.refreshToken,
-                    accountId = state.accountId.ifBlank { null }
-                )
-            }
-            AiService.GEMINI -> {
-                if (state.refreshToken.isBlank() || state.oauthClientId.isBlank() || state.oauthClientSecret.isBlank()) return
-                Credential.GeminiCredential(
-                    accessToken = state.accessToken,
-                    refreshToken = state.refreshToken,
-                    expiresAtMs = System.currentTimeMillis() + 3600_000, // default 1h
-                    oauthClientId = state.oauthClientId,
-                    oauthClientSecret = state.oauthClientSecret
-                )
-            }
-        }
-
-        prefsManager.saveCredential(service, credential)
+        setService(service, updated.copy(isValidating = false, validationResult = null))
     }
 
     fun validateCredential(service: AiService) {
-        val repo = when (service) {
-            AiService.CLAUDE -> claudeRepository
-            AiService.CODEX -> codexRepository
-            AiService.GEMINI -> geminiRepository
-            AiService.OPENCODE_GO -> openCodeGoRepository
-        }
-
-        // Ensure saved before validation
-        saveCredential(service)
-
-        _uiState.update { state ->
-            val current = state.serviceStates[service] ?: ServiceCredentialState()
-            state.copy(
-                serviceStates = state.serviceStates + (service to current.copy(isValidating = true, validationResult = null))
-            )
-        }
-
-        viewModelScope.launch {
-            val result = repo.validateCredential()
-            val validationResult = when (result) {
-                is Result.Success -> ValidationResult.Success
-                is Result.Failure -> ValidationResult.Failure(formatAppError(result.error))
-            }
-
-            _uiState.update { state ->
-                val current = state.serviceStates[service] ?: ServiceCredentialState()
-                state.copy(
-                    serviceStates = state.serviceStates + (service to current.copy(
-                        isValidating = false,
-                        validationResult = validationResult
-                    ))
+        validationJobs.remove(service)?.cancel()
+        val state = _uiState.value.serviceStates.getValue(service)
+        val draft = state.connection ?: return
+        val connection: AccountConnection
+        val credential: Credential
+        try {
+            connection = draft.copy(name = state.name.trim())
+            require(state.accessToken.isNotBlank())
+            credential = when (service) {
+                AiService.OPENCODE_GO -> Credential.OpenCodeGoCredential(state.accessToken.trim())
+                AiService.CLAUDE -> Credential.ClaudeCredential(
+                    state.accessToken.trim(), state.refreshToken.trim().ifBlank { null }
                 )
+                AiService.CODEX -> {
+                    require(state.refreshToken.isNotBlank())
+                    Credential.CodexCredential(state.accessToken.trim(), state.refreshToken.trim(), state.accountId.trim().ifBlank { null })
+                }
+                AiService.GEMINI -> {
+                    require(state.refreshToken.isNotBlank() && state.oauthClientId.isNotBlank() && state.oauthClientSecret.isNotBlank())
+                    // Unknown expiry: request a real refresh instead of inventing token freshness.
+                    Credential.GeminiCredential(state.accessToken.trim(), state.refreshToken.trim(), 0L,
+                        state.oauthClientId.trim(), state.oauthClientSecret.trim())
+                }
+            }
+        } catch (_: IllegalArgumentException) {
+            setService(service, state.copy(validationResult = ValidationResult.Failure("Enter a valid account name and required credentials.")))
+            return
+        }
+        setService(service, state.copy(isValidating = true, validationResult = null))
+        validationJobs[service] = viewModelScope.launch {
+            try {
+                when (val result = accounts.validateAndSave(connection, credential, state.previous)) {
+                    is Result.Success -> {
+                        setService(service, ServiceCredentialState())
+                        updateQuotaSurfaces(context)
+                    }
+                    is Result.Failure -> setService(service, state.copy(validationResult = ValidationResult.Failure(formatAppError(result.error))))
+                }
+            } catch (_: StaleCredentialException) {
+                currentCoroutineContext().ensureActive()
+                setService(service, state.copy(validationResult = ValidationResult.Failure("Account changed. Start reconnect again.")))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: IOException) {
+                setService(service, state.copy(validationResult = ValidationResult.Failure("Could not save account. Restart and try again.")))
             }
         }
+    }
+
+    fun rename(connection: AccountConnection, name: String) {
+        prefsManager.renameConnection(connection, name)
+        accounts.updateNotifications()
+        viewModelScope.launch { updateQuotaSurfaces(context) }
+    }
+
+    fun delete(connection: AccountConnection) {
+        if (_uiState.value.serviceStates[connection.service]?.previous?.id == connection.id) cancelDraft(connection.service)
+        accounts.delete(connection)
+        viewModelScope.launch { updateQuotaSurfaces(context) }
     }
 
     fun setRefreshInterval(minutes: Long) {
@@ -194,46 +149,29 @@ class SettingsViewModel @Inject constructor(
     fun setNotificationsEnabled(enabled: Boolean) {
         prefsManager.setNotificationsEnabled(enabled)
         _uiState.update { it.copy(notificationsEnabled = enabled) }
+        accounts.updateNotifications()
     }
 
-    fun showDeleteConfirmDialog() {
-        _uiState.update { it.copy(showDeleteConfirmDialog = true) }
-    }
-
-    fun dismissDeleteConfirmDialog() {
-        _uiState.update { it.copy(showDeleteConfirmDialog = false) }
-    }
+    fun showDeleteConfirmDialog() { _uiState.update { it.copy(showDeleteConfirmDialog = true) } }
+    fun dismissDeleteConfirmDialog() { _uiState.update { it.copy(showDeleteConfirmDialog = false) } }
 
     fun deleteAllCredentials() {
-        prefsManager.deleteAllCredentials()
-        _uiState.update {
-            SettingsUiState(
-                refreshIntervalMinutes = it.refreshIntervalMinutes,
-                notificationsEnabled = it.notificationsEnabled
-            )
-        }
+        AiService.entries.forEach(::cancelDraft)
+        prefsManager.loadConnections().forEach(accounts::delete)
+        viewModelScope.launch { updateQuotaSurfaces(context) }
+        dismissDeleteConfirmDialog()
     }
 
-    private fun formatExpiryMs(expiresAtMs: Long): String {
-        return try {
-            val instant = Instant.ofEpochMilli(expiresAtMs)
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                .withZone(ZoneId.systemDefault())
-            formatter.format(instant)
-        } catch (_: Exception) {
-            "Unknown"
-        }
+    private fun setService(service: AiService, state: ServiceCredentialState) {
+        _uiState.update { it.copy(serviceStates = it.serviceStates + (service to state)) }
     }
 
-    private fun formatAppError(error: AppError): String {
-        return when (error) {
-            is AppError.NetworkError -> "Network error: ${error.message}"
-            is AppError.AuthError -> if (error.service == AiService.OPENCODE_GO) "API key rejected. Check your OpenCode Go key."
-                else if (error.isTerminal) "Authentication failed (re-login required)" else "Authentication error"
-            is AppError.RateLimited -> "Rate limited — try again later"
-            is AppError.ParseError -> "Parse error: ${error.message}"
-            is AppError.CredentialNotFound -> "No credentials saved"
-            is AppError.ServiceUnavailable -> "Service temporarily unavailable"
-        }
+    private fun formatAppError(error: AppError): String = when (error) {
+        is AppError.NetworkError -> "Network error. Check connectivity and try again."
+        is AppError.AuthError -> "Credentials rejected. Check this account's credentials."
+        is AppError.RateLimited -> "Rate limited — try again later"
+        is AppError.ParseError -> "Unexpected provider response"
+        is AppError.CredentialNotFound -> "Required credentials missing"
+        is AppError.ServiceUnavailable -> "Service temporarily unavailable"
     }
 }

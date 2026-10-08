@@ -44,10 +44,10 @@ Credentials are stored encrypted on-device and sent directly to the correspondin
 
 1. Install the ARM64 `nativeRelease` APK and open **CodexBar Native Test**.
 2. Open the dashboard using its button, then navigate to **Settings → OpenCode Go**.
-3. Paste your **OpenCode Go API key** and press **Validate**.
+3. Choose **Add OpenCode Go account**, name it, paste your **OpenCode Go API key**, and press **Validate & save**.
 4. Return to the dashboard and pull to refresh.
 
-This source needs no refresh token, browser cookie or workspace ID. Clearing its field removes the saved key. The launcher self-test does not use your saved credentials.
+This source needs no refresh token, browser cookie or workspace ID. Drafts are saved only after validation succeeds. Use **Delete** on a saved account to remove its key and cache; other accounts remain intact. The launcher self-test does not use your saved credentials.
 
 ## Getting Your Tokens
 

@@ -16,7 +16,9 @@ class CredentialSession(
     fun replace(updated: Credential) {
         val previous = checkNotNull(credential)
         require(previous.javaClass == updated.javaClass && updated.accessToken.isNotBlank())
-        if (!persist(previous, updated)) throw CancellationException("Connection changed during request")
+        if (!persist(previous, updated)) throw StaleCredentialException()
         credential = updated
     }
 }
+
+class StaleCredentialException : CancellationException("Connection changed during request")

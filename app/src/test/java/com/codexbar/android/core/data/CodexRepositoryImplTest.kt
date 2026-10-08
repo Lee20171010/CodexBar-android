@@ -8,10 +8,8 @@ import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.repository.CredentialSession
 import kotlinx.coroutines.CancellationException
-import org.mockito.Mockito.verifyNoInteractions
 import com.codexbar.android.core.network.codex.CodexApiService
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
-import com.codexbar.android.core.security.EncryptedPrefsManager
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -23,8 +21,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import kotlinx.coroutines.test.runTest
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
 import retrofit2.Retrofit
 
 class CodexRepositoryImplTest {
@@ -32,7 +28,10 @@ class CodexRepositoryImplTest {
     private lateinit var mockWebServer: MockWebServer
     private lateinit var apiService: CodexApiService
     private lateinit var tokenRefreshService: CodexTokenRefreshService
-    private lateinit var prefsManager: EncryptedPrefsManager
+    private var credential: Credential? = null
+    private suspend fun CodexRepositoryImpl.fetchQuota() = fetchQuota(
+        CredentialSession(AccountConnection.create(AiService.CODEX), credential)
+    )
     private lateinit var repository: CodexRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
 
@@ -64,10 +63,8 @@ class CodexRepositoryImplTest {
             .build()
             .create(CodexTokenRefreshService::class.java)
 
-        prefsManager = mock(EncryptedPrefsManager::class.java)
-        `when`(prefsManager.loadCredential(AiService.CODEX)).thenReturn(testCredential)
-
-        repository = CodexRepositoryImpl(apiService, tokenRefreshService, prefsManager)
+        credential = testCredential
+        repository = CodexRepositoryImpl(apiService, tokenRefreshService)
     }
 
     @After
@@ -88,7 +85,6 @@ class CodexRepositoryImplTest {
         assertEquals("Bearer test-access-token", mockWebServer.takeRequest().getHeader("Authorization"))
         mockWebServer.takeRequest()
         assertEquals("Bearer synthetic-rotated", mockWebServer.takeRequest().getHeader("Authorization"))
-        verifyNoInteractions(prefsManager)
     }
 
     @Test
@@ -101,7 +97,6 @@ class CodexRepositoryImplTest {
         assertTrue(failure is CancellationException)
         assertEquals(testCredential, request.credential)
         assertEquals(2, mockWebServer.requestCount)
-        verifyNoInteractions(prefsManager)
     }
 
     @Test
@@ -121,7 +116,6 @@ class CodexRepositoryImplTest {
         assertEquals("synthetic-owner-two", secondRequest.getHeader("ChatGPT-Account-Id"))
         assertEquals(secondCredential, second.credential)
         assertEquals(testCredential, first.credential)
-        verifyNoInteractions(prefsManager)
     }
 
     @Test
@@ -188,7 +182,7 @@ class CodexRepositoryImplTest {
 
     @Test
     fun `fetchQuota returns CredentialNotFound when no credential`() = runTest {
-        `when`(prefsManager.loadCredential(AiService.CODEX)).thenReturn(null)
+        credential = null
 
         val result = repository.fetchQuota()
 

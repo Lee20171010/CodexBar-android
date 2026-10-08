@@ -8,12 +8,10 @@ import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.domain.repository.CredentialSession
-import com.codexbar.android.core.domain.model.AccountConnection
 import kotlinx.coroutines.CancellationException
 import com.codexbar.android.core.network.codex.CodexApiService
 import com.codexbar.android.core.network.codex.CodexDto
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
-import com.codexbar.android.core.security.EncryptedPrefsManager
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
 import java.io.IOException
@@ -22,16 +20,8 @@ import javax.inject.Inject
 
 class CodexRepositoryImpl @Inject constructor(
     private val apiService: CodexApiService,
-    private val tokenRefreshService: CodexTokenRefreshService,
-    private val prefsManager: EncryptedPrefsManager
+    private val tokenRefreshService: CodexTokenRefreshService
 ) : QuotaRepository {
-
-    override suspend fun fetchQuota(): Result<QuotaInfo, AppError> = fetchQuota(
-        CredentialSession(AccountConnection.create(AiService.CODEX), prefsManager.loadCredential(AiService.CODEX)) { _, updated ->
-            prefsManager.saveCredential(AiService.CODEX, updated)
-            true
-        }
-    )
 
     override suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError> {
         require(session.connection.service == AiService.CODEX)
@@ -80,13 +70,6 @@ class CodexRepositoryImpl @Inject constructor(
             Result.Failure(AppError.NetworkError(e.message ?: "Network error", e))
         } catch (e: Exception) {
             Result.Failure(AppError.ParseError(e.message ?: "Parse error", e))
-        }
-    }
-
-    override suspend fun validateCredential(): Result<Unit, AppError> {
-        return when (val result = fetchQuota()) {
-            is Result.Success -> Result.Success(Unit)
-            is Result.Failure -> Result.Failure(result.error)
         }
     }
 

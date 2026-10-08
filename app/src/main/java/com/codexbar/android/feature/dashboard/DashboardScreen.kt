@@ -82,7 +82,7 @@ fun DashboardScreen(
                 }
 
                 is DashboardUiState.PartialSuccess -> {
-                    val errorServices = state.errors.keys.joinToString(", ") { it.displayName }
+                    val errorServices = state.errors.keys.joinToString(", ") { it.name }
                     CardList(
                         cards = state.cards,
                         errorBanner = "Failed to load: $errorServices"
@@ -133,7 +133,7 @@ private fun CardList(
                 )
             }
         }
-        items(cards, key = { it.service.name }) { card ->
+        items(cards, key = { it.connection.id }) { card ->
             ServiceCard(
                 cardData = card,
                 onClick = { /* Bottom sheet detail — future enhancement */ }
