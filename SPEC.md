@@ -184,6 +184,13 @@ CLI fallback for explicit OAuth without changing other platforms' credential pol
 Normal Settings validation, dashboard and worker refresh share this integration.
 Live native sign-in/quota/renewal acceptance remains separate from synthetic tests.
 
+Copilot device sign-in uses GitHub's device flow, the project's registered public
+`COPILOT_OAUTH_CLIENT_ID`, and `read:user`. It is disabled when that ID is absent.
+The flow enforces the fixed GitHub verification URL, bounded monotonic expiry,
+pending/slow-down/denial handling and cancellable, size-limited HTTPS with redirects
+disabled. A granted token still must pass the same account owner's quota validation
+before storage. OAuth App registration and live Copilot eligibility are external gates.
+
 ## 4. Native execution contract
 
 `NativeCodexBarClient` serializes its requests with a coroutine mutex. Each request

@@ -8,6 +8,9 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Add registration-gated GitHub device sign-in with cancellable polling and quota
+  validation before publication. Keep manual Copilot OAuth token entry available.
+
 - Route Codex quota through native Core OAuth on API 28+ native builds while Android
   remains the sole token writer. Preserve API 26/27 compatibility, private ephemeral
   credential files, account matching, bounded renewal and supplemental model windows.

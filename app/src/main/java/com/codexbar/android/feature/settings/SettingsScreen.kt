@@ -63,6 +63,7 @@ import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.BuildConfig
 import com.codexbar.android.R
 import com.codexbar.android.core.network.codex.CodexDeviceAuth
+import com.codexbar.android.core.network.copilot.CopilotDeviceAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -130,7 +131,7 @@ fun SettingsScreen(
                     state = state,
                     onFieldChange = { field, value -> viewModel.updateField(service, field, value) },
                     onValidate = { viewModel.validateCredential(service) },
-                    onSignIn = viewModel::signInWithCodex,
+                    onSignIn = { viewModel.signIn(service) },
                     onCancel = { viewModel.cancelDraft(service) }
                 )
             }
@@ -232,24 +233,29 @@ private fun ServiceCredentialSection(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (service == AiService.CODEX) {
+            if (service == AiService.COPILOT && BuildConfig.COPILOT_CLIENT_ID.isEmpty()) {
+                Text(stringResource(R.string.copilot_registration_pending), style = MaterialTheme.typography.bodySmall)
+            }
+            if (service == AiService.CODEX || (service == AiService.COPILOT && BuildConfig.COPILOT_CLIENT_ID.isNotEmpty())) {
+                val verificationUrl = if (service == AiService.CODEX) CodexDeviceAuth.VERIFICATION_URL else CopilotDeviceAuth.VERIFICATION_URL
                 val uriHandler = LocalUriHandler.current
                 var browserUnavailable by remember { mutableStateOf(false) }
                 OutlinedButton(onClick = onSignIn, enabled = !state.isValidating) {
-                    Text("Sign in with ChatGPT")
+                    Text(if (service == AiService.CODEX) "Sign in with ChatGPT" else stringResource(R.string.sign_in_github))
                 }
-                Text("Enable device-code sign-in in ChatGPT security settings if required. Authorize in your browser; this app never asks for your password.",
+                Text(if (service == AiService.CODEX) "Enable device-code sign-in in ChatGPT security settings if required. Authorize in your browser; this app never asks for your password."
+                    else stringResource(R.string.github_device_help),
                     style = MaterialTheme.typography.bodySmall)
                 state.deviceUserCode?.let { code ->
                     SelectionContainer { Text("Device code: $code", style = MaterialTheme.typography.titleMedium) }
                     OutlinedButton(onClick = {
                         browserUnavailable = try {
-                            uriHandler.openUri(CodexDeviceAuth.VERIFICATION_URL)
+                            uriHandler.openUri(verificationUrl)
                             false
                         } catch (_: IllegalArgumentException) { true }
                     }) { Text("Open authorization page") }
                     Text("Waiting for authorization. Cancel to stop.")
-                    if (browserUnavailable) Text("Open ${CodexDeviceAuth.VERIFICATION_URL} in your browser.")
+                    if (browserUnavailable) Text("Open $verificationUrl in your browser.")
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Or enter existing tokens manually", style = MaterialTheme.typography.bodySmall)

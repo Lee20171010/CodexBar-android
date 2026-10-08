@@ -13,6 +13,7 @@ import com.codexbar.android.core.domain.repository.StaleCredentialException
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.widget.updateQuotaSurfaces
 import com.codexbar.android.core.network.codex.CodexDeviceAuth
+import com.codexbar.android.core.network.copilot.CopilotDeviceAuth
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.IOException
@@ -31,6 +32,7 @@ class SettingsViewModel @Inject constructor(
     private val accounts: AccountQuotaCoordinator,
     private val prefsManager: EncryptedPrefsManager,
     private val codexDeviceAuth: CodexDeviceAuth,
+    private val copilotDeviceAuth: CopilotDeviceAuth,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState(
@@ -81,8 +83,8 @@ class SettingsViewModel @Inject constructor(
         setService(service, updated.copy(isValidating = false, deviceUserCode = null, validationResult = null))
     }
 
-    fun signInWithCodex() {
-        val service = AiService.CODEX
+    fun signIn(service: AiService) {
+        require(service == AiService.CODEX || service == AiService.COPILOT)
         validationJobs.remove(service)?.cancel()
         val state = _uiState.value.serviceStates.getValue(service)
         val draft = state.connection ?: return
@@ -93,9 +95,15 @@ class SettingsViewModel @Inject constructor(
         setService(service, state.copy(isValidating = true, deviceUserCode = null, validationResult = null))
         validationJobs[service] = viewModelScope.launch {
             try {
-                val challenge = codexDeviceAuth.requestCode()
-                setService(service, state.copy(isValidating = true, deviceUserCode = challenge.userCode, validationResult = null))
-                val credential = codexDeviceAuth.awaitCredential(challenge)
+                val credential = if (service == AiService.CODEX) {
+                    val challenge = codexDeviceAuth.requestCode()
+                    setService(service, state.copy(isValidating = true, deviceUserCode = challenge.userCode, validationResult = null))
+                    codexDeviceAuth.awaitCredential(challenge)
+                } else {
+                    val challenge = copilotDeviceAuth.requestCode()
+                    setService(service, state.copy(isValidating = true, deviceUserCode = challenge.userCode, validationResult = null))
+                    copilotDeviceAuth.awaitCredential(challenge)
+                }
                 // Tokens never enter editable UI state. The existing account owner validates and
                 // atomically publishes them, or preserves the previous account on reconnect failure.
                 when (val result = accounts.validateAndSave(connection, credential, state.previous)) {

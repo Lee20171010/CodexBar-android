@@ -1,5 +1,15 @@
 # CodexBar Android Test Plan
 
+## Copilot device sign-in
+
+81 JVM tests and Debug lint passed after this addition.
+
+Synthetic tests cover the registered client/scope/grant, pending authorization,
+unregistered configuration, untrusted verification URLs, denial, expiry, five-second
+slow-down and cancellation. Shared bounded transport retains the Codex redirect and
+oversized-response checks. No project OAuth App is registered yet; distributed
+builds keep this button disabled and do not claim live OAuth/Copilot eligibility.
+
 ## Full-plan continuation: native Codex ownership
 
 - 78 JVM tests and Debug lint pass, including native Codex parser/error mapping,

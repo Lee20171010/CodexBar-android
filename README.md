@@ -2,7 +2,7 @@
 
 > **Unofficial Android port** of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete). Independently maintained; not published, endorsed or supported by the macOS upstream or service providers.
 
-Monitor seven AI services on Android. **OpenCode Go, OpenRouter and GitHub Copilot use the native Swift engine**; Claude, Codex (ChatGPT), Gemini and DeepSeek use Kotlin API integrations. Balance-only services show reported money rather than invented quota windows.
+Monitor seven AI services on Android. **Codex (ChatGPT), OpenCode Go, OpenRouter and GitHub Copilot use the native Swift engine** in native builds on API 28+. Claude, Gemini and DeepSeek use Kotlin API integrations; Codex also retains a Kotlin compatibility path on API 26/27. Balance-only services show reported money rather than invented quota windows.
 
 The native integration is currently an experimental build. Its automated acceptance covers synthetic credentials; see [TEST.md](TEST.md) for results and remaining real-account/device checks.
 
@@ -51,6 +51,12 @@ and reset windows are not inferred. The pinned native CLI exposes a formatted ba
 description rather than numeric money, so this adapter uses the existing Kotlin API stack.
 
 ## GitHub Copilot setup
+
+GitHub device sign-in is implemented but disabled in distributed builds until this
+project has its own registered OAuth App with Device Flow enabled. Maintainers can
+build with its public `COPILOT_OAUTH_CLIENT_ID`; no client secret is used. Registration
+and owner-authorized Copilot quota acceptance remain pending. Existing OAuth token
+entry remains available; another application's client ID is not bundled.
 
 GitHub Copilot is also available in native-engine builds: **Settings → Add GitHub
 Copilot account** accepts a GitHub OAuth token with Copilot access. A short-lived

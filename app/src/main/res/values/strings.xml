@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="copilot_registration_pending">GitHub device sign-in awaits this project’s OAuth App registration. Existing OAuth tokens can still be validated below.</string>
+    <string name="sign_in_github">Sign in with GitHub</string>
+    <string name="github_device_help">Authorize in your browser. Copilot quota access is verified before saving this account.</string>
     <string name="about_licenses">About &amp; licenses</string>
     <string name="unofficial_port">Unofficial Android port of CodexBar. Based on work by Peter Steinberger and hyunnnchoi. Independently maintained; not endorsed by upstream or service providers.</string>
     <string name="licenses_unavailable">License text could not be loaded.</string>

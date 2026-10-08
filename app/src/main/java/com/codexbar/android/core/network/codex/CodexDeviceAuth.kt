@@ -1,28 +1,22 @@
 package com.codexbar.android.core.network.codex
 
 import com.codexbar.android.core.domain.model.Credential
+import com.codexbar.android.core.network.postDeviceAuth
 import com.codexbar.android.di.CodexTokenClient
 import java.io.IOException
 import java.security.MessageDigest
 import java.util.Base64
 import javax.inject.Inject
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.*
-import okhttp3.Call
-import okhttp3.Callback
 import okhttp3.FormBody
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 /** Codex's device-code protocol. Credentials stay in memory until quota validation succeeds. */
 class CodexDeviceAuth internal constructor(
@@ -112,34 +106,7 @@ class CodexDeviceAuth internal constructor(
         return Credential.CodexCredential(access, refresh, accountId, java.time.Instant.now())
     }
 
-    private class Reply(val code: Int, val body: JsonObject)
-
-    private suspend fun post(path: String, body: RequestBody): Reply = suspendCancellableCoroutine { continuation ->
-        val call = client.newCall(Request.Builder().url(base.resolve(path)!!).post(body).build())
-        continuation.invokeOnCancellation { call.cancel() }
-        call.enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                if (continuation.isActive) continuation.resumeWithException(IOException("Sign-in connection failed. Try again."))
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    try {
-                        val source = response.body?.source() ?: invalidResponse()
-                        source.request(65_537)
-                        if (source.buffer.size > 65_536) invalidResponse()
-                        val text = source.readUtf8()
-                        val json = try { Json.parseToJsonElement(text).jsonObject } catch (_: Exception) {
-                            if (response.isSuccessful) invalidResponse() else JsonObject(emptyMap())
-                        }
-                        if (continuation.isActive) continuation.resume(Reply(response.code, json))
-                    } catch (_: Exception) {
-                        if (continuation.isActive) continuation.resumeWithException(IOException("Unexpected sign-in response. Try again."))
-                    }
-                }
-            }
-        })
-    }
+    private suspend fun post(path: String, body: RequestBody) = client.postDeviceAuth(base.resolve(path)!!, body)
 
     private fun jsonBody(vararg fields: Pair<String, String>): RequestBody =
         JsonObject(fields.associate { it.first to JsonPrimitive(it.second) }).toString()

@@ -20,6 +20,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "false")
+        val copilotClientId = providers.environmentVariable("COPILOT_OAUTH_CLIENT_ID").getOrElse("")
+        require(copilotClientId.matches(Regex("[A-Za-z0-9._-]{0,128}"))) { "Invalid public Copilot OAuth client ID" }
+        buildConfigField("String", "COPILOT_CLIENT_ID", "\"$copilotClientId\"")
     }
 
     signingConfigs {
