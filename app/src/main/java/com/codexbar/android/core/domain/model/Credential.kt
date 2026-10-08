@@ -39,4 +39,8 @@ sealed class Credential {
     class CopilotCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class DeepSeekCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

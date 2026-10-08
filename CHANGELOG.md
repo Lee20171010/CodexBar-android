@@ -8,6 +8,8 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- DeepSeek API-key accounts using the official numeric USD/CNY balance endpoint;
+  no inferred spending, exchange rates or quota windows.
 - GitHub Copilot accounts via the pinned native API source, with separate Premium/Chat
   measurements and plan-only responses retained without inventing zero usage.
 - Codex browser/device-code sign-in with bounded polling, PKCE exchange, cancellation
@@ -48,7 +50,7 @@ from the pinned Swift Core/CLI source revision.
 
 ### Verification
 
-- 71 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
+- 74 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
   device acceptance remains separate from these synthetic tests.
 - The Go Release APK passed five runtime probes and Settings validation on an
   API 36 emulator's ARM64 native-bridge path. See [TEST.md](TEST.md) for exact scope.

@@ -30,6 +30,12 @@ enum class AiService(
         baseUrl = "https://opencode.ai/",
         requiresManualCredentials = true
     ),
+    DEEPSEEK(
+        displayName = "DeepSeek",
+        brandColor = 0xFF4D6BFE,
+        baseUrl = "https://api.deepseek.com/",
+        requiresManualCredentials = true
+    ),
     COPILOT(
         displayName = "GitHub Copilot",
         brandColor = 0xFF6E40C9,
@@ -44,4 +50,5 @@ enum class AiService(
     );
 
     val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT
+    val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

@@ -9,6 +9,7 @@ import com.codexbar.android.core.network.codex.CodexApiService
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
 import com.codexbar.android.core.network.gemini.GeminiApiService
 import com.codexbar.android.core.network.gemini.GeminiTokenRefreshService
+import com.codexbar.android.core.network.deepseek.DeepSeekApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,6 +49,14 @@ annotation class GeminiTokenClient
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideDeepSeekApiService(json: Json): DeepSeekApiService = Retrofit.Builder()
+        .baseUrl(AiService.DEEPSEEK.baseUrl)
+        .client(baseOkHttpBuilder().build())
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build().create(DeepSeekApiService::class.java)
 
     @Provides
     @Singleton

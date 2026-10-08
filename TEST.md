@@ -13,7 +13,7 @@ successful real-account quota retrieval are distinct gates.
 | OpenCode Go | Native API in native-engine builds | Parser, repository, account lifecycle | Invalid-key CLI and Settings rejection | Pending |
 | OpenRouter | Native API in native-engine builds | Budget/balance parser, ownership, cache | Invalid-key native and Settings rejection passed | Pending |
 | Copilot | Native API in native-engine builds | Premium/chat/plan-only parser and account isolation | Pending | Pending |
-| DeepSeek | Not implemented | Not recorded | Not recorded | Not recorded |
+| DeepSeek | Kotlin official balance API | Numeric/currency/unknown/zero and account-header HTTP fixtures | Pending | Pending |
 
 Codex device-code login is implemented with synthetic protocol checks. Owner-authorized
 browser login, real quota retrieval and token renewal remain separate pending gates;
@@ -38,7 +38,7 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher and tile visual runtime acceptance remain pending.
 
-The JVM suite currently contains **71 tests**:
+The JVM suite currently contains **74 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -49,6 +49,7 @@ The JVM suite currently contains **71 tests**:
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |
 | Go CLI parser | 5 | Window mapping, provider/source isolation, invalid data, truncation, sanitized errors |
 | Copilot CLI parser | 3 | Premium/chat identity, plan-only results, over-quota values, invalid data and sanitized auth rejection |
+| DeepSeek repository | 3 | Funded currency selection, zero versus absent/malformed money, sibling headers and sanitized errors |
 | OpenRouter repository | 1 | Explicit provider/key ownership and wrong-credential rejection before native execution |
 | Codex device-code auth | 7 | Pending/success/PKCE, denial/expiry/deadline, slow-down timing, cancellation, oversized responses and redirect rejection |
 | OpenRouter CLI parser | 4 | Balance-only versus capped budgets, zero/unknown, measurement age, malformed data, process failures and sanitized API errors |

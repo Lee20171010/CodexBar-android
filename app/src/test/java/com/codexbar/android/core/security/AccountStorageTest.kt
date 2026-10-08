@@ -17,6 +17,7 @@ class AccountStorageTest {
     @Test fun `API keys retain provider and sibling ownership across restart`() {
       for ((service, create) in listOf<Pair<AiService, (String) -> Credential>>(
           AiService.OPENROUTER to { Credential.OpenRouterCredential(it) },
+          AiService.DEEPSEEK to { Credential.DeepSeekCredential(it) },
           AiService.COPILOT to { Credential.CopilotCredential(it) })) {
         val memory = MemoryPreferences()
         val store = EncryptedPrefsManager(memory.prefs)

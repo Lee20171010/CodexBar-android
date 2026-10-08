@@ -132,6 +132,7 @@ class SettingsViewModel @Inject constructor(
                 AiService.OPENCODE_GO -> Credential.OpenCodeGoCredential(state.accessToken.trim())
                 AiService.OPENROUTER -> Credential.OpenRouterCredential(state.accessToken.trim())
                 AiService.COPILOT -> Credential.CopilotCredential(state.accessToken.trim())
+                AiService.DEEPSEEK -> Credential.DeepSeekCredential(state.accessToken.trim())
                 AiService.CLAUDE -> Credential.ClaudeCredential(
                     state.accessToken.trim(), state.refreshToken.trim().ifBlank { null }
                 )

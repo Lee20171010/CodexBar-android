@@ -48,6 +48,7 @@ class EncryptedPrefsManager internal constructor(
             is Credential.OpenCodeGoCredential -> AiService.OPENCODE_GO
             is Credential.OpenRouterCredential -> AiService.OPENROUTER
             is Credential.CopilotCredential -> AiService.COPILOT
+            is Credential.DeepSeekCredential -> AiService.DEEPSEEK
         }
         require(owner == service) { "Credential provider mismatch" }
         require(credential.accessToken.isNotBlank()) { "Access token is required" }
@@ -81,6 +82,7 @@ class EncryptedPrefsManager internal constructor(
             is Credential.OpenCodeGoCredential -> Unit
             is Credential.OpenRouterCredential -> Unit
             is Credential.CopilotCredential -> Unit
+            is Credential.DeepSeekCredential -> Unit
         }
 
     }
@@ -98,6 +100,7 @@ class EncryptedPrefsManager internal constructor(
             AiService.OPENCODE_GO -> Credential.OpenCodeGoCredential(accessToken)
             AiService.OPENROUTER -> Credential.OpenRouterCredential(accessToken)
             AiService.COPILOT -> Credential.CopilotCredential(accessToken)
+            AiService.DEEPSEEK -> Credential.DeepSeekCredential(accessToken)
             AiService.CLAUDE -> {
                 val refreshToken = prefs.getString("${prefix}_refresh_token", null)
                 val expiresAt = prefs.getLong("${prefix}_expires_at", -1L)

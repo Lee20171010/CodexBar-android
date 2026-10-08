@@ -2,7 +2,7 @@
 
 > **Unofficial Android port** of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete). Independently maintained; not published, endorsed or supported by the macOS upstream or service providers.
 
-Monitor AI-service quotas on Android. This fork integrates an Android-native Swift Core/CLI alongside the existing Kotlin app. **OpenCode Go and OpenRouter use the native engine**; Claude, Codex (ChatGPT), and Gemini retain their Kotlin implementations.
+Monitor seven AI services on Android. **OpenCode Go, OpenRouter and GitHub Copilot use the native Swift engine**; Claude, Codex (ChatGPT), Gemini and DeepSeek use Kotlin API integrations. Balance-only services show reported money rather than invented quota windows.
 
 The native integration is currently an experimental build. Its automated acceptance covers synthetic credentials; see [TEST.md](TEST.md) for results and remaining real-account/device checks.
 
@@ -40,6 +40,15 @@ The app minimum is Android 8.0 / API 26; the native engine requires Android 9 / 
 For the native build, follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [native build guide](native/README.md). Prefer `nativeRelease` for remote testing and phone delivery. The measured Go APK is approximately **33.3 MiB**.
 
 Credentials are stored encrypted on-device and sent directly to the corresponding provider for authenticated requests. There is no project-operated quota backend.
+
+## DeepSeek setup
+
+Choose **Settings → Add DeepSeek account**, enter an API key, then **Validate & save**.
+The [official balance API](https://api-docs.deepseek.com/api/get-user-balance) supplies
+USD/CNY balances. One funded currency is displayed (USD preferred); currencies are
+never added or converted. Missing amounts remain unknown. Spending, monthly limits
+and reset windows are not inferred. The pinned native CLI exposes a formatted balance
+description rather than numeric money, so this adapter uses the existing Kotlin API stack.
 
 ## GitHub Copilot setup
 

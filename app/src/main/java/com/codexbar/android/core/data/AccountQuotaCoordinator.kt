@@ -18,6 +18,7 @@ import com.codexbar.android.di.GeminiRepository
 import com.codexbar.android.di.OpenCodeGoRepository
 import com.codexbar.android.di.OpenRouterRepository
 import com.codexbar.android.di.CopilotRepository
+import com.codexbar.android.di.DeepSeekRepository
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -40,6 +41,7 @@ class AccountQuotaCoordinator @Inject constructor(
     @OpenCodeGoRepository go: QuotaRepository,
     @OpenRouterRepository openRouter: QuotaRepository,
     @CopilotRepository copilot: QuotaRepository,
+    @DeepSeekRepository deepSeek: QuotaRepository,
     private val prefs: EncryptedPrefsManager,
     private val widgets: WidgetPrefsManager,
     private val notifications: QuotaNotificationService
@@ -47,7 +49,7 @@ class AccountQuotaCoordinator @Inject constructor(
     private val repositories = mapOf(
         AiService.CLAUDE to claude, AiService.CODEX to codex,
         AiService.GEMINI to gemini, AiService.OPENCODE_GO to go,
-        AiService.OPENROUTER to openRouter, AiService.COPILOT to copilot
+        AiService.OPENROUTER to openRouter, AiService.COPILOT to copilot, AiService.DEEPSEEK to deepSeek
     )
     // ponytail: retain one tiny mutex per seen ID until process exit; refcount if account churn grows.
     private val locks = ConcurrentHashMap<String, Mutex>()

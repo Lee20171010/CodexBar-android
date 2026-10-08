@@ -258,11 +258,11 @@ private fun ServiceCredentialSection(
             OutlinedTextField(
                 value = state.accessToken,
                 onValueChange = { onFieldChange("accessToken", it) },
-                label = { Text(if (service == AiService.COPILOT) "GitHub OAuth token" else if (service.usesNativeApiKey) "${service.displayName} API Key" else "Access Token") },
+                label = { Text(if (service == AiService.COPILOT) "GitHub OAuth token" else if (service.usesApiKey) "${service.displayName} API Key" else "Access Token") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                supportingText = if (service.usesNativeApiKey) {
+                supportingText = if (service.usesApiKey) {
                     { Text(if (service == AiService.COPILOT) "Use a GitHub OAuth token with Copilot access, not a short-lived Copilot session token. Stored encrypted. Enterprise hosts are not supported."
-                        else "Paste your ${service.displayName} API key. Stored encrypted; data is fetched by the native Core/CLI.") }
+                        else "Paste your ${service.displayName} API key. Stored encrypted; only the provider API is queried.") }
                 } else null,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -271,7 +271,7 @@ private fun ServiceCredentialSection(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (!service.usesNativeApiKey) OutlinedTextField(
+            if (!service.usesApiKey) OutlinedTextField(
                 value = state.refreshToken,
                 onValueChange = { onFieldChange("refreshToken", it) },
                 label = { Text("Refresh Token") },

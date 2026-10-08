@@ -1,5 +1,11 @@
 package com.codexbar.android
 
+import com.codexbar.android.core.data.DeepSeekRepositoryImpl
+import com.codexbar.android.core.domain.model.AccountConnection
+import com.codexbar.android.core.domain.model.Credential
+import com.codexbar.android.core.domain.repository.CredentialSession
+import com.codexbar.android.di.NetworkModule
+
 import android.os.Bundle
 import android.os.Process
 import android.content.Intent
@@ -57,11 +63,16 @@ class NativeCliSmokeActivity : ComponentActivity() {
             for ((flag, service, name) in listOf(
                 Triple("test_go", AiService.OPENCODE_GO, "opencode-go-api-invalid-key"),
                 Triple("test_openrouter", AiService.OPENROUTER, "openrouter-api-invalid-key"),
-                Triple("test_copilot", AiService.COPILOT, "copilot-api-invalid-token")
+                Triple("test_copilot", AiService.COPILOT, "copilot-api-invalid-token"),
+                Triple("test_deepseek", AiService.DEEPSEEK, "deepseek-api-invalid-key")
             )) {
                 if (!intent.getBooleanExtra(flag, false)) continue
                 // Exercise the production client with an intentionally invalid key, never a saved account.
-                val result = NativeCodexBarClient(applicationContext).fetchApiKey(service, "codexbar-invalid-synthetic-key")
+                val result = if (service == AiService.DEEPSEEK) {
+                    DeepSeekRepositoryImpl(NetworkModule.provideDeepSeekApiService(NetworkModule.provideJson()))
+                        .fetchQuota(CredentialSession(AccountConnection.create(service),
+                            Credential.DeepSeekCredential("codexbar-invalid-synthetic-key")))
+                } else NativeCodexBarClient(applicationContext).fetchApiKey(service, "codexbar-invalid-synthetic-key")
                 val passed = result is Result.Failure && result.error is AppError.AuthError &&
                     result.error.service == service
                 report.getJSONArray("results").put(JSONObject()

@@ -99,6 +99,7 @@ def main():
     parser.add_argument("--opencode-go", action="store_true", help="Also test Go API with a fixed invalid key")
     parser.add_argument("--openrouter", action="store_true", help="Also test OpenRouter API with a fixed invalid key")
     parser.add_argument("--copilot", action="store_true", help="Also test Copilot API with a fixed invalid token")
+    parser.add_argument("--deepseek", action="store_true", help="Also test DeepSeek API with a fixed invalid key")
     parser.add_argument("--locked", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     for name, value in (("ANDROID_TEST_ADB_WRAPPER", ADB), ("ANDROID_TEST_SESSION_WRAPPER", SESSION_WRAPPER)):
@@ -112,7 +113,8 @@ def main():
                                 "--configuration", args.configuration, "--locked",
                                 *(["--opencode-go"] if args.opencode_go else []),
                                 *(["--openrouter"] if args.openrouter else []),
-                                *(["--copilot"] if args.copilot else [])])
+                                *(["--copilot"] if args.copilot else []),
+                                *(["--deepseek"] if args.deepseek else [])])
     variant = "nativeRelease" if args.configuration == "release" else "nativeDebug"
     apk = ROOT / f"app/build/outputs/apk/{variant}/app-{variant}.apk"
     if not apk.is_file():
@@ -131,8 +133,9 @@ def main():
         adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.NativeCliSmokeActivity",
             "--es", "run_id", run_id, "--ez", "test_go", str(args.opencode_go).lower(),
             "--ez", "test_openrouter", str(args.openrouter).lower(),
-            "--ez", "test_copilot", str(args.copilot).lower())
-        deadline = time.monotonic() + 210
+            "--ez", "test_copilot", str(args.copilot).lower(),
+            "--ez", "test_deepseek", str(args.deepseek).lower())
+        deadline = time.monotonic() + 300
         while time.monotonic() < deadline:
             # Release must stay non-debuggable. Read only this run's synthetic report from logcat.
             result = (adb("logcat", "-d", "-v", "raw", "-s", "CodexBarNative:I", "*:S", check=False)
@@ -151,7 +154,8 @@ def main():
                                   abi=args.abi, configuration=args.configuration)
                     for enabled, provider, name in ((args.opencode_go, "go", "OpenCode Go"),
                                                     (args.openrouter, "openrouter", "OpenRouter"),
-                                                    (args.copilot, "copilot", "GitHub Copilot")):
+                                                    (args.copilot, "copilot", "GitHub Copilot"),
+                                                    (args.deepseek, "deepseek", "DeepSeek")):
                         if enabled and report.get("passed"):
                             try:
                                 report[f"{provider}SettingsPassed"] = verify_api_settings(run_id, provider, name)
