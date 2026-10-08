@@ -60,6 +60,26 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
                 Text(stringResource(R.string.reported_credits, extra.currency, extra.usedCredits, extra.monthlyLimit))
             }
             val measured = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withZone(ZoneId.systemDefault()).format(it.fetchedAt)
+            if (card.display.showAmounts) {
+                it.credits?.let { credits ->
+                    Text(stringResource(if (credits.workspace) R.string.workspace_credits else R.string.credit_balance,
+                        credits.balance?.toString() ?: stringResource(R.string.quota_unknown)))
+                    credits.cap?.let { cap ->
+                        Text(stringResource(R.string.credit_cap, cap.used.toString(), cap.limit.toString(), cap.remaining.toString()))
+                        card.display.reset(androidx.compose.ui.platform.LocalContext.current, cap.resetsAt, now)?.let { reset -> Text(reset) }
+                        Text(stringResource(R.string.measured_at, cap.fetchedAt.toString()), style = MaterialTheme.typography.labelSmall)
+                    }
+                    Text(stringResource(R.string.measured_at, credits.fetchedAt.toString()), style = MaterialTheme.typography.labelSmall)
+                }
+                it.resetInventory?.let { inventory ->
+                    Text(stringResource(R.string.reset_inventory, inventory.availableCount))
+                    inventory.items.forEach { credit ->
+                        Text(stringResource(R.string.reset_credit_item, credit.type, credit.status,
+                            credit.expiresAt?.toString() ?: stringResource(R.string.quota_unknown)))
+                    }
+                    Text(stringResource(R.string.measured_at, inventory.fetchedAt.toString()), style = MaterialTheme.typography.labelSmall)
+                }
+            }
             Text(stringResource(R.string.measurement_source, it.source, measured), style = MaterialTheme.typography.labelSmall)
             if (onDisplayChange != null) com.codexbar.android.feature.settings.DisplayControls(it.windows, card.display, onDisplayChange)
         }

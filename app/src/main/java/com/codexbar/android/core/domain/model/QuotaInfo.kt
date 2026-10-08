@@ -12,8 +12,22 @@ data class QuotaInfo(
     val tier: String? = null,
     val fetchedAt: Instant,
     val money: ReportedMoney? = null,
-    val source: String = "kotlin-api"
+    val source: String = "kotlin-api",
+    val credits: ReportedCredits? = null,
+    val resetInventory: ResetInventory? = null
 )
+
+@kotlinx.serialization.Serializable
+data class ReportedCredits(val balance: Double?, val workspace: Boolean, val cap: CreditCap?, val fetchedAt: Instant)
+
+@kotlinx.serialization.Serializable
+data class CreditCap(val used: Double, val limit: Double, val remaining: Double, val resetsAt: Instant?, val fetchedAt: Instant)
+
+@kotlinx.serialization.Serializable
+data class ResetInventory(val availableCount: Int, val items: List<ResetCredit>, val fetchedAt: Instant)
+
+@kotlinx.serialization.Serializable
+data class ResetCredit(val type: String, val status: String, val expiresAt: Instant?)
 
 /** Reported monetary counters, independent of quota windows. Null is unknown, not zero. */
 @kotlinx.serialization.Serializable

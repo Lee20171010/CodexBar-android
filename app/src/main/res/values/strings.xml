@@ -65,4 +65,11 @@
     <string name="display_absolute_reset">Show reset date and time</string>
     <string name="restore_defaults">Restore defaults</string>
     <string name="hidden_quota_risk">A hidden quota is nearly exhausted. Open details.</string>
+    <string name="quota_unknown">Unknown</string>
+    <string name="credit_balance">Reported balance: %1$s credits</string>
+    <string name="workspace_credits">Workspace balance: %1$s credits</string>
+    <string name="credit_cap">Personal credit limit: %1$s / %2$s used; %3$s credits left</string>
+    <string name="reset_inventory">Reported available reset credits: %1$d</string>
+    <string name="reset_credit_item">%1$s · %2$s · expires: %3$s</string>
+    <string name="measured_at">Measured: %1$s</string>
 </resources>

@@ -63,4 +63,11 @@
     <string name="display_absolute_reset">顯示重設日期與時間</string>
     <string name="restore_defaults">恢復預設</string>
     <string name="hidden_quota_risk">隱藏的額度接近耗盡，請查看詳細資訊。</string>
+    <string name="quota_unknown">未知</string>
+    <string name="credit_balance">回報餘額：%1$s 點</string>
+    <string name="workspace_credits">工作區餘額：%1$s 點</string>
+    <string name="credit_cap">個人點數上限：已用 %1$s / %2$s；剩餘 %3$s 點</string>
+    <string name="reset_inventory">回報可用重設券：%1$d 張</string>
+    <string name="reset_credit_item">%1$s · %2$s · 到期：%3$s</string>
+    <string name="measured_at">量測：%1$s</string>
 </resources>

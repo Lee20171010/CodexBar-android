@@ -106,7 +106,9 @@ object NativeQuotaCliParser {
                 tier = plan,
                 extraUsage = null,
                 fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content),
-                source = if (service == AiService.CODEX) "native-oauth" else "native-api"
+                source = if (service == AiService.CODEX) "native-oauth" else "native-api",
+                credits = if (service == AiService.CODEX) CodexReportedCredits.balance(envelope["credits"]) else null,
+                resetInventory = if (service == AiService.CODEX) CodexReportedCredits.inventory(usage["codexResetCredits"]) else null
             ))
         } catch (_: Exception) {
             Result.Failure(AppError.ParseError("Unexpected ${service.displayName} response from the native CLI."))

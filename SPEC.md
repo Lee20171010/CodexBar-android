@@ -1,5 +1,15 @@
 # CodexBar Android Technical Specification
 
+## Reported Codex inventory
+
+Native Codex quota preserves optional credit balance, workspace ownership, personal
+credit cap and reset-credit inventory. Credits are units, never assumed currency.
+Unread balance remains unknown; confirmed zero and an empty inventory remain zero.
+Each optional section retains its measurement time; reset items retain provider type,
+status and expiry. Malformed enrichment is omitted without failing valid quota.
+Detail displays this read-only inventory when amounts are enabled. No redemption
+operation is exposed. Kotlin API 26–27 compatibility does not promise this enrichment.
+
 ## Display profiles
 
 Account overview preferences use stable window IDs, show-amounts and absolute-reset

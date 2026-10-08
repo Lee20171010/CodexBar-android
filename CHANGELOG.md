@@ -1,5 +1,10 @@
 # Changelog
 
+## Reported credits
+
+- Preserve native Codex credit balances, separate personal caps and read-only reset
+  inventory, including measurement times and expiry. Unknown is distinct from zero.
+
 ## Display profiles
 
 - Add per-account overview window/amount choices, absolute reset times and Restore

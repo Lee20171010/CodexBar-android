@@ -1,5 +1,12 @@
 # CodexBar Android Test Plan
 
+## Reported credits
+
+100 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Added fixtures
+distinguish zero/unread balance and empty/unknown inventory, preserve separate caps,
+units and expiry through serialization, and keep good quota after malformed optional
+enrichment. Real-account inventory availability has not been independently verified.
+
 ## Display profiles
 
 97 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Fixtures cover
