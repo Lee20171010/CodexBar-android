@@ -82,7 +82,18 @@ Paste the tokens into the Claude fields in Settings. Access tokens expire; the e
 
 ### Codex (OpenAI / ChatGPT)
 
-If you have the [Codex CLI](https://github.com/openai/codex) installed and logged in, extract tokens from `~/.codex/auth.json`:
+In Settings, choose **Add Codex account → Sign in with ChatGPT**. Copy the displayed
+device code, open the authorization page and approve it in your browser. Device-code
+sign-in must be enabled for your ChatGPT account/workspace. The app polls for at most
+15 minutes; Cancel, editing the draft or leaving Settings stops the flow. Tokens stay
+in memory until a quota request validates the account, then are stored encrypted.
+Reconnect preserves the existing account if authorization or validation fails.
+
+This follows the [Codex device-code protocol](https://github.com/openai/codex/tree/main/codex-rs/login)
+using the existing public Codex client ID. It is an unofficial integration, not a
+separate OpenAI-approved client registration. Claude and Gemini retain manual setup.
+
+Alternatively, if you have the [Codex CLI](https://github.com/openai/codex) installed and logged in, extract tokens from `~/.codex/auth.json`:
 
 ```bash
 # Access token

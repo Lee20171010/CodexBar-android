@@ -119,6 +119,23 @@ class CodexRepositoryImplTest {
     }
 
     @Test
+    fun `transient renewal and retry failures are not terminal auth failures`() = runTest {
+        for ((code, expected) in listOf(429 to AppError.RateLimited::class, 503 to AppError.ServiceUnavailable::class)) {
+            mockWebServer.enqueue(MockResponse().setResponseCode(401))
+            mockWebServer.enqueue(MockResponse().setResponseCode(code))
+            val session = CredentialSession(AccountConnection.create(AiService.CODEX), testCredential)
+            assertEquals(expected, (repository.fetchQuota(session) as Result.Failure).error::class)
+            assertEquals(testCredential, session.credential)
+            mockWebServer.enqueue(MockResponse().setResponseCode(401))
+            mockWebServer.enqueue(MockResponse().setBody("""{"access_token":"synthetic-new"}"""))
+            mockWebServer.enqueue(MockResponse().setResponseCode(code))
+            assertEquals(expected, (repository.fetchQuota(session) as Result.Failure).error::class)
+            assertEquals("synthetic-new", session.credential?.accessToken)
+            assertEquals(testCredential.refreshToken, session.credential?.refreshToken)
+        }
+    }
+
+    @Test
     fun `fetchQuota returns success with rate limit windows`() = runTest {
         val responseJson = """
         {

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,12 +43,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,6 +62,7 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.BuildConfig
 import com.codexbar.android.R
+import com.codexbar.android.core.network.codex.CodexDeviceAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,6 +75,9 @@ fun SettingsScreen(
     var renameAccount by remember { mutableStateOf<AccountConnection?>(null) }
     var renameText by remember { mutableStateOf("") }
     var deleteAccount by remember { mutableStateOf<AccountConnection?>(null) }
+    DisposableEffect(viewModel) {
+        onDispose { AiService.entries.forEach(viewModel::cancelDraft) }
+    }
 
     Scaffold(
         topBar = {
@@ -123,6 +130,7 @@ fun SettingsScreen(
                     state = state,
                     onFieldChange = { field, value -> viewModel.updateField(service, field, value) },
                     onValidate = { viewModel.validateCredential(service) },
+                    onSignIn = viewModel::signInWithCodex,
                     onCancel = { viewModel.cancelDraft(service) }
                 )
             }
@@ -189,6 +197,7 @@ private fun ServiceCredentialSection(
     state: ServiceCredentialState,
     onFieldChange: (String, String) -> Unit,
     onValidate: () -> Unit,
+    onSignIn: () -> Unit,
     onCancel: () -> Unit
 ) {
     Card(
@@ -222,6 +231,29 @@ private fun ServiceCredentialSection(
                 singleLine = true
             )
             Spacer(modifier = Modifier.height(8.dp))
+
+            if (service == AiService.CODEX) {
+                val uriHandler = LocalUriHandler.current
+                var browserUnavailable by remember { mutableStateOf(false) }
+                OutlinedButton(onClick = onSignIn, enabled = !state.isValidating) {
+                    Text("Sign in with ChatGPT")
+                }
+                Text("Enable device-code sign-in in ChatGPT security settings if required. Authorize in your browser; this app never asks for your password.",
+                    style = MaterialTheme.typography.bodySmall)
+                state.deviceUserCode?.let { code ->
+                    SelectionContainer { Text("Device code: $code", style = MaterialTheme.typography.titleMedium) }
+                    OutlinedButton(onClick = {
+                        browserUnavailable = try {
+                            uriHandler.openUri(CodexDeviceAuth.VERIFICATION_URL)
+                            false
+                        } catch (_: IllegalArgumentException) { true }
+                    }) { Text("Open authorization page") }
+                    Text("Waiting for authorization. Cancel to stop.")
+                    if (browserUnavailable) Text("Open ${CodexDeviceAuth.VERIFICATION_URL} in your browser.")
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Or enter existing tokens manually", style = MaterialTheme.typography.bodySmall)
+            }
 
             OutlinedTextField(
                 value = state.accessToken,

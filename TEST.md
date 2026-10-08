@@ -36,7 +36,7 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher and tile visual runtime acceptance remain pending.
 
-The JVM suite currently contains **60 tests**:
+The JVM suite currently contains **67 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -47,6 +47,7 @@ The JVM suite currently contains **60 tests**:
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |
 | Go CLI parser | 5 | Window mapping, provider/source isolation, invalid data, truncation, sanitized errors |
 | OpenRouter repository | 1 | Explicit provider/key ownership and wrong-credential rejection before native execution |
+| Codex device-code auth | 6 | Pending/success/PKCE, denial/expiry, slow-down timing, cancellation, oversized responses and redirect rejection |
 | OpenRouter CLI parser | 4 | Balance-only versus capped budgets, zero/unknown, measurement age, malformed data, process failures and sanitized API errors |
 | Account storage | 9 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes, invalid identities and OpenRouter restart isolation |
 | Account coordinator | 6 | Failed draft isolation, serialized rotation, independent siblings, late deletion results, cancellation and reconnect |
@@ -152,7 +153,7 @@ Latest functional verification: **2026-10-08**.
 
 | Gate | Recorded result |
 | --- | --- |
-| JVM suite | 60/60 passed; Debug lint passed |
+| JVM suite | 67/67 passed; Debug lint passed |
 | Toolchain integrity check | Passed; three official cached archive hashes matched |
 | Full Android Core/CLI compilation | x86_64 and ARM64 passed |
 | Initial App-UID smoke | 4/4 on x86_64 and 4/4 on ARM64 native-bridge path |
@@ -184,6 +185,10 @@ cross-compilation setup. Neither upstream suite is claimed as passing. Cross-bui
 and App-UID checks are the native evidence recorded here.
 
 ## 6. Manual and remaining acceptance
+
+Codex OAuth synthetic coverage includes six protocol tests and a renewal-classification
+regression test. Live browser authorization, real quota and token renewal are separate
+owner-authorized checks; no real credentials are used by the automated suite.
 
 Use an owner-authorized test account for live checks; keep credentials out of logs
 and committed screenshots. Still pending:

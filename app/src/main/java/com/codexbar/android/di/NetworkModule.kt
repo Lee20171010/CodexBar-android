@@ -1,7 +1,6 @@
 package com.codexbar.android.di
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import com.codexbar.android.BuildConfig
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.network.RetryInterceptor
 import com.codexbar.android.core.network.claude.ClaudeApiService
@@ -17,7 +16,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
@@ -64,14 +62,9 @@ object NetworkModule {
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .followRedirects(false)
+            .followSslRedirects(false)
             .addInterceptor(RetryInterceptor())
-
-        if (BuildConfig.IS_DEBUG) {
-            val logging = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }
-            builder.addInterceptor(logging)
-        }
 
         return builder
     }
@@ -140,7 +133,14 @@ object NetworkModule {
     @Provides
     @Singleton
     @CodexTokenClient
-    fun provideCodexTokenOkHttpClient(): OkHttpClient = baseOkHttpBuilder().build()
+    fun provideCodexTokenOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .callTimeout(30, TimeUnit.SECONDS)
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .retryOnConnectionFailure(false)
+        .build()
 
     @Provides
     @Singleton

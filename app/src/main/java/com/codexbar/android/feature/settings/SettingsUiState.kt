@@ -24,6 +24,7 @@ data class ServiceCredentialState(
     val oauthClientSecret: String = "", // Gemini only
     val expiresAtDisplay: String = "", // Gemini only (read-only)
     val isValidating: Boolean = false,
+    val deviceUserCode: String? = null,
     val validationResult: ValidationResult? = null
 )
 

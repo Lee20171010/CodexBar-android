@@ -151,6 +151,23 @@ These fields are not an Android billing ledger or locally estimated cost.
 Codex device-code login, Copilot and DeepSeek are not implemented by this adapter.
 OAuth client/source eligibility and real-account acceptance remain separate gates.
 
+### Codex device-code sign-in
+
+Android starts the Codex device-code protocol, displays the code and opens the fixed
+HTTPS authorization URL in an external browser. The polling job belongs to the draft's
+ViewModel scope and stops on cancellation, draft editing, navigation, denial or expiry.
+Polling respects pending/slow-down responses and a maximum 15-minute lifetime. PKCE
+exchange responses are bounded to 64 KiB; credentials and remote error bodies are never
+logged. Token requests neither follow redirects nor automatically retry an exchange.
+
+The acquired pair stays request-local until `AccountQuotaCoordinator.validateAndSave`
+validates quota and publishes it under the existing generation guard. Saved-account
+renewal continues through the same per-account owner; 429/5xx renewal failures remain
+transient rather than being mislabeled as revoked credentials. Codex quota fetching
+still uses the Kotlin repository; this does not claim an Android-native CLI OAuth
+credential handoff. Live sign-in, account eligibility and renewal acceptance require
+an owner-authorized account and are not established by synthetic protocol tests.
+
 ## 4. Native execution contract
 
 `NativeCodexBarClient` serializes its requests with a coroutine mutex. Each request

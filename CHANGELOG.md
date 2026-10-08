@@ -8,6 +8,8 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Codex browser/device-code sign-in with bounded polling, PKCE exchange, cancellation
+  and validated encrypted account publication; existing manual token entry remains available.
 - OpenRouter API-key accounts through the pinned native engine, with reported
   USD balance/spend and explicitly typed key budgets on dashboard, widgets and
   notifications; missing values remain unknown and balance-only results have no
@@ -32,6 +34,8 @@ from the pinned Swift Core/CLI source revision.
 
 ### Changed
 
+- Disable HTTP credential/body logging and redirects; keep token exchange retries
+  explicit and distinguish transient Codex renewal failures from terminal authentication errors.
 - Use an explicit, immutable PendingIntent for Quick Settings launches on Android
   14+, preserving the legacy launch path on earlier supported versions.
 - Optimized the ARM64 native APK with Swift Release/`-Osize`, stripped binaries,
@@ -42,7 +46,7 @@ from the pinned Swift Core/CLI source revision.
 
 ### Verification
 
-- 60 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
+- 67 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
   device acceptance remains separate from these synthetic tests.
 - The Go Release APK passed five runtime probes and Settings validation on an
   API 36 emulator's ARM64 native-bridge path. See [TEST.md](TEST.md) for exact scope.

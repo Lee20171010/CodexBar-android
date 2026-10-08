@@ -14,6 +14,10 @@ import com.codexbar.android.core.network.codex.CodexDto
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import java.io.IOException
 import java.time.Instant
 import javax.inject.Inject
@@ -42,27 +46,25 @@ class CodexRepositoryImpl @Inject constructor(
                     Result.Success(mapToQuotaInfo(body))
                 }
                 401 -> {
-                    val refreshed = refreshToken(credential, session)
-                    if (refreshed != null) {
-                        val retryResponse = apiService.getUsage(
-                            authorization = "Bearer ${refreshed.accessToken}",
-                            accountId = refreshed.accountId
-                        )
-                        if (retryResponse.isSuccessful) {
-                            val body = retryResponse.body()
-                                ?: return Result.Failure(AppError.ParseError("Empty response body"))
-                            Result.Success(mapToQuotaInfo(body))
-                        } else {
-                            Result.Failure(AppError.AuthError(AiService.CODEX, isTerminal = true))
+                    when (val refresh = refreshToken(credential, session)) {
+                        is Result.Failure -> refresh
+                        is Result.Success -> {
+                            val refreshed = refresh.value
+                            val retryResponse = apiService.getUsage(
+                                authorization = "Bearer ${refreshed.accessToken}",
+                                accountId = refreshed.accountId
+                            )
+                            if (retryResponse.isSuccessful) {
+                                val body = retryResponse.body()
+                                    ?: return Result.Failure(AppError.ParseError("Empty response body"))
+                                Result.Success(mapToQuotaInfo(body))
+                            } else {
+                                Result.Failure(httpError(retryResponse.code()))
+                            }
                         }
-                    } else {
-                        Result.Failure(AppError.AuthError(AiService.CODEX, isTerminal = true))
                     }
                 }
-                429 -> Result.Failure(AppError.RateLimited)
-                else -> Result.Failure(
-                    AppError.NetworkError("HTTP ${response.code()}: ${response.message()}")
-                )
+                else -> Result.Failure(httpError(response.code()))
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -73,29 +75,44 @@ class CodexRepositoryImpl @Inject constructor(
         }
     }
 
-    private suspend fun refreshToken(credential: Credential.CodexCredential, session: CredentialSession): Credential.CodexCredential? {
+    private suspend fun refreshToken(credential: Credential.CodexCredential, session: CredentialSession): Result<Credential.CodexCredential, AppError> {
         return try {
             val request = CodexDto.TokenRefreshRequest(refreshToken = credential.refreshToken)
             val response = tokenRefreshService.refreshToken(request)
 
             if (response.isSuccessful) {
-                val body = response.body() ?: return null
+                val body = response.body() ?: return Result.Failure(AppError.ParseError("Empty token response"))
+                require(body.accessToken.isNotBlank() && body.accessToken.none { it.isWhitespace() || it.isISOControl() })
+                require(body.refreshToken == null || (body.refreshToken.isNotBlank() && body.refreshToken.none { it.isWhitespace() || it.isISOControl() }))
                 val newCredential = Credential.CodexCredential(
                     accessToken = body.accessToken,
                     refreshToken = body.refreshToken ?: credential.refreshToken,
                     accountId = credential.accountId
                 )
                 session.replace(newCredential)
-                newCredential
+                Result.Success(newCredential)
             } else {
                 // Keep the account available for reconnect; never delete a sibling or draft owner.
-                null
+                val errorCode = runCatching {
+                    Json.parseToJsonElement(response.errorBody()?.string().orEmpty()).jsonObject["error"]?.jsonPrimitive?.contentOrNull
+                }.getOrNull()
+                Result.Failure(if (errorCode == "invalid_grant" || errorCode in CodexDto.TERMINAL_ERROR_CODES)
+                    AppError.AuthError(AiService.CODEX, isTerminal = true) else httpError(response.code()))
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
+        } catch (_: IOException) {
+            Result.Failure(AppError.NetworkError("Token renewal connection failed. Try again."))
         } catch (_: Exception) {
-            null
+            Result.Failure(AppError.ParseError("Unexpected token renewal response"))
         }
+    }
+
+    private fun httpError(code: Int): AppError = when (code) {
+        401, 403 -> AppError.AuthError(AiService.CODEX, isTerminal = true)
+        429 -> AppError.RateLimited
+        in 500..599 -> AppError.ServiceUnavailable
+        else -> AppError.NetworkError("HTTP $code")
     }
 
     private fun mapToQuotaInfo(response: CodexDto.UsageResponse): QuotaInfo {
