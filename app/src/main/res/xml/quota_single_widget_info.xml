@@ -4,8 +4,6 @@
     android:minHeight="120dp"
     android:minResizeWidth="250dp"
     android:minResizeHeight="120dp"
-    android:maxResizeWidth="530dp"
-    android:maxResizeHeight="500dp"
     android:targetCellWidth="4"
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"
@@ -14,5 +12,5 @@
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_loading"
     android:configure="com.codexbar.android.core.widget.WidgetConfigurationActivity"
-    android:description="@string/widget_description"
+    android:description="@string/widget_single_title"
     android:previewLayout="@layout/widget_preview" />

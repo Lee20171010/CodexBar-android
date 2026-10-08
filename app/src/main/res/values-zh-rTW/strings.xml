@@ -36,4 +36,12 @@
     <string name="about_licenses">關於與授權</string>
     <string name="close">關閉</string>
     <string name="back">返回</string>
+    <string name="widget_single_title">Codexbar · 單一帳號</string>
+    <string name="widget_overview_title">Codexbar · 帳號總覽</string>
+    <string name="widget_account_unavailable">釘選帳號無法使用 · 開啟應用程式</string>
+    <string name="widget_no_accounts">請在小工具設定選擇帳號</string>
+    <string name="widget_more_accounts">另有 %1$d 個帳號 · 開啟應用程式</string>
+    <string name="widget_more_windows">另有 %1$d 個額度視窗 · 開啟應用程式</string>
+    <string name="widget_open_app">請在應用程式更新或重新連線</string>
+    <string name="widget_refresh">更新釘選帳號</string>
 </resources>

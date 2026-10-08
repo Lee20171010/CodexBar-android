@@ -1,5 +1,16 @@
 # CodexBar Android Technical Specification
 
+## Widget families
+
+Overview and pinned-account widgets share generation-scoped snapshots and explicit
+stable connection pins. Compact layouts show the most constrained principal window;
+taller pinned widgets show additional principal windows and reset progress. Overview
+capacity grows from one to three accounts with height, disclosing omitted pins.
+Deleted pins remain unavailable until reconfiguration, never selecting a sibling.
+Configuration defaults to cancelled and publishes only on confirmation. A widget's
+refresh enqueues explicit work for its own still-existing pins; opening leads to the
+dashboard. Both families update when account state changes.
+
 ## Scheduled refresh ownership
 
 The Application supplies HiltWorkerFactory to on-demand WorkManager initialization.

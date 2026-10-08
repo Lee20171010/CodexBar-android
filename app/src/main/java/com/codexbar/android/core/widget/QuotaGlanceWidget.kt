@@ -1,61 +1,35 @@
 package com.codexbar.android.core.widget
 
 import android.content.Context
-import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.ColorFilter
-import androidx.glance.GlanceId
-import androidx.glance.GlanceModifier
-import androidx.glance.GlanceTheme
-import androidx.glance.Image
-import androidx.glance.ImageProvider
+import androidx.glance.*
 import androidx.glance.action.ActionParameters
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.*
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.cornerRadius
-import androidx.glance.appwidget.provideContent
-import androidx.glance.background
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
-import androidx.glance.layout.Column
-import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
-import androidx.glance.layout.padding
-import androidx.glance.layout.size
-import androidx.glance.layout.width
-import androidx.glance.text.FontWeight
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
+import androidx.glance.layout.*
+import androidx.glance.text.*
 import androidx.glance.unit.ColorProvider
 import com.codexbar.android.MainActivity
 import com.codexbar.android.R
-import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AccountConnection
-import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.model.balanceText
-import com.codexbar.android.core.domain.model.spendText
-import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.presentation.QuotaPresentation
-import androidx.glance.LocalContext
+import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.workmanager.WorkManagerInitializer
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
 import dagger.hilt.android.EntryPointAccessors
-import java.time.Duration
-import java.time.Instant
-import kotlin.math.roundToInt
+import dagger.hilt.components.SingletonComponent
 
-class QuotaGlanceWidget : GlanceAppWidget() {
+open class QuotaGlanceWidget(private val singleAccount: Boolean = false) : GlanceAppWidget() {
+    override val sizeMode = SizeMode.Responsive(setOf(DpSize(250.dp, 120.dp), DpSize(250.dp, 240.dp), DpSize(350.dp, 360.dp)))
 
     @EntryPoint
     @InstallIn(SingletonComponent::class)
@@ -66,280 +40,69 @@ class QuotaGlanceWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val dependencies = EntryPointAccessors.fromApplication(context, Dependencies::class.java)
-        val widgetPrefs = dependencies.widgets()
-        val appWidgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
-        val selectedIds = widgetPrefs.getSelectedConnections(appWidgetId)
+        val pins = dependencies.widgets().getSelectedConnections(GlanceAppWidgetManager(context).getAppWidgetId(id))
         val accounts = dependencies.accounts().loadConnections().associateBy { it.id }
-
+        val selected = pins.sorted().map { accounts[it] }.let { if (singleAccount) it.take(1) else it }
         provideContent {
             GlanceTheme {
-                WidgetContent(selectedIds.sorted().map { accounts[it] }, widgetPrefs)
-            }
-        }
-    }
-
-    @Composable
-    private fun WidgetContent(
-        services: List<AccountConnection?>,
-        widgetPrefs: WidgetPrefsManager
-    ) {
-        Box(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .cornerRadius(20.dp)
-                .background(ColorProvider(Color(0xB01C1B1F)))
-                .clickable(actionStartActivity<MainActivity>())
-                .padding(16.dp)
-        ) {
-            if (services.isEmpty()) {
-                EmptyState()
-            } else {
-                Column(modifier = GlanceModifier.fillMaxSize()) {
-                    for ((index, service) in services.withIndex()) {
-                        if (index > 0) {
-                            Spacer(modifier = GlanceModifier.height(4.dp))
-                            Divider()
-                            Spacer(modifier = GlanceModifier.height(8.dp))
-                        }
-                        if (service == null) Text("Account unavailable", style = TextStyle(color = ColorProvider(Color.White)))
-                        else ServiceSection(service, widgetPrefs, showRefresh = index == 0)
+                val height = LocalSize.current.height
+                val capacity = if (singleAccount) 1 else if (height >= 360.dp) 3 else if (height >= 240.dp) 2 else 1
+                Column(GlanceModifier.fillMaxSize().background(ColorProvider(Color(0xFF1C1B1F))).cornerRadius(20.dp)
+                    .clickable(actionStartActivity<MainActivity>()).padding(12.dp)) {
+                    if (selected.isEmpty()) Label(context.getString(R.string.widget_no_accounts))
+                    selected.take(capacity).forEachIndexed { index, account ->
+                        if (account == null) Label(context.getString(R.string.widget_account_unavailable))
+                        else AccountSection(account, dependencies.widgets(), index == 0, singleAccount && height >= 240.dp)
+                        if (index < capacity - 1) Spacer(GlanceModifier.height(8.dp))
                     }
+                    if (selected.size > capacity) Label(context.getString(R.string.widget_more_accounts, selected.size - capacity))
                 }
             }
         }
     }
 
     @Composable
-    private fun EmptyState() {
-        Box(
-            modifier = GlanceModifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "No services configured",
-                style = TextStyle(color = ColorProvider(Color.White.copy(alpha = 0.6f)), fontSize = 14.sp)
-            )
-        }
-    }
-
-    @Composable
-    private fun Divider() {
-        Box(
-            modifier = GlanceModifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(ColorProvider(Color.White.copy(alpha = 0.1f)))
-        ) {}
-    }
-
-    @Composable
-    private fun ServiceSection(
-        connection: AccountConnection,
-        widgetPrefs: WidgetPrefsManager,
-        showRefresh: Boolean
-    ) {
-        val service = connection.service
-        val snapshot = widgetPrefs.getSnapshot(connection)
+    private fun AccountSection(account: AccountConnection, prefs: WidgetPrefsManager, refresh: Boolean, expanded: Boolean) {
+        val context = LocalContext.current
+        val snapshot = prefs.getSnapshot(account)
         val quota = snapshot.quota
-        val windows = quota?.let(QuotaPresentation::principal).orEmpty()
-        val tier = quota?.tier
-
-        Column(modifier = GlanceModifier.fillMaxWidth()) {
-            // Header: service name + tier + refresh button
-            Row(
-                modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Service icon dot
-                Box(
-                    modifier = GlanceModifier
-                        .size(10.dp)
-                        .cornerRadius(5.dp)
-                        .background(ColorProvider(Color(service.brandColor)))
-                ) {}
-                Spacer(modifier = GlanceModifier.width(8.dp))
-
-                Text(
-                    text = connection.name,
-                    style = TextStyle(
-                        color = ColorProvider(Color.White),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-
-                if (tier != null) {
-                    Spacer(modifier = GlanceModifier.width(8.dp))
-                    Box(
-                        modifier = GlanceModifier
-                            .cornerRadius(4.dp)
-                            .background(ColorProvider(Color.White.copy(alpha = 0.15f)))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = tier,
-                            style = TextStyle(
-                                color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-                }
-
-                Spacer(modifier = GlanceModifier.defaultWeight())
-
-                if (showRefresh) {
-                    Image(
-                        provider = ImageProvider(R.drawable.ic_refresh),
-                        contentDescription = "Refresh",
-                        modifier = GlanceModifier
-                            .size(18.dp)
-                            .clickable(actionRunCallback<RefreshWidgetAction>()),
-                        colorFilter = ColorFilter.tint(ColorProvider(Color.White.copy(alpha = 0.5f)))
-                    )
-                }
-            }
-
-            Spacer(modifier = GlanceModifier.height(8.dp))
-
-            Text(QuotaPresentation.status(LocalContext.current, snapshot), style = TextStyle(color = ColorProvider(Color.White), fontSize = 11.sp))
-            // Each usage window — same layout as app dashboard
-            for ((index, window) in windows.withIndex()) {
-                if (index > 0) Spacer(modifier = GlanceModifier.height(6.dp))
-                WindowRow(window)
-            }
-
-            // Show placeholder if no cached data yet
-            quota?.money?.let { money ->
-                Text(money.balanceText(), style = TextStyle(color = ColorProvider(Color.White), fontSize = 12.sp))
-                Text(money.spendText(), style = TextStyle(color = ColorProvider(Color.White.copy(alpha = 0.7f)), fontSize = 12.sp))
-            }
-            if (quota == null) {
-                Text(
-                    text = "Refresh or reconnect in the app",
-                    style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.4f)),
-                        fontSize = 12.sp
-                    )
-                )
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(account.name, GlanceModifier.defaultWeight(), maxLines = 1,
+                style = TextStyle(color = ColorProvider(Color.White), fontSize = 15.sp, fontWeight = FontWeight.Bold))
+            if (refresh) Image(ImageProvider(R.drawable.ic_refresh), context.getString(R.string.widget_refresh),
+                GlanceModifier.size(48.dp).clickable(actionRunCallback<RefreshWidgetAction>()).padding(12.dp),
+                colorFilter = ColorFilter.tint(ColorProvider(Color.White)))
+        }
+        Label(QuotaPresentation.status(context, snapshot))
+        val principal = quota?.let(QuotaPresentation::principal).orEmpty()
+        val windows = if (expanded) principal.take(if (LocalSize.current.height >= 360.dp) 4 else 2)
+            else principal.sortedByDescending { it.utilization }.take(1)
+        windows.forEach { window ->
+            Label("${window.label} · ${context.getString(R.string.percent_left, QuotaPresentation.remainingPercent(window.utilization))}")
+            if (expanded) {
+                LinearProgressIndicator((1 - window.utilization).toFloat().coerceIn(0f, 1f), GlanceModifier.fillMaxWidth())
+                QuotaPresentation.reset(context, window.resetsAt)?.let { Label(it) }
+                Spacer(GlanceModifier.height(8.dp))
             }
         }
+        if (expanded && principal.size > windows.size) Label(context.getString(R.string.widget_more_windows, principal.size - windows.size))
+        quota?.money?.let { Label(it.balanceText()) }
+        if (quota == null) Label(context.getString(R.string.widget_open_app))
     }
 
     @Composable
-    private fun WindowRow(
-        window: UsageWindow
-    ) {
-        val utilization = window.utilization.toFloat().coerceIn(0f, 1f)
-        val remaining = QuotaPresentation.remainingPercent(window.utilization)
-        val resetText = QuotaPresentation.reset(LocalContext.current, window.resetsAt) ?: ""
-
-        Column(modifier = GlanceModifier.fillMaxWidth()) {
-            // Label + percentage
-            Row(
-                modifier = GlanceModifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = window.label,
-                    style = TextStyle(
-                        color = ColorProvider(Color.White.copy(alpha = 0.7f)),
-                        fontSize = 12.sp
-                    )
-                )
-                Spacer(modifier = GlanceModifier.defaultWeight())
-                Text(
-                    text = "${remaining}% left",
-                    style = TextStyle(
-                        color = utilizationColor(utilization),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                )
-            }
-
-            Spacer(modifier = GlanceModifier.height(3.dp))
-
-            // Progress bar
-            SegmentedProgressBar(utilization)
-
-            // Reset time
-            if (resetText.isNotEmpty()) {
-                Spacer(modifier = GlanceModifier.height(2.dp))
-                Row(modifier = GlanceModifier.fillMaxWidth()) {
-                    Spacer(modifier = GlanceModifier.defaultWeight())
-                    Text(
-                        text = resetText,
-                        style = TextStyle(
-                            color = ColorProvider(Color.White.copy(alpha = 0.4f)),
-                            fontSize = 10.sp
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun SegmentedProgressBar(utilization: Float) {
-        val totalSegments = 24
-        val filledSegments = ((1f - utilization) * totalSegments).roundToInt().coerceIn(0, totalSegments)
-        val fillColor = utilizationColor(utilization)
-        val trackColor = ColorProvider(Color.White.copy(alpha = 0.1f))
-
-        Row(
-            modifier = GlanceModifier.fillMaxWidth().height(4.dp)
-        ) {
-            for (i in 0 until totalSegments) {
-                val color = if (i < filledSegments) fillColor else trackColor
-                Box(
-                    modifier = GlanceModifier
-                        .defaultWeight()
-                        .height(4.dp)
-                        .background(color)
-                ) {}
-                if (i < totalSegments - 1) {
-                    Spacer(modifier = GlanceModifier.width(1.dp))
-                }
-            }
-        }
-    }
-
-    companion object {
-        fun utilizationColor(utilization: Float): ColorProvider {
-            val color = when {
-                utilization >= 0.85f -> Color(0xFFEF5350)
-                utilization >= 0.60f -> Color(0xFFFFB74D)
-                else -> Color(0xFF81C784)
-            }
-            return ColorProvider(color)
-        }
-
-        fun formatResetTime(epochSecond: Long): String {
-            val now = Instant.now()
-            val resetAt = Instant.ofEpochSecond(epochSecond)
-            if (resetAt.isBefore(now)) return ""
-            val duration = Duration.between(now, resetAt)
-            val hours = duration.toHours()
-            val minutes = duration.toMinutes() % 60
-            return when {
-                hours >= 24 -> "${hours / 24}d ${hours % 24}h"
-                hours > 0 -> "${hours}h ${minutes}m"
-                else -> "${minutes}m"
-            }
-        }
+    private fun Label(text: String) {
+        Text(text, maxLines = 1, style = TextStyle(color = ColorProvider(Color.White), fontSize = 12.sp))
     }
 }
 
+class SingleAccountQuotaWidget : QuotaGlanceWidget(singleAccount = true)
+
 class RefreshWidgetAction : ActionCallback {
-    override suspend fun onAction(
-        context: Context,
-        glanceId: GlanceId,
-        parameters: ActionParameters
-    ) {
-        val intent = Intent("com.codexbar.android.ACTION_REFRESH")
-        intent.setPackage(context.packageName)
-        context.sendBroadcast(intent)
-        QuotaGlanceWidget().update(context, glanceId)
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val dependencies = EntryPointAccessors.fromApplication(context, QuotaGlanceWidget.Dependencies::class.java)
+        val selected = dependencies.widgets().getSelectedConnections(GlanceAppWidgetManager(context).getAppWidgetId(glanceId))
+        WorkManagerInitializer.enqueueRefresh(context, manual = true,
+            connections = dependencies.accounts().loadConnections().filter { it.id in selected })
     }
 }

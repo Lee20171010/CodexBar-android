@@ -1,5 +1,12 @@
 # Changelog
 
+## Responsive account widgets
+
+- Add separate pinned-account and account-overview widgets with compact/tall layouts,
+  remaining-first principal windows, freshness, and omitted-account/window counts.
+- Keep cancelled configuration unpublished, show deleted pins as unavailable, and
+  route widget/notification refresh through per-account WorkManager requests.
+
 ## Background refresh reliability
 
 - Apply saved cadence at startup, boot and settings changes; Manual cancels automatic

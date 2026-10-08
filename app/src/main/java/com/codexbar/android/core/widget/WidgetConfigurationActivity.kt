@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.res.stringResource
+import com.codexbar.android.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material3.Button
@@ -61,6 +65,10 @@ class WidgetConfigurationActivity : ComponentActivity() {
         ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
     }
 
+    private val singleAccount by lazy {
+        AppWidgetManager.getInstance(this).getAppWidgetInfo(appWidgetId)?.provider?.className == SingleAccountWidgetReceiver::class.java.name
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,8 +89,10 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 val availableServices by encryptedPrefsManager.connections.collectAsStateWithLifecycle()
                 val checkedState = remember(availableServices.map { it.id }) {
                     mutableStateMapOf<String, Boolean>().apply {
-                        // Pre-check all available services
-                        availableServices.forEach { this[it.id] = true }
+                        val saved = widgetPrefsManager.getSelectedConnections(appWidgetId)
+                        availableServices.forEachIndexed { index, connection ->
+                            this[connection.id] = if (saved.isNotEmpty()) connection.id in saved else !singleAccount || index == 0
+                        }
                     }
                 }
                 val anyChecked = checkedState.values.any { it }
@@ -90,7 +100,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         TopAppBar(
-                            title = { Text("Configure Widget") }
+                            title = { Text(stringResource(if (singleAccount) R.string.widget_single_title else R.string.widget_overview_title)) }
                         )
                     }
                 ) { padding ->
@@ -99,6 +109,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                             .fillMaxSize()
                             .padding(padding)
                             .padding(horizontal = 16.dp)
+                            .verticalScroll(rememberScrollState())
                     ) {
                         Spacer(modifier = Modifier.height(8.dp))
 
@@ -122,12 +133,15 @@ class WidgetConfigurationActivity : ComponentActivity() {
                                     service = service,
                                     checked = checkedState[service.id] ?: false,
                                     enabled = true,
-                                    onCheckedChange = { checkedState[service.id] = it }
+                                    onCheckedChange = { checked ->
+                                        if (singleAccount && checked) checkedState.keys.toList().forEach { checkedState[it] = false }
+                                        checkedState[service.id] = checked
+                                    }
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         // Action buttons
                         Row(
@@ -180,7 +194,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
             try {
                 val glanceId = GlanceAppWidgetManager(this@WidgetConfigurationActivity)
                     .getGlanceIdBy(appWidgetId)
-                QuotaGlanceWidget().update(this@WidgetConfigurationActivity, glanceId)
+                (if (singleAccount) SingleAccountQuotaWidget() else QuotaGlanceWidget()).update(this@WidgetConfigurationActivity, glanceId)
             } catch (_: Exception) {
                 // Widget will pick up saved config on next periodic update
             }

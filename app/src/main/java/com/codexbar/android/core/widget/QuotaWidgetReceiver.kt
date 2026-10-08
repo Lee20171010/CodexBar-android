@@ -15,6 +15,7 @@ import kotlinx.coroutines.CancellationException
 suspend fun updateQuotaSurfaces(context: Context) {
     try {
         QuotaGlanceWidget().updateAll(context)
+        SingleAccountQuotaWidget().updateAll(context)
         TileService.requestListeningState(context, ComponentName(context, QuotaTileService::class.java))
     } catch (cancelled: CancellationException) {
         throw cancelled
@@ -23,7 +24,7 @@ suspend fun updateQuotaSurfaces(context: Context) {
     }
 }
 
-class QuotaWidgetReceiver : GlanceAppWidgetReceiver() {
+open class QuotaWidgetReceiver : GlanceAppWidgetReceiver() {
 
     override val glanceAppWidget: GlanceAppWidget = QuotaGlanceWidget()
 
@@ -34,4 +35,8 @@ class QuotaWidgetReceiver : GlanceAppWidgetReceiver() {
             widgetPrefs.deleteWidgetConfig(id)
         }
     }
+}
+
+class SingleAccountWidgetReceiver : QuotaWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = SingleAccountQuotaWidget()
 }

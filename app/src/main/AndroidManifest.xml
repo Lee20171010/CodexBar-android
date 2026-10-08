@@ -86,6 +86,16 @@
                 android:resource="@xml/quota_widget_info" />
         </receiver>
 
+        <receiver
+            android:name=".core.widget.SingleAccountWidgetReceiver"
+            android:label="@string/widget_single_title"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/quota_single_widget_info" />
+        </receiver>
+
         <!-- Boot Receiver -->
         <receiver
             android:name=".core.workmanager.BootReceiver"

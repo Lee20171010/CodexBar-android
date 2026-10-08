@@ -38,4 +38,12 @@
     <string name="app_name" translatable="false">Codexbar</string>
     <string name="tile_label" translatable="false">Codexbar</string>
     <string name="widget_description">Monitor AI service quota usage at a glance</string>
+    <string name="widget_single_title">Codexbar · One account</string>
+    <string name="widget_overview_title">Codexbar · Accounts overview</string>
+    <string name="widget_account_unavailable">Pinned account unavailable · Open app</string>
+    <string name="widget_no_accounts">Choose accounts in widget settings</string>
+    <string name="widget_more_accounts">+%1$d accounts · Open app</string>
+    <string name="widget_more_windows">+%1$d windows · Open app</string>
+    <string name="widget_open_app">Refresh or reconnect in the app</string>
+    <string name="widget_refresh">Refresh pinned accounts</string>
 </resources>

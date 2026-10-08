@@ -1,5 +1,13 @@
 # CodexBar Android Test Plan
 
+## Responsive account widgets
+
+85 JVM tests, Debug lint and Native Debug compilation pass. Existing widget-cache
+tests cover legacy pin migration, sibling deletion and generation isolation.
+Single-account/overview binding, resize, cancelled/reconfigured pins, refresh actions
+and R8 launcher rendering require final locked Release acceptance; compilation alone
+is not widget-host acceptance.
+
 ## Background refresh reliability
 
 85 JVM tests and Debug lint pass, including terminal/transient retry classification
