@@ -6,12 +6,12 @@ Product names identify their respective owners; attribution grants no trademark 
 
 ## Incorporated upstream work
 
-- **hyunnnchoi/CodexBar-android** — original Android application, Kotlin provider
-  implementations and existing Android launcher vectors. Copyright (c) 2026
+- **hyunnnchoi/CodexBar-android** — original Android application and Kotlin provider
+  implementations. Copyright (c) 2026
   hyunnnchoi, MIT. Baseline: `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`.
   https://github.com/hyunnnchoi/CodexBar-android
-- **steipete/CodexBar** — Android builds of Swift Core/CLI and its bundled provider
-  resources. Copyright (c) 2026 Peter Steinberger, MIT. Version 0.71.0,
+- **steipete/CodexBar** — Android builds of Swift Core/CLI, bundled provider
+  resources and original launcher artwork. Copyright (c) 2026 Peter Steinberger, MIT. Version 0.71.0,
   revision `cb5f0cbe88615a441272c6f9e44675bf594a3fa3`.
   Android adaptations are recorded in `native/android.patch`.
   https://github.com/steipete/CodexBar
@@ -62,9 +62,12 @@ not a claim that their implementations have been incorporated:
 
 ## Launcher artwork decision
 
-Retain the original Android vector launcher resources from the Android upstream
-under its MIT notice. No macOS icon artwork is imported. The macOS v0.73.0
-`docs/icon.md` describes an Apple Icon Composer build pipeline, not a separate
-trademark permission. Any later macOS-artwork adoption or unresolved branding
-decision requires owner review before publication. Display name and package/signing
-identities are unchanged.
+The launcher uses the original CodexBar artwork from `Icon.icns` at the pinned
+upstream revision above. Its 1024×1024 `ic10` PNG is preserved byte-for-byte in
+`app/src/main/res/drawable-nodpi/ic_codexbar_original.png`, with Android adaptive
+insets and a dark background. PNG SHA-256:
+`ba301e3a87911e97275c21be99de07ee15f9b8fdf9d6b6fa948bc21fbf17ee8d`.
+The display name is **Codexbar**. The existing package/signing identities remain;
+native acceptance builds retain the separate `.native` package. The upstream MIT
+notice accompanies the artwork; this adaptation claims no upstream endorsement
+or separate trademark permission.

@@ -12,7 +12,7 @@ The native integration is currently an experimental build. Its automated accepta
   <img src="docs/Screenshot_20260305_025207_CodexBar.jpg" width="320" alt="Settings" />
 </p>
 
-These screenshots show the original Android UI. Native-engine builds additionally expose OpenCode Go and OpenRouter settings.
+These screenshots show the original Android UI. Current builds add multi-account setup and Codex sign-in; native-engine builds support seven providers. The launcher displays **Codexbar** with original upstream artwork.
 
 ## Features
 
@@ -33,7 +33,7 @@ These screenshots show the original Android UI. Native-engine builds additionall
 | --- | --- |
 | `debug` / `release` | Existing Kotlin provider paths; no bundled CLI or native API-key settings |
 | `nativeDebug` | Native diagnostics for a selected ABI |
-| `nativeRelease` | Optimized ARM64 native test build with OpenCode Go and OpenRouter |
+| `nativeRelease` | Optimized ARM64 native test build with seven providers |
 
 The app minimum is Android 8.0 / API 26; the native engine requires Android 9 / API 28. The native test package is `com.codexbar.android.native`, separate from the original app.
 
@@ -73,12 +73,12 @@ accuracy remains an acceptance gate; see [TEST.md](TEST.md).
 
 ## OpenCode Go setup
 
-1. Install the ARM64 `nativeRelease` APK and open **CodexBar Native Test**.
-2. Open the dashboard using its button, then navigate to **Settings → OpenCode Go**.
+1. Install the ARM64 `nativeRelease` APK and open **Codexbar**.
+2. From the dashboard, navigate to **Settings → OpenCode Go**.
 3. Choose **Add OpenCode Go account**, name it, paste your **OpenCode Go API key**, and press **Validate & save**.
 4. Return to the dashboard and pull to refresh.
 
-This source needs no refresh token, browser cookie or workspace ID. Drafts are saved only after validation succeeds. Use **Delete** on a saved account to remove its key and cache; other accounts remain intact. The launcher self-test does not use your saved credentials.
+This source needs no refresh token, browser cookie or workspace ID. Drafts are saved only after validation succeeds. Use **Delete** on a saved account to remove its key and cache; other accounts remain intact. Explicit diagnostic self-tests use synthetic credentials.
 
 ## Getting Your Tokens
 

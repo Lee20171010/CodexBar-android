@@ -108,8 +108,8 @@ Release payloads are separate from Debug payloads under
 `app/build/outputs/apk/nativeRelease/app-nativeRelease.apk`.
 
 `nativeRelease` is non-debuggable and uses the same isolated `.native` application
-ID and existing signing key. Its launcher opens the credential-free self-test;
-the dashboard remains reachable via a button. It is a release-optimized native
+ID and existing signing key. Its Codexbar launcher opens the dashboard;
+the credential-free self-test is an explicit diagnostic activity. It is a release-optimized native
 test build, not a completed product
 migration. The default production `release` variant has no acceptance activity.
 

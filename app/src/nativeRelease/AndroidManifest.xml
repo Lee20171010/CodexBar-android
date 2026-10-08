@@ -1,16 +1,7 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
-    <application android:label="CodexBar Native Test" tools:replace="android:label">
-        <activity android:name="com.codexbar.android.MainActivity">
-            <intent-filter tools:node="removeAll" />
-        </activity>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
         <activity
             android:name="com.codexbar.android.NativeCliSmokeActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="true" />
     </application>
 </manifest>

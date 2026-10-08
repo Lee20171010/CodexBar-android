@@ -38,6 +38,9 @@ from the pinned Swift Core/CLI source revision.
 
 ### Changed
 
+- Display **Codexbar** with the original upstream launcher artwork, adapted to
+  Android masks. Native Release opens the dashboard; explicit smoke checks remain
+  available under the separate `.native` identity. Version is 0.0.4-beta-native.
 - Disable HTTP credential/body logging and redirects; keep token exchange retries
   explicit and distinguish transient Codex renewal failures from terminal authentication errors.
 - Use an explicit, immutable PendingIntent for Quick Settings launches on Android

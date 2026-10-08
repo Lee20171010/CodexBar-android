@@ -5,7 +5,7 @@
     <string name="licenses_unavailable">License text could not be loaded.</string>
     <string name="close">Close</string>
     <string name="back">Back</string>
-    <string name="app_name">CodexBar</string>
-    <string name="tile_label">CodexBar</string>
+    <string name="app_name">Codexbar</string>
+    <string name="tile_label">Codexbar</string>
     <string name="widget_description">Monitor AI service quota usage at a glance</string>
 </resources>

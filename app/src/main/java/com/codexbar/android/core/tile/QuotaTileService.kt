@@ -49,7 +49,7 @@ class QuotaTileService : TileService() {
 
         if (!hasAnyCredential) {
             tile.state = Tile.STATE_UNAVAILABLE
-            tile.label = "CodexBar"
+            tile.label = getString(com.codexbar.android.R.string.tile_label)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 tile.subtitle = "Tap to set up"
             }
@@ -59,7 +59,7 @@ class QuotaTileService : TileService() {
 
         // Check connectivity is handled at the WorkManager level
         tile.state = Tile.STATE_ACTIVE
-        tile.label = "CodexBar"
+        tile.label = getString(com.codexbar.android.R.string.tile_label)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             tile.subtitle = buildSummarySubtitle()
         }

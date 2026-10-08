@@ -44,7 +44,7 @@ fun DashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("CodexBar") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.codexbar.android.R.string.app_name)) },
                 actions = {
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings")

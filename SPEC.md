@@ -17,8 +17,10 @@ instructions live in [CONTRIBUTING.md](CONTRIBUTING.md) and the
 | Gemini | Existing Kotlin repository / HTTP services | Access token, refresh token, OAuth client ID and secret |
 | OpenCode Go | Native Swift Core/CLI, API source | API key |
 | OpenRouter | Native Swift Core/CLI, API source | API key |
+| GitHub Copilot | Native Swift Core/CLI, API source | GitHub OAuth token with Copilot access |
+| DeepSeek | Kotlin public balance API | API key |
 
-OpenCode Go and OpenRouter are exposed in native-engine build variants. Compiling the complete CLI
+OpenCode Go, OpenRouter and Copilot are exposed in native-engine build variants. Compiling the complete CLI
 does not establish Android support for every upstream provider or desktop source.
 
 ## 2. Components and ownership
@@ -67,7 +69,7 @@ concurrency/storage tests.
 Settings includes an offline About/license reader. The checked-in asset bundle
 contains original Android and native upstream notices, static runtime dependencies
 and provenance hashes. `NOTICE.md` records unofficial identity, research credit
-and the decision to retain the Android-origin launcher vectors. License collection
+and the original upstream artwork adapted for the Codexbar launcher. License collection
 is a developer operation; app builds and the reader need no network or toolchain.
 
 ```text
@@ -148,8 +150,12 @@ notification support balance-only results without inventing a quota bar or reset
 The cache preserves budget identity/type, over-limit readings and money age.
 These fields are not an Android billing ledger or locally estimated cost.
 
-Codex device-code login, Copilot and DeepSeek are not implemented by this adapter.
-OAuth client/source eligibility and real-account acceptance remain separate gates.
+Copilot uses a separate native parser for stable Premium/Chat windows; plan-only
+responses contain no invented zero-use window. DeepSeek uses the official Kotlin
+balance endpoint because the pinned CLI lacks numeric monetary fields. USD is
+preferred among funded currencies, otherwise CNY; currencies are never summed or
+converted. Missing money remains unknown. Provider/source eligibility and real-account
+acceptance remain separate gates.
 
 ### Codex device-code sign-in
 
@@ -234,9 +240,9 @@ lookup resolves the sibling C++ library. Executable code is supplied at build ti
 
 | Variant | Native engine | Package / entry point |
 | --- | --- | --- |
-| `debug`, `release` | Not packaged; Go setting hidden | Original app package and dashboard |
+| `debug`, `release` | Not packaged; native-provider settings hidden | Original app package and dashboard |
 | `nativeDebug` | Selected prebuilt ABI payload | Separate `.native` package; explicit smoke activity |
-| `nativeRelease` | ARM64 Release payload | Separate `.native` package; self-test launcher with dashboard button |
+| `nativeRelease` | ARM64 Release payload | Separate `.native` package; dashboard launcher and explicit smoke activity |
 
 `nativeRelease` is non-debuggable, signed with the operator-provided key, and uses
 R8/resource shrinking. Swift uses `-Osize`, linker section collection and symbol
@@ -261,8 +267,8 @@ the Manual/interval controls are therefore not a verified scheduling contract ye
 
 ## 8. Current limits and acceptance boundary
 
-- Only OpenCode Go is integrated with the native data layer; the other three providers
-  retain their Kotlin implementations and existing authentication behavior.
+- OpenCode Go, OpenRouter and Copilot use the native data layer during normal
+  refresh. Claude, Codex, Gemini and DeepSeek use Kotlin repositories.
 - Runtime acceptance covers an API 36 emulator, including its ARM64 native bridge.
   That is distinct from physical ARM64 hardware verification.
 - Automated Go API/UI checks use an invalid synthetic key. Real-account quota

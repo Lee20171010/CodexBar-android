@@ -95,8 +95,8 @@ bash ./gradlew :app:assembleNativeRelease --max-workers=2
 Artifact: `app/build/outputs/apk/nativeRelease/app-nativeRelease.apk`.
 
 Before transfer, verify that the exact APK is signed, non-debuggable and contains
-only `arm64-v8a` native libraries. The launcher must resolve to the self-test
-activity. For example, using an installed Android SDK build-tools version:
+only `arm64-v8a` native libraries. The Codexbar launcher must resolve to
+`MainActivity`. For example, using an installed Android SDK build-tools version:
 
 ```sh
 export ANDROID_BUILD_TOOLS="$ANDROID_HOME/build-tools/36.0.0"
@@ -157,7 +157,7 @@ Latest functional verification: **2026-10-08**.
 
 | Gate | Recorded result |
 | --- | --- |
-| JVM suite | 67/67 passed; Debug lint passed |
+| JVM suite | 74/74 passed; Debug lint and native Debug Kotlin compilation passed |
 | Toolchain integrity check | Passed; three official cached archive hashes matched |
 | Full Android Core/CLI compilation | x86_64 and ARM64 passed |
 | Initial App-UID smoke | 4/4 on x86_64 and 4/4 on ARM64 native-bridge path |
@@ -165,6 +165,7 @@ Latest functional verification: **2026-10-08**.
 | Go native API acceptance | 5/5 runtime probes passed with synthetic credentials |
 | Go Settings acceptance | Masked draft, native validation rejection and no saved account passed |
 | OpenRouter acceptance | 6/6 combined native probes; Go and OpenRouter masked draft/rejection/no-publication UI flows passed |
+| Original artwork | Pinned ic10 PNG hash verified; visual review confirms adaptive-mask safe content; final launcher runtime pending |
 | Test cleanup | Owned test installation removed before releasing the lock |
 
 Runtime evidence is from an **Android 16 / API 36 x86_64 emulator** supporting an
