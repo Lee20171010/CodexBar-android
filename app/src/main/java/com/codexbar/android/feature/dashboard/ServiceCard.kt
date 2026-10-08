@@ -1,165 +1,65 @@
 package com.codexbar.android.feature.dashboard
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.balanceText
-import com.codexbar.android.core.domain.model.spendText
 import com.codexbar.android.core.presentation.QuotaPresentation
+import java.time.Instant
 
 @Composable
 fun ServiceCard(
     cardData: ServiceCardData,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    now: Instant = Instant.now()
 ) {
-    Card(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // Header: Icon + Name + Tier badge
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Cloud,
-                    contentDescription = cardData.service.displayName,
-                    modifier = Modifier.size(32.dp),
-                    tint = Color(cardData.service.brandColor)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "${cardData.connection.name} · ${cardData.service.displayName}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                cardData.tier?.let { tier ->
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = tier,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
+    val snapshot = cardData.snapshot.retained(now)
+    val quota = snapshot.quota
+    Card(onClick = onClick, modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Default.Cloud, contentDescription = null, tint = Color(cardData.service.brandColor), modifier = Modifier.size(24.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(cardData.connection.name, style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    val subtitle = listOfNotNull(cardData.service.displayName, quota?.tier).distinct().joinToString(" · ")
+                    Text(subtitle, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-
-            Text(QuotaPresentation.status(cardData.snapshot), style = MaterialTheme.typography.labelSmall,
+            quota?.let {
+                QuotaPresentation.principal(it).forEach { window ->
+                    QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now)
+                }
+                if (it.windows.none { window -> !window.supplemental }) {
+                    Text(it.money?.balanceText() ?: stringResource(R.string.quota_unavailable), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Text(QuotaPresentation.status(LocalContext.current, snapshot, now), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-            // Error state
-            if (cardData.error != null) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Error,
-                        contentDescription = "Error",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = formatError(cardData.error),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                if (cardData.snapshot.quota == null) return@Column
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Primary gauge (first window)
-            val primaryWindow = cardData.windows.firstOrNull()
-            primaryWindow?.let { window ->
-                QuotaGaugeBar(
-                    utilization = window.utilization,
-                    label = window.label,
-                    showPercentage = true,
-                    resetsAt = window.resetsAt
-                )
-            }
-
-            // Secondary windows
-            val secondaryWindows = cardData.windows.drop(1)
-
-            if (secondaryWindows.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    secondaryWindows.forEach { window ->
-                        QuotaGaugeBar(
-                            utilization = window.utilization,
-                            label = window.label,
-                            showPercentage = true,
-                            resetsAt = window.resetsAt
-                        )
-                    }
-                }
-            }
-
-            // Extra usage (Claude credits)
-            cardData.money?.let { money ->
-                Text(money.balanceText(), style = MaterialTheme.typography.bodyMedium)
-                Text(money.spendText(), style = MaterialTheme.typography.bodySmall)
-            }
-            cardData.extraUsage?.let { extra ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Credits: ${extra.currency} ${String.format("%.2f", extra.usedCredits)} / ${String.format("%.2f", extra.monthlyLimit)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            cardData.error?.let { Text(errorText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
         }
     }
 }
 
-private fun formatError(error: AppError): String {
-    return when (error) {
-        is AppError.NetworkError -> "Network error"
-        is AppError.AuthError -> if (error.isTerminal) "Re-authentication required" else "Auth error"
-        is AppError.RateLimited -> "Rate limited"
-        is AppError.ParseError -> error.message ?: "Response parse error"
-        is AppError.CredentialNotFound -> "No credentials configured"
-        is AppError.ServiceUnavailable -> "Service unavailable"
-    }
-}
+@Composable
+internal fun errorText(error: AppError): String = stringResource(when (error) {
+    is AppError.NetworkError -> R.string.network_error
+    is AppError.AuthError -> if (error.isTerminal) R.string.reconnect_required else R.string.authentication_pending
+    is AppError.RateLimited -> R.string.rate_limited
+    is AppError.ParseError -> R.string.response_error
+    is AppError.CredentialNotFound -> R.string.reconnect_required
+    is AppError.ServiceUnavailable -> R.string.service_unavailable
+})

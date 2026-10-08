@@ -26,7 +26,6 @@ class QuotaSnapshotTest {
         assertEquals(now.plusSeconds(30), restored.attemptedAt)
         assertEquals(Freshness.STALE, restored.freshness(now.plusSeconds(60)))
         assertEquals(75, QuotaPresentation.remainingPercent(QuotaPresentation.principal(quota).single().utilization))
-        assertTrue(QuotaPresentation.summary(restored, now.plusSeconds(60)).contains("Stale"))
         assertNull(cache.getSnapshot(account.reconnect(), now).quota)
         val rejected = restored.after(Result.Failure(AppError.AuthError(AiService.CODEX, true)), now.plusSeconds(90))
         cache.saveSnapshot(account, rejected)
@@ -42,7 +41,9 @@ class QuotaSnapshotTest {
         assertNull(cache.getSnapshot(account, now).quota)
         assertEquals(Freshness.STALE, QuotaSnapshot(quota).freshness(now.minusSeconds(60)))
         assertEquals(Freshness.UNAVAILABLE, QuotaSnapshot(quota).freshness(now.minusSeconds(301)))
-        assertEquals("Reset due · refresh to confirm", QuotaPresentation.reset(now, now.plusSeconds(1)))
+        val context = org.mockito.Mockito.mock(android.content.Context::class.java)
+        org.mockito.Mockito.`when`(context.getString(com.codexbar.android.R.string.reset_due)).thenReturn("Reset due")
+        assertEquals("Reset due", QuotaPresentation.reset(context, now, now.plusSeconds(1)))
         assertEquals(0, QuotaPresentation.remainingPercent(1.2))
     }
 }

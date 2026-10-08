@@ -2,6 +2,8 @@
 
 package com.codexbar.android.core.presentation
 
+import android.content.Context
+import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.*
 import java.time.Duration
 import java.time.Instant
@@ -50,40 +52,40 @@ data class QuotaSnapshot(
 }
 
 object QuotaPresentation {
-    fun reset(at: Instant?, now: Instant = Instant.now()): String? {
+    fun reset(context: Context, at: Instant?, now: Instant = Instant.now()): String? {
         if (at == null) return null
         val seconds = Duration.between(now, at).seconds
         return when {
-            seconds <= 0 -> "Reset due · refresh to confirm"
-            seconds >= 86400 -> "Resets in ${seconds / 86400}d ${(seconds / 3600) % 24}h"
-            seconds >= 3600 -> "Resets in ${seconds / 3600}h ${(seconds / 60) % 60}m"
-            else -> "Resets in ${seconds / 60}m"
+            seconds <= 0 -> context.getString(R.string.reset_due)
+            seconds >= 86400 -> context.getString(R.string.reset_days, seconds / 86400, (seconds / 3600) % 24)
+            seconds >= 3600 -> context.getString(R.string.reset_hours, seconds / 3600, (seconds / 60) % 60)
+            else -> context.getString(R.string.reset_minutes, seconds / 60)
         }
     }
     fun remainingPercent(utilization: Double): Int = ((1 - utilization).coerceIn(0.0, 1.0) * 100).roundToInt()
     fun principal(quota: QuotaInfo): List<UsageWindow> = quota.windows.filterNot { it.supplemental }
-    fun age(at: Instant?, now: Instant = Instant.now()): String {
-        if (at == null) return "Not measured"
+    fun age(context: Context, at: Instant?, now: Instant = Instant.now()): String {
+        if (at == null) return context.getString(R.string.not_measured)
         val seconds = Duration.between(at, now).seconds
         return when {
-            seconds < 0 -> "Clock changed"
-            seconds < 60 -> "Measured just now"
-            seconds < 3600 -> "Measured ${seconds / 60}m ago"
-            seconds < 86400 -> "Measured ${seconds / 3600}h ago"
-            else -> "Measured ${seconds / 86400}d ago"
+            seconds < 0 -> context.getString(R.string.clock_changed)
+            seconds < 60 -> context.getString(R.string.measured_now)
+            seconds < 3600 -> context.getString(R.string.measured_minutes, seconds / 60)
+            seconds < 86400 -> context.getString(R.string.measured_hours, seconds / 3600)
+            else -> context.getString(R.string.measured_days, seconds / 86400)
         }
     }
-    fun status(snapshot: QuotaSnapshot, now: Instant = Instant.now()): String = when (snapshot.freshness(now)) {
-        Freshness.RECONNECT -> "Reconnect required"
-        Freshness.UNAVAILABLE -> "Unavailable"
-        Freshness.STALE -> "Stale · ${age(snapshot.quota?.fetchedAt, now)}"
-        Freshness.CURRENT -> age(snapshot.quota?.fetchedAt, now)
+    fun status(context: Context, snapshot: QuotaSnapshot, now: Instant = Instant.now()): String = when (snapshot.freshness(now)) {
+        Freshness.RECONNECT -> context.getString(R.string.reconnect_required)
+        Freshness.UNAVAILABLE -> context.getString(R.string.quota_unavailable)
+        Freshness.STALE -> context.getString(R.string.stale_measurement, age(context, snapshot.quota?.fetchedAt, now))
+        Freshness.CURRENT -> age(context, snapshot.quota?.fetchedAt, now)
     }
-    fun summary(snapshot: QuotaSnapshot, now: Instant = Instant.now()): String {
-        val quota = snapshot.retained(now).quota ?: return status(snapshot, now)
+    fun summary(context: Context, snapshot: QuotaSnapshot, now: Instant = Instant.now()): String {
+        val quota = snapshot.retained(now).quota ?: return status(context, snapshot, now)
         val window = principal(quota).maxByOrNull { it.utilization }
-        val value = window?.let { "${it.label} ${remainingPercent(it.utilization)}% left" }
-            ?: quota.money?.balanceText() ?: "Quota unavailable"
-        return "$value · ${status(snapshot, now)}"
+        val value = window?.let { "${it.label} ${context.getString(R.string.percent_left, remainingPercent(it.utilization))}" }
+            ?: quota.money?.balanceText() ?: context.getString(R.string.quota_unavailable)
+        return "$value · ${status(context, snapshot, now)}"
     }
 }

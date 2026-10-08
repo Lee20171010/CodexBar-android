@@ -1,5 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="settings">Settings</string>
+    <string name="refresh">Refresh</string>
+    <string name="account_settings">Account settings</string>
+    <string name="no_accounts">No accounts configured</string>
+    <string name="percent_left">%1$d%% left</string>
+    <string name="reset_due">Reset due · refresh to confirm</string>
+    <string name="reset_days">Resets in %1$dd %2$dh</string>
+    <string name="reset_hours">Resets in %1$dh %2$dm</string>
+    <string name="reset_minutes">Resets in %1$dm</string>
+    <string name="not_measured">Not measured</string>
+    <string name="clock_changed">Clock changed</string>
+    <string name="measured_now">Measured just now</string>
+    <string name="measured_minutes">Measured %1$dm ago</string>
+    <string name="measured_hours">Measured %1$dh ago</string>
+    <string name="measured_days">Measured %1$dd ago</string>
+    <string name="reconnect_required">Reconnect required</string>
+    <string name="quota_unavailable">Quota unavailable</string>
+    <string name="stale_measurement">Stale · %1$s</string>
+    <string name="network_error">Network error</string>
+    <string name="authentication_pending">Authentication pending</string>
+    <string name="rate_limited">Rate limited · try again later</string>
+    <string name="response_error">Provider response unavailable</string>
+    <string name="service_unavailable">Service temporarily unavailable</string>
+    <string name="model_specific">Model-specific pool</string>
+    <string name="over_quota">Reported usage exceeds this quota</string>
+    <string name="reported_credits">Credits: %1$s %2$.2f / %3$.2f</string>
+    <string name="measurement_source">Source: %1$s\nMeasured: %2$s</string>
     <string name="copilot_registration_pending">GitHub device sign-in awaits this project’s OAuth App registration. Existing OAuth tokens can still be validated below.</string>
     <string name="sign_in_github">Sign in with GitHub</string>
     <string name="github_device_help">Authorize in your browser. Copilot quota access is verified before saving this account.</string>
@@ -8,7 +35,7 @@
     <string name="licenses_unavailable">License text could not be loaded.</string>
     <string name="close">Close</string>
     <string name="back">Back</string>
-    <string name="app_name">Codexbar</string>
-    <string name="tile_label">Codexbar</string>
+    <string name="app_name" translatable="false">Codexbar</string>
+    <string name="tile_label" translatable="false">Codexbar</string>
     <string name="widget_description">Monitor AI service quota usage at a glance</string>
 </resources>

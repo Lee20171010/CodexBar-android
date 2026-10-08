@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 import xml.etree.ElementTree as ET
@@ -19,7 +20,28 @@ SESSION_WRAPPER = os.environ.get("ANDROID_TEST_SESSION_WRAPPER", "")
 
 
 def adb(*args, timeout=30, check=True):
-    return subprocess.run([ADB, *args], capture_output=True, text=True, timeout=timeout, check=check)
+    result = subprocess.run([ADB, *args], capture_output=True, text=True, timeout=timeout)
+    if check and result.returncode:
+        raise RuntimeError(f"ADB {args} failed ({result.returncode}): {result.stderr.strip()} {result.stdout.strip()}")
+    return result
+
+
+def dump_ui(remote):
+    for attempt in range(3):
+        try:
+            result = adb("shell", "uiautomator", "dump", remote)
+            if "dumped to" not in result.stdout:
+                raise RuntimeError(f"UI dump failed: {result.stdout.strip()} {result.stderr.strip()}")
+            # ADB shell cat can return 255 on the shared runtime; the sync transport
+            # reliably reads the same file without depending on shell stdout.
+            with tempfile.TemporaryDirectory(dir=ROOT / "build/native") as directory:
+                local = Path(directory) / "ui.xml"
+                adb("pull", remote, str(local))
+                return local.read_text()
+        except RuntimeError:
+            if attempt == 2:
+                raise
+            time.sleep(1)
 
 
 def verify_api_settings(run_id, provider, display_name):
@@ -27,8 +49,7 @@ def verify_api_settings(run_id, provider, display_name):
     remote = f"/data/local/tmp/codexbar-native-{run_id}.xml"
 
     def snapshot():
-        adb("shell", "uiautomator", "dump", remote)
-        text = adb("shell", "cat", remote).stdout
+        text = dump_ui(remote)
         (ROOT / f"build/native/{provider}-settings-ui.xml").write_text(text)
         return ET.fromstring(text)
 
@@ -97,8 +118,7 @@ def verify_product_ui(run_id):
     remote = f"/data/local/tmp/codexbar-product-{run_id}"
 
     def snapshot():
-        adb("shell", "uiautomator", "dump", remote + ".xml")
-        text = adb("shell", "cat", remote + ".xml").stdout
+        text = dump_ui(remote + ".xml")
         (ROOT / "build/native/product-ui.xml").write_text(text)
         return ET.fromstring(text)
 
@@ -153,6 +173,60 @@ def verify_product_ui(run_id):
         adb("shell", "rm", "-f", remote + ".xml", remote + ".png", check=False)
 
 
+def verify_quota_demo(run_id):
+    """Read real Compose components with fixed data; no account or device-setting changes."""
+    remote = f"/data/local/tmp/codexbar-quota-{run_id}"
+
+    def snapshot(name):
+        xml = dump_ui(remote + ".xml")
+        (ROOT / f"build/native/quota-{name}.xml").write_text(xml)
+        return ET.fromstring(xml)
+
+    def capture(name):
+        adb("shell", "screencap", "-p", remote + ".png")
+        adb("pull", remote + ".png", str(ROOT / f"build/native/quota-{name}.png"))
+
+    try:
+        for mode in ("phone", "dark", "large", "wide"):
+            adb("shell", "am", "force-stop", PACKAGE)
+            adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.NativeCliSmokeActivity",
+                "--ez", "ui_demo", "true", "--ez", "ui_dark", str(mode == "dark").lower(),
+                "--ez", "ui_large", str(mode == "large").lower(), "--ez", "ui_wide", str(mode == "wide").lower())
+            tree = snapshot(mode)
+            text = " ".join(n.get("text", "") for n in tree.iter("node"))
+            assert "43% left" in text and "97% left" in text, f"Missing principal readings: {mode}"
+            assert "Stale" in text, f"Missing last-good state: {mode}"
+            if mode != "wide":
+                assert "code-review" not in text, "Supplemental pool must not crowd the compact card"
+            capture(mode)
+            if mode == "phone":
+                node = next(n for n in tree.iter("node") if "Demo account" in n.get("text", ""))
+                x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.attrib["bounds"]))
+                adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+                detail = snapshot("detail")
+                text = " ".join(n.get("text", "") for n in detail.iter("node"))
+                assert "code-review" in text and "Model-specific pool" in text, "Detail must show supplemental readings"
+                capture("detail")
+            if mode in ("phone", "wide"):
+                width, height = list(map(int, re.findall(r"\d+", adb("shell", "wm", "size").stdout)))[-2:]
+                if mode == "wide":
+                    width, height = max(width, height), min(width, height)
+                for _ in range(3):
+                    adb("shell", "input", "swipe", str(width * 3 // 4), str(height * 4 // 5),
+                        str(width * 3 // 4), str(height // 3), "350")
+                    bottom = snapshot(mode + "-scrolled")
+                    if any(n.get("text") == "Account settings" for n in bottom.iter("node")):
+                        break
+                else:
+                    raise AssertionError(f"Detail must scroll to its actions: {mode}")
+                capture(mode + "-scrolled")
+        print("Quota UI: phone, dark, 200% text, wide and detail semantics passed", flush=True)
+        return True
+    finally:
+        adb("shell", "am", "force-stop", PACKAGE, check=False)
+        adb("shell", "rm", "-f", remote + ".xml", remote + ".png", check=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--abi", choices=("x86_64", "arm64-v8a"), default="x86_64")
@@ -161,6 +235,7 @@ def main():
     parser.add_argument("--openrouter", action="store_true", help="Also test OpenRouter API with a fixed invalid key")
     parser.add_argument("--copilot", action="store_true", help="Also test Copilot API with a fixed invalid token")
     parser.add_argument("--deepseek", action="store_true", help="Also test DeepSeek API with a fixed invalid key")
+    parser.add_argument("--ui-demo", action="store_true", help="Check synthetic compact/detail UI in four layouts")
     parser.add_argument("--locked", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     for name, value in (("ANDROID_TEST_ADB_WRAPPER", ADB), ("ANDROID_TEST_SESSION_WRAPPER", SESSION_WRAPPER)):
@@ -175,7 +250,8 @@ def main():
                                 *(["--opencode-go"] if args.opencode_go else []),
                                 *(["--openrouter"] if args.openrouter else []),
                                 *(["--copilot"] if args.copilot else []),
-                                *(["--deepseek"] if args.deepseek else [])])
+                                *(["--deepseek"] if args.deepseek else []),
+                                *(["--ui-demo"] if args.ui_demo else [])])
     variant = "nativeRelease" if args.configuration == "release" else "nativeDebug"
     apk = ROOT / f"app/build/outputs/apk/{variant}/app-{variant}.apk"
     if not apk.is_file():
@@ -229,6 +305,13 @@ def main():
                             report["productUiPassed"] = verify_product_ui(run_id)
                         except Exception as error:
                             report["productUiPassed"] = False
+                            report["uiError"] = str(error)
+                            report["passed"] = False
+                    if args.ui_demo and report.get("passed"):
+                        try:
+                            report["quotaUiPassed"] = verify_quota_demo(run_id)
+                        except Exception as error:
+                            report["quotaUiPassed"] = False
                             report["uiError"] = str(error)
                             report["passed"] = False
                     report_path.parent.mkdir(parents=True, exist_ok=True)

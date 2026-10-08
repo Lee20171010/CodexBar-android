@@ -1,5 +1,21 @@
 # CodexBar Android Test Plan
 
+## Compact dashboard and detail
+
+- 84 JVM tests, Debug lint, native Debug Kotlin compilation and optimized native
+  Release assembly passed after the compact UI/resource changes.
+- `native/test.py --abi arm64-v8a --configuration release --ui-demo` exercises
+  fixed synthetic Compose readings on phone, dark, 200% text and wide layouts,
+  plus principal/model detail semantics; retained captures use `build/native/quota-*`.
+  These fixtures never read credentials or make quota requests.
+- Runtime/visual results are recorded separately from compilation. TalkBack,
+  OEM launchers and the owner's real accounts remain separate acceptance.
+- ARM64-on-x86_64 native-bridge Release runtime passed the four CLI probes,
+  dashboard/sign-in/notices checks and all five synthetic UI layouts. Visual review
+  confirmed remaining-first bars and principal/detail separation; forced-theme demo
+  system-bar contrast was corrected. Detail panels are scrollable, with bottom-action
+  assertions added to the harness. Physical ARM64 and TalkBack remain unverified.
+
 ## Shared snapshots
 
 84 JVM tests and Debug lint passed, including owner-to-cache failure publication.

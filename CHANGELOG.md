@@ -8,6 +8,11 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Compact, stable-order account cards with remaining-first progress; tap for every
+  quota/model pool, over-quota warning, reported money, source and measurement time.
+- Use side-by-side detail on wide windows and a scrollable sheet on phones; add
+  English/Traditional Chinese quota wording and lifecycle-aware age updates.
+
 - Share generation-scoped last-good measurements, typed failures, source and age
   across dashboard, widgets, notification and tile; invalidate rejected credentials.
 - Preserve stable window identity and model-pool metadata in bounded private caches;

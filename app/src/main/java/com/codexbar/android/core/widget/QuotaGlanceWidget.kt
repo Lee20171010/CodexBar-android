@@ -46,6 +46,7 @@ import com.codexbar.android.core.domain.model.balanceText
 import com.codexbar.android.core.domain.model.spendText
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.presentation.QuotaPresentation
+import androidx.glance.LocalContext
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -201,7 +202,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
 
             Spacer(modifier = GlanceModifier.height(8.dp))
 
-            Text(QuotaPresentation.status(snapshot), style = TextStyle(color = ColorProvider(Color.White), fontSize = 11.sp))
+            Text(QuotaPresentation.status(LocalContext.current, snapshot), style = TextStyle(color = ColorProvider(Color.White), fontSize = 11.sp))
             // Each usage window — same layout as app dashboard
             for ((index, window) in windows.withIndex()) {
                 if (index > 0) Spacer(modifier = GlanceModifier.height(6.dp))
@@ -231,7 +232,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
     ) {
         val utilization = window.utilization.toFloat().coerceIn(0f, 1f)
         val remaining = QuotaPresentation.remainingPercent(window.utilization)
-        val resetText = QuotaPresentation.reset(window.resetsAt) ?: ""
+        val resetText = QuotaPresentation.reset(LocalContext.current, window.resetsAt) ?: ""
 
         Column(modifier = GlanceModifier.fillMaxWidth()) {
             // Label + percentage

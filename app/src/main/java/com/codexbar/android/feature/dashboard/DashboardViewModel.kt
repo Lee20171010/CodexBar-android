@@ -63,13 +63,13 @@ class DashboardViewModel @Inject constructor(
         refresh()
     }
 
-    fun refresh() {
+    fun refresh(connection: AccountConnection? = null) {
         if (refreshJob?.isActive == true) return
         refreshJob = viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                prefsManager.loadConnections().map { connection ->
-                    async { accounts.refresh(connection) }
+                (connection?.let(::listOf) ?: prefsManager.loadConnections()).map { account ->
+                    async { accounts.refresh(account) }
                 }.awaitAll()
                 updateQuotaSurfaces(context)
             } catch (_: IOException) {

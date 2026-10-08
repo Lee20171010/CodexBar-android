@@ -76,7 +76,7 @@ class QuotaNotificationService @Inject constructor(
 
             val maxUtilization = snapshot.quota?.let(QuotaPresentation::principal)?.maxOfOrNull { it.utilization }
             val progress = maxUtilization?.let(QuotaPresentation::remainingPercent) ?: 0
-            val value = QuotaPresentation.summary(snapshot)
+            val value = QuotaPresentation.summary(context, snapshot)
             val barId = listOf(R.id.progress_bar_1, R.id.progress_bar_2, R.id.progress_bar_3)[index]
             remoteViews.setViewVisibility(barId, if (maxUtilization == null) android.view.View.GONE else android.view.View.VISIBLE)
 
@@ -99,7 +99,7 @@ class QuotaNotificationService @Inject constructor(
             }
         }
 
-        remoteViews.setTextViewText(R.id.update_time, QuotaPresentation.age(quotas.mapNotNull { it.second.quota?.fetchedAt }.minOrNull()))
+        remoteViews.setTextViewText(R.id.update_time, QuotaPresentation.age(context, quotas.mapNotNull { it.second.quota?.fetchedAt }.minOrNull()))
 
         // Refresh action
         val refreshIntent = Intent(context, RefreshReceiver::class.java).apply {

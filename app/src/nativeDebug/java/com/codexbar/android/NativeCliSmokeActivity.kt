@@ -15,8 +15,10 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.codexbar.android.core.nativecli.CliProcess
 import com.codexbar.android.core.nativecli.NativeCodexBarClient
@@ -35,6 +37,15 @@ import org.json.JSONObject
 class NativeCliSmokeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (intent.getBooleanExtra("ui_demo", false)) {
+            WindowInsetsControllerCompat(window, window.decorView).apply {
+                isAppearanceLightStatusBars = !intent.getBooleanExtra("ui_dark", false)
+                isAppearanceLightNavigationBars = !intent.getBooleanExtra("ui_dark", false)
+            }
+            if (intent.getBooleanExtra("ui_wide", false)) requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            setContent { QuotaDemo(intent.getBooleanExtra("ui_dark", false), intent.getBooleanExtra("ui_large", false)) }
+            return
+        }
         val status = TextView(this).apply {
             text = "Running native Core/CLI self-test…"
             textSize = 18f

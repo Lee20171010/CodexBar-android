@@ -71,7 +71,7 @@ class QuotaTileService : TileService() {
 
     private fun buildSummarySubtitle(): String {
         return prefsManager.loadConnections().joinToString(" | ") {
-            "${it.name}: ${QuotaPresentation.summary(widgetPrefs.getSnapshot(it))}"
+            "${it.name}: ${QuotaPresentation.summary(this, widgetPrefs.getSnapshot(it))}"
         }
     }
 }
