@@ -51,7 +51,7 @@ class AccountQuotaCoordinatorTest {
         assertEquals(coordinator.snapshot(account), cache.getSnapshot(account))
     }
 
-    @Test fun `same-account overlap reloads rotated credentials and siblings remain independent`() = runTest {
+    @Test fun `same-account overlap coalesces and retains rotated credentials while siblings remain independent`() = runTest {
         val first = save("first")
         val sibling = save("sibling")
         val gate = CompletableDeferred<Unit>()
@@ -71,7 +71,7 @@ class AccountQuotaCoordinatorTest {
         assertTrue(other.isCompleted)
         gate.complete(Unit)
         foreground.await(); worker.await()
-        assertEquals(listOf("first", "sibling", "rotated"), seen)
+        assertEquals(listOf("first", "sibling"), seen)
         assertEquals("rotated", prefs.loadCredential(first)?.accessToken)
         assertEquals("sibling", prefs.loadCredential(sibling)?.accessToken)
         assertEquals(setOf(first.id, sibling.id), coordinator.quotas.value.keys)

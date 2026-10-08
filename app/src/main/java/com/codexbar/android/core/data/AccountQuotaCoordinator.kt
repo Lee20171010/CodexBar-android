@@ -58,9 +58,14 @@ class AccountQuotaCoordinator @Inject constructor(
     private val quotaState = MutableStateFlow<Map<String, AccountQuota>>(emptyMap())
     val quotas = quotaState.asStateFlow()
 
-    suspend fun refresh(connection: AccountConnection): Result<QuotaInfo, AppError>? =
-        locks.getOrPut(connection.id) { Mutex() }.withLock {
+    suspend fun refresh(connection: AccountConnection): Result<QuotaInfo, AppError>? {
+        val requestedAt = Instant.now()
+        return locks.getOrPut(connection.id) { Mutex() }.withLock {
             val credential = prefs.loadCredential(connection) ?: return@withLock null
+            quotaState.value[connection.id]?.takeIf {
+                it.connection.generation == connection.generation &&
+                    it.snapshot.attemptedAt?.let { completed -> !completed.isBefore(requestedAt) } == true
+            }?.let { return@withLock it.result }
             val session = CredentialSession(connection, credential) { expected, updated ->
                 prefs.replaceCredential(connection, expected, updated)
             }
@@ -76,6 +81,7 @@ class AccountQuotaCoordinator @Inject constructor(
                 result
             }
         }
+    }
 
     suspend fun validateAndSave(
         connection: AccountConnection,

@@ -1,5 +1,16 @@
 # CodexBar Android Technical Specification
 
+## Scheduled refresh ownership
+
+The Application supplies HiltWorkerFactory to on-demand WorkManager initialization.
+Startup, boot and cadence changes use the saved encrypted preference. Manual cancels
+periodic quota work, legacy token work and automatic per-account retries. Explicit
+one-shot refresh remains available. Each account/generation gets unique work with
+network constraints and exponential transient backoff; terminal authentication is
+suppressed until reconnect. Foreground and worker overlaps share one in-flight
+account result; siblings retain independent retry outcomes. Android's 15-minute
+periodic floor and background execution policy remain best-effort constraints.
+
 ## Shared measurement snapshots
 
 Dashboard, widgets, persistent notification and tile read connection/generation-scoped

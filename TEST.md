@@ -1,5 +1,13 @@
 # CodexBar Android Test Plan
 
+## Background refresh reliability
+
+85 JVM tests and Debug lint pass, including terminal/transient retry classification
+and simultaneous foreground/worker coalescing with retained rotated credentials.
+Native Debug compilation also passes. Saved-cadence/Manual/boot and actual
+WorkManager startup are subject to final locked Release acceptance; host tests do
+not simulate Android job scheduling or OEM restrictions.
+
 ## Compact dashboard and detail
 
 - 84 JVM tests, Debug lint, native Debug Kotlin compilation and optimized native

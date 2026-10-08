@@ -1,5 +1,12 @@
 # Changelog
 
+## Background refresh reliability
+
+- Apply saved cadence at startup, boot and settings changes; Manual cancels automatic
+  work while explicit refresh remains available. Initialize WorkManager with Hilt.
+- Retry transient failures independently by account/generation, stop automatic
+  terminal-auth retries, and coalesce overlapping account requests.
+
 This file records changes maintained in this Android fork. The source baseline is
 the Android upstream at `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`; it is separate
 from the pinned Swift Core/CLI source revision.

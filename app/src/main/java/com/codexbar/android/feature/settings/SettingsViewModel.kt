@@ -194,6 +194,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setRefreshInterval(minutes: Long) {
         prefsManager.setRefreshInterval(minutes)
+        com.codexbar.android.core.workmanager.WorkManagerInitializer.schedulePeriodicRefresh(context, minutes)
         _uiState.update { it.copy(refreshIntervalMinutes = minutes) }
     }
 

@@ -95,15 +95,15 @@
             </intent-filter>
         </receiver>
 
-        <!-- WorkManager Initializer via App Startup -->
+        <!-- Initialize on demand with the application's HiltWorkerFactory. -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
             android:exported="false"
             tools:node="merge">
             <meta-data
-                android:name="com.codexbar.android.core.workmanager.WorkManagerInitializer"
-                android:value="androidx.startup" />
+                android:name="androidx.work.WorkManagerInitializer"
+                tools:node="remove" />
         </provider>
 
     </application>
