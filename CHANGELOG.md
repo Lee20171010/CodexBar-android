@@ -53,9 +53,11 @@ from the pinned Swift Core/CLI source revision.
 
 ### Verification
 
-- 74 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
+- 74 JVM tests, Debug/Native Release lint and toolchain-integrity checks passed; account routing
   device acceptance remains separate from these synthetic tests.
-- The Go Release APK passed five runtime probes and Settings validation on an
-  API 36 emulator's ARM64 native-bridge path. See [TEST.md](TEST.md) for exact scope.
+- The signed 0.0.4-beta-native APK passed eight synthetic runtime probes and four
+  provider rejection UI flows on an API 36 emulator's ARM64 native-bridge path.
+  Focused dashboard, sign-in entry, offline attribution and original-icon checks
+  also passed. See [TEST.md](TEST.md) for exact scope and artifact hash.
 - Physical ARM64, real-account quota accuracy and complete migration of the other
   providers remain outside the recorded acceptance.

@@ -81,7 +81,7 @@ def verify_api_settings(run_id, provider, display_name):
                         tree = snapshot()
                         assert not any(n.get("text") in ("Reconnect", "Rename") for n in tree.iter("node")), "Rejected draft was saved"
                         adb("shell", "input", "keyevent", "4")
-                        print(f"{display_name} settings: masked draft → native validation → expected rejection → no saved account", flush=True)
+                        print(f"{display_name} settings: masked draft → provider validation → expected rejection → no saved account", flush=True)
                         return True
                     time.sleep(1)
                 raise RuntimeError(f"{display_name} settings did not display the expected API-key rejection")
@@ -90,6 +90,67 @@ def verify_api_settings(run_id, provider, display_name):
         raise RuntimeError(f"{display_name} API key field was not found")
     finally:
         adb("shell", "rm", "-f", remote, check=False)
+
+
+def verify_product_ui(run_id):
+    """Check dashboard entry, OAuth affordance and offline notices without signing in."""
+    remote = f"/data/local/tmp/codexbar-product-{run_id}"
+
+    def snapshot():
+        adb("shell", "uiautomator", "dump", remote + ".xml")
+        text = adb("shell", "cat", remote + ".xml").stdout
+        (ROOT / "build/native/product-ui.xml").write_text(text)
+        return ET.fromstring(text)
+
+    def tap(node):
+        x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.attrib["bounds"]))
+        adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+
+    def find(text):
+        for _ in range(10):
+            nodes = [n for n in snapshot().iter("node") if n.get("text") == text]
+            if nodes:
+                return nodes[0]
+            adb("shell", "input", "swipe", str(width // 2), str(height * 3 // 4),
+                str(width // 2), str(height // 3), "350")
+        raise RuntimeError(f"Missing product UI: {text}")
+
+    try:
+        launcher = adb("shell", "cmd", "package", "resolve-activity", "--brief",
+                       "-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER", PACKAGE).stdout
+        assert "com.codexbar.android.MainActivity" in launcher, "Launcher must open dashboard"
+        adb("shell", "pm", "grant", PACKAGE, "android.permission.POST_NOTIFICATIONS", check=False)
+        adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.MainActivity")
+        tree = snapshot()
+        if any(n.get("text") == "Background Token Refresh" for n in tree.iter("node")):
+            adb("shell", "input", "keyevent", "4")
+            tree = snapshot()
+        assert any(n.get("text") == "Codexbar" for n in tree.iter("node")), "Display name mismatch"
+        width, height = list(map(int, re.findall(r"\d+", adb("shell", "wm", "size").stdout)))[-2:]
+        tap(next(n for n in tree.iter("node") if n.get("content-desc") == "Settings"))
+        tap(find("Add Codex account"))
+        find("Sign in with ChatGPT")
+        tap(find("Cancel"))
+        tap(find("About & licenses"))
+        tree = snapshot()
+        assert any("Unofficial Android port" in n.get("text", "") for n in tree.iter("node"))
+        tap(find("Android-origin"))
+        assert any("MIT License" in n.get("text", "") for n in snapshot().iter("node")), "Offline license unavailable"
+        adb("shell", "screencap", "-p", remote + ".png")
+        adb("pull", remote + ".png", str(ROOT / "build/native/product-license.png"))
+        adb("shell", "input", "keyevent", "4")
+        adb("shell", "input", "keyevent", "4")
+        adb("shell", "input", "keyevent", "4")
+        adb("shell", "am", "start", "-W", "-a", "android.settings.APPLICATION_DETAILS_SETTINGS",
+            "-d", f"package:{PACKAGE}")
+        assert any(n.get("text") == "Codexbar" for n in snapshot().iter("node")), "System app label mismatch"
+        adb("shell", "screencap", "-p", remote + ".png")
+        adb("pull", remote + ".png", str(ROOT / "build/native/product-app-info.png"))
+        adb("shell", "input", "keyevent", "4")
+        print("Product UI: dashboard launcher, Codex sign-in entry and offline attribution passed", flush=True)
+        return True
+    finally:
+        adb("shell", "rm", "-f", remote + ".xml", remote + ".png", check=False)
 
 
 def main():
@@ -163,6 +224,13 @@ def main():
                                 report[f"{provider}SettingsPassed"] = False
                                 report["uiError"] = str(error)
                                 report["passed"] = False
+                    if args.configuration == "release" and report.get("passed"):
+                        try:
+                            report["productUiPassed"] = verify_product_ui(run_id)
+                        except Exception as error:
+                            report["productUiPassed"] = False
+                            report["uiError"] = str(error)
+                            report["passed"] = False
                     report_path.parent.mkdir(parents=True, exist_ok=True)
                     report_path.write_text(json.dumps(report, indent=2) + "\n")
                     for probe in report.get("results", []):
@@ -170,7 +238,7 @@ def main():
                     print(f"Report: {report_path}", flush=True)
                     return 0 if report.get("passed") else 1
             time.sleep(2)
-        raise SystemExit("No report within 210 seconds; runtime acceptance failed")
+        raise SystemExit("No report within 300 seconds; runtime acceptance failed")
     finally:
         # Even a timed-out install may have installed the package; clean it under the same lock.
         adb("shell", "am", "force-stop", PACKAGE, check=False)

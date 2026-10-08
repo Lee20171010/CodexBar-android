@@ -36,7 +36,7 @@ license and the root attribution document. The About screen compiles and the
 33 JVM tests pass. Debug lint passes after routing API-34+ Quick Settings launches
 through an explicit, immutable PendingIntent. The legacy overload remains guarded
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
-About/launcher and tile visual runtime acceptance remain pending.
+About/launcher runtime acceptance is recorded below; tile visual acceptance remains pending.
 
 The JVM suite currently contains **74 tests**:
 
@@ -116,8 +116,8 @@ local operator configuration. Prefer the Release variant to reduce remote transf
 
 ```sh
 python3 native/test.py --abi arm64-v8a --configuration release --opencode-go
-# Also exercise OpenRouter's native/API and masked-draft rejection paths:
-python3 native/test.py --abi arm64-v8a --configuration release --opencode-go --openrouter
+# Exercise all added providers and their masked-draft rejection paths:
+python3 native/test.py --abi arm64-v8a --configuration release --opencode-go --openrouter --copilot --deepseek
 ```
 
 The harness holds one shared-runtime lock through discovery, installation, launch,
@@ -135,6 +135,13 @@ The probes are:
    maps its rejection to the expected authentication failure.
 6. With `--openrouter`, the production OpenRouter client rejects a fixed invalid key;
    its Settings draft stays masked and is not published after validation fails.
+7. With `--copilot`, the native Copilot source rejects a fixed invalid GitHub token.
+8. With `--deepseek`, the Kotlin balance API rejects a fixed invalid key.
+
+Release UI checks also verify the dashboard launcher, Codex sign-in entry, offline
+MIT text and system display name. Notification/battery prompts are handled before
+assertions; no browser authorization is started. License and system-icon screenshots
+remain ignored runtime artifacts for visual review.
 
 With `--opencode-go`, UI automation also opens an account draft in Settings, verifies
 masked Go key input, presses Validate & save and checks the expected rejection.
@@ -157,7 +164,7 @@ Latest functional verification: **2026-10-08**.
 
 | Gate | Recorded result |
 | --- | --- |
-| JVM suite | 74/74 passed; Debug lint and native Debug Kotlin compilation passed |
+| JVM suite | 74/74 passed; Debug/Native Release lint and native Debug Kotlin compilation passed |
 | Toolchain integrity check | Passed; three official cached archive hashes matched |
 | Full Android Core/CLI compilation | x86_64 and ARM64 passed |
 | Initial App-UID smoke | 4/4 on x86_64 and 4/4 on ARM64 native-bridge path |
@@ -165,20 +172,27 @@ Latest functional verification: **2026-10-08**.
 | Go native API acceptance | 5/5 runtime probes passed with synthetic credentials |
 | Go Settings acceptance | Masked draft, native validation rejection and no saved account passed |
 | OpenRouter acceptance | 6/6 combined native probes; Go and OpenRouter masked draft/rejection/no-publication UI flows passed |
-| Original artwork | Pinned ic10 PNG hash verified; visual review confirms adaptive-mask safe content; final launcher runtime pending |
+| Added-provider runtime | Eight synthetic probes passed, including Go/OpenRouter/Copilot/DeepSeek rejection; all four masked draft/rejection/no-publication UI paths passed |
+| Product UI / original artwork | Dashboard launcher, Codex sign-in entry, offline MIT reader and system Codexbar label passed; screenshot review confirmed original artwork under the system mask |
 | Test cleanup | Owned test installation removed before releasing the lock |
 
 Runtime evidence is from an **Android 16 / API 36 x86_64 emulator** supporting an
 ARM64 native bridge. It is not physical ARM64 hardware evidence.
 
+The provider run passed eight probes and all four rejection UI flows. Product UI
+was checked separately on the same APK after fixing test setup for startup prompts;
+an intervening rerun encountered a remote ADB tap timeout. The final focused run
+passed all four base probes plus product UI and removed its test installation.
+The APK's complete MIT text matches `LICENSE` byte-for-byte; the reader scrolls.
+
 The first optimized build reduced APK size from **76.91 MiB to 33.28 MiB (56.7%)**.
 Uncompressed CLI size changed from 142.14 to 73.47 MiB, and the C++ runtime from
 9.05 to 1.36 MiB. These are artifact measurements, not performance benchmarks.
 
-The tested multi-account APK was **34,998,458 bytes**, SHA-256:
+The signed **0.0.4-beta-native** ARM64 APK is **35,656,926 bytes**, SHA-256:
 
 ```text
-3be1f5646fc53fa33e634ac2c0b8b8d0fcd8bd7d8db183ee64ac9ebdcc40c959
+d7761ce5d78d4310e1d503203e0532fdfd9f1075425677afe2d15d387cd77b69
 ```
 
 This hash identifies the tested artifact; later documentation/history edits do not
@@ -191,8 +205,8 @@ and App-UID checks are the native evidence recorded here.
 
 ## 6. Manual and remaining acceptance
 
-Codex OAuth synthetic coverage includes six protocol tests and a renewal-classification
-regression test. Live browser authorization, real quota and token renewal are separate
+Codex OAuth synthetic coverage includes bounded polling, cancellation, absolute expiry,
+PKCE exchange and renewal-classification regression tests. Live browser authorization, real quota and token renewal are separate
 owner-authorized checks; no real credentials are used by the automated suite.
 
 Use an owner-authorized test account for live checks; keep credentials out of logs
