@@ -25,7 +25,9 @@ data class UsageWindow(
     val utilization: Double, // 0.0 ~ 1.0
     val resetsAt: Instant?,
     val id: String = label,
-    val kind: UsageWindowKind = UsageWindowKind.QUOTA
+    val kind: UsageWindowKind = UsageWindowKind.QUOTA,
+    val durationSeconds: Long? = null,
+    val supplemental: Boolean = false
 )
 
 enum class UsageWindowKind { QUOTA, BUDGET }

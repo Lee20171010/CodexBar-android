@@ -13,7 +13,7 @@ instructions live in [CONTRIBUTING.md](CONTRIBUTING.md) and the
 | Provider | Current fetch implementation | Credential |
 | --- | --- | --- |
 | Claude | Existing Kotlin repository / HTTP services | Access token; refresh token for renewal |
-| Codex | Existing Kotlin repository / HTTP services | Access token, refresh token, optional account ID |
+| Codex | Native Swift Core/CLI, explicit OAuth on API 28+ native builds; Kotlin compatibility path otherwise | Android-owned access/refresh pair, optional account ID |
 | Gemini | Existing Kotlin repository / HTTP services | Access token, refresh token, OAuth client ID and secret |
 | OpenCode Go | Native Swift Core/CLI, API source | API key |
 | OpenRouter | Native Swift Core/CLI, API source | API key |
@@ -111,7 +111,7 @@ OpenCodeGoRepositoryImpl → NativeCodexBarClient
                          ↓
 libcodexbar.so usage --provider opencodego --source api --json
                          ↓
-upstream API fetcher → OpenCodeGoCliParser → QuotaInfo
+upstream API fetcher → NativeQuotaCliParser → QuotaInfo
                          ↓
 dashboard cards / background widget cache / notifications / tile refresh
 ```
@@ -169,10 +169,20 @@ logged. Token requests neither follow redirects nor automatically retry an excha
 The acquired pair stays request-local until `AccountQuotaCoordinator.validateAndSave`
 validates quota and publishes it under the existing generation guard. Saved-account
 renewal continues through the same per-account owner; 429/5xx renewal failures remain
-transient rather than being mislabeled as revoked credentials. Codex quota fetching
-still uses the Kotlin repository; this does not claim an Android-native CLI OAuth
-credential handoff. Live sign-in, account eligibility and renewal acceptance require
-an owner-authorized account and are not established by synthetic protocol tests.
+transient rather than being mislabeled as revoked credentials. Native builds on API
+28+ fetch Codex quota through Core's explicit OAuth source. The same repository uses
+Kotlin quota HTTP on API 26/27 and in non-native builds. Android alone renews tokens:
+it records the actual successful exchange time and commits the rotated pair before
+another fetch. JWT expiry takes precedence over recorded exchange time. One bounded
+renewal/retry follows an authentication rejection; outages never discard a rotated pair.
+
+The CLI receives only this request's token pair and selected account ID in a 0600
+`auth.json` within a 0700 no-backup workspace. Cleanup follows success, error and
+cancellation; the serialized client also removes its abandoned homes before reuse.
+The Android Core patch rejects a returned account ID mismatch and disables desktop
+CLI fallback for explicit OAuth without changing other platforms' credential policy.
+Normal Settings validation, dashboard and worker refresh share this integration.
+Live native sign-in/quota/renewal acceptance remains separate from synthetic tests.
 
 ## 4. Native execution contract
 
@@ -267,8 +277,9 @@ the Manual/interval controls are therefore not a verified scheduling contract ye
 
 ## 8. Current limits and acceptance boundary
 
-- OpenCode Go, OpenRouter and Copilot use the native data layer during normal
-  refresh. Claude, Codex, Gemini and DeepSeek use Kotlin repositories.
+- Codex (API 28+), OpenCode Go, OpenRouter and Copilot use the native data layer
+  during normal refresh in native builds. Claude, Gemini and DeepSeek use Kotlin;
+  Codex retains the Kotlin compatibility path on API 26/27 and non-native builds.
 - Runtime acceptance covers an API 36 emulator, including its ARM64 native bridge.
   That is distinct from physical ARM64 hardware verification.
 - Automated Go API/UI checks use an invalid synthetic key. Real-account quota

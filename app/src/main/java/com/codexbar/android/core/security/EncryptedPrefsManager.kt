@@ -70,6 +70,7 @@ class EncryptedPrefsManager internal constructor(
                 }
             }
             is Credential.CodexCredential -> {
+                credential.lastRefresh?.let { editor.putString("${prefix}_last_refresh", it.toString()) }
                 credential.accountId?.let {
                     editor.putString("${prefix}_account_id", it)
                 }
@@ -122,7 +123,8 @@ class EncryptedPrefsManager internal constructor(
                 Credential.CodexCredential(
                     accessToken = accessToken,
                     refreshToken = refreshToken,
-                    accountId = accountId
+                    accountId = accountId,
+                    lastRefresh = prefs.getString("${prefix}_last_refresh", null)?.let(Instant::parse)
                 )
             }
             AiService.GEMINI -> {
@@ -332,7 +334,7 @@ class EncryptedPrefsManager internal constructor(
     private companion object {
         val CREDENTIAL_FIELDS = listOf(
             "access_token", "refresh_token", "expires_at", "scopes", "rate_limit_tier",
-            "account_id", "expires_at_ms", "oauth_client_id", "oauth_client_secret"
+            "account_id", "last_refresh", "expires_at_ms", "oauth_client_id", "oauth_client_secret"
         )
     }
 }

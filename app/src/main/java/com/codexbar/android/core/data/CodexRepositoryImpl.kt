@@ -12,6 +12,8 @@ import kotlinx.coroutines.CancellationException
 import com.codexbar.android.core.network.codex.CodexApiService
 import com.codexbar.android.core.network.codex.CodexDto
 import com.codexbar.android.core.network.codex.CodexTokenRefreshService
+import com.codexbar.android.core.nativecli.NativeCodexBarClient
+import com.codexbar.android.core.nativecli.CodexCredentialBridge
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.Json
@@ -24,7 +26,8 @@ import javax.inject.Inject
 
 class CodexRepositoryImpl @Inject constructor(
     private val apiService: CodexApiService,
-    private val tokenRefreshService: CodexTokenRefreshService
+    private val tokenRefreshService: CodexTokenRefreshService,
+    private val nativeClient: NativeCodexBarClient? = null
 ) : QuotaRepository {
 
     override suspend fun fetchQuota(session: CredentialSession): Result<QuotaInfo, AppError> {
@@ -34,6 +37,7 @@ class CodexRepositoryImpl @Inject constructor(
             ?: return Result.Failure(AppError.CredentialNotFound(AiService.CODEX))
 
         return try {
+            if (nativeClient != null) return fetchNative(credential, session)
             val response = apiService.getUsage(
                 authorization = "Bearer ${credential.accessToken}",
                 accountId = credential.accountId
@@ -75,6 +79,25 @@ class CodexRepositoryImpl @Inject constructor(
         }
     }
 
+    private suspend fun fetchNative(initial: Credential.CodexCredential, session: CredentialSession): Result<QuotaInfo, AppError> {
+        var credential = initial
+        var renewed = false
+        if (CodexCredentialBridge.needsRefresh(credential)) {
+            when (val refresh = refreshToken(credential, session)) {
+                is Result.Failure -> return refresh
+                is Result.Success -> { credential = refresh.value; renewed = true }
+            }
+        }
+        val result = nativeClient!!.fetchCodex(credential)
+        if (!renewed && result is Result.Failure && result.error is AppError.AuthError) {
+            return when (val refresh = refreshToken(credential, session)) {
+                is Result.Failure -> refresh
+                is Result.Success -> nativeClient.fetchCodex(refresh.value)
+            }
+        }
+        return result
+    }
+
     private suspend fun refreshToken(credential: Credential.CodexCredential, session: CredentialSession): Result<Credential.CodexCredential, AppError> {
         return try {
             val request = CodexDto.TokenRefreshRequest(refreshToken = credential.refreshToken)
@@ -87,7 +110,8 @@ class CodexRepositoryImpl @Inject constructor(
                 val newCredential = Credential.CodexCredential(
                     accessToken = body.accessToken,
                     refreshToken = body.refreshToken ?: credential.refreshToken,
-                    accountId = credential.accountId
+                    accountId = credential.accountId,
+                    lastRefresh = Instant.now()
                 )
                 session.replace(newCredential)
                 Result.Success(newCredential)

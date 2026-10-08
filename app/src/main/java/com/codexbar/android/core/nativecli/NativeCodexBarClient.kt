@@ -6,6 +6,7 @@ import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
+import com.codexbar.android.core.domain.model.Credential
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.nio.file.Files
@@ -25,15 +26,25 @@ class NativeCodexBarClient @Inject constructor(
 
     suspend fun fetchOpenCodeGo(apiKey: String): Result<QuotaInfo, AppError> = fetchApiKey(AiService.OPENCODE_GO, apiKey)
 
-    suspend fun fetchApiKey(service: AiService, apiKey: String): Result<QuotaInfo, AppError> = mutex.withLock {
+    suspend fun fetchCodex(credential: Credential.CodexCredential): Result<QuotaInfo, AppError> =
+        fetch(AiService.CODEX, credential.accessToken, credential)
+
+    suspend fun fetchApiKey(service: AiService, apiKey: String): Result<QuotaInfo, AppError> = fetch(service, apiKey)
+
+    private suspend fun fetch(service: AiService, apiKey: String, codex: Credential.CodexCredential? = null): Result<QuotaInfo, AppError> = mutex.withLock {
         val (provider, keyVariable) = when (service) {
             AiService.OPENCODE_GO -> "opencodego" to "OPENCODE_API_KEY"
             AiService.OPENROUTER -> "openrouter" to "OPENROUTER_API_KEY"
             AiService.COPILOT -> "copilot" to "COPILOT_API_TOKEN"
+            AiService.CODEX -> if (codex != null) "codex" to "" else
+                return@withLock Result.Failure(AppError.ParseError("Codex requires an OAuth credential session."))
             else -> return@withLock Result.Failure(AppError.ParseError("Unsupported native API-key provider."))
         }
         if (apiKey.isBlank() || apiKey.any { it.isWhitespace() || it.isISOControl() }) {
             return@withLock Result.Failure(AppError.ParseError("Enter an API key without whitespace."))
+        }
+        if (codex != null && CodexCredentialBridge.needsRefresh(codex)) {
+            return@withLock Result.Failure(AppError.AuthError(AiService.CODEX, isTerminal = false))
         }
         if (Build.VERSION.SDK_INT < 28) {
             return@withLock Result.Failure(AppError.ParseError("The native engine requires Android 9 or newer."))
@@ -46,9 +57,11 @@ class NativeCodexBarClient @Inject constructor(
             val capture = runInterruptible(Dispatchers.IO) {
                 // Per-request private workspace avoids stale assets/provider state after app updates.
                 // The API key exists only in memory and the child's environment, never in these files.
-                val home = Files.createTempDirectory(context.noBackupFilesDir.toPath(), "$provider-").toFile()
+                CodexCredentialBridge.clearAbandonedHomes(context.noBackupFilesDir)
+                val home = Files.createTempDirectory(context.noBackupFilesDir.toPath(), CodexCredentialBridge.HOME_PREFIX).toFile()
                 try {
                     copyAssets("codexbar", home)
+                    if (codex != null) CodexCredentialBridge.write(home, codex)
                     val config = File(home, "config.json").apply {
                         writeText("""{"version":1,"providers":[{"id":"$provider","enabled":true}]}""")
                     }
@@ -68,9 +81,9 @@ class NativeCodexBarClient @Inject constructor(
                         "LD_LIBRARY_PATH" to context.applicationInfo.nativeLibraryDir,
                         "CODEXBAR_CONFIG" to config.path,
                         "CODEXBAR_RESOURCE_BUNDLE_PATH" to File(home, "CodexBar_CodexBarCore.bundle").path,
-                        keyVariable to apiKey,
                     ))
-                    CliProcess.run(binary, listOf("usage", "--provider", provider, "--source", "api", "--json"),
+                    if (codex == null) env[keyVariable] = apiKey
+                    CliProcess.run(binary, listOf("usage", "--provider", provider, "--source", if (codex == null) "api" else "oauth", "--json"),
                         env, home, 45_000)
                 } finally {
                     home.deleteRecursively()

@@ -109,7 +109,7 @@ class CodexDeviceAuth internal constructor(
             payload.jsonObject["https://api.openai.com/auth"]?.jsonObject?.text("chatgpt_account_id")
                 ?.takeIf { it.length in 1..256 && it.none(Char::isISOControl) }
         } catch (_: Exception) { null }
-        return Credential.CodexCredential(access, refresh, accountId)
+        return Credential.CodexCredential(access, refresh, accountId, java.time.Instant.now())
     }
 
     private class Reply(val code: Int, val body: JsonObject)

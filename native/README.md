@@ -86,7 +86,7 @@ python3 native/test.py --abi x86_64
 `nativeDebug` uses `com.codexbar.android.native` and the existing release key. Its
 test activity runs fixed commands only and is absent from production variants.
 The runner is reused from the prior process proof and manages direct children;
-the production OpenCode Go client restricts it to the API source. `test.py` holds one shared
+the production client restricts API-key providers to API and Codex to OAuth. `test.py` holds one shared
 runtime lock, refuses to replace an existing test package, then installs, reads
 the report and uninstalls. The report is `build/native/device-report-<abi>.json`.
 

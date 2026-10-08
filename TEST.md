@@ -1,5 +1,16 @@
 # CodexBar Android Test Plan
 
+## Full-plan continuation: native Codex ownership
+
+- 78 JVM tests and Debug lint pass, including native Codex parser/error mapping,
+  private-file permissions, real freshness, orphan cleanup and published-pair-before-retry.
+- Optimized ARM64 Core/CLI compilation and reverse application of `native/android.patch`
+  pass. This proves compilation, not App-UID or real native Codex quota acceptance.
+- User reported Codex and OpenCode Go working on the phone with `0.0.4-beta-native`.
+  That version used Kotlin for Codex, so this is not evidence for the new native path
+  or automatic token renewal. No real-account request was made by the test runner.
+- Native Codex App-UID, final Release and real renewal checks remain pending.
+
 ## 1. Verification scope
 
 This document owns test commands, evidence and remaining acceptance work.

@@ -90,8 +90,10 @@ object RepositoryModule {
     @CodexRepository
     fun provideCodexRepository(
         apiService: CodexApiService,
-        tokenRefreshService: CodexTokenRefreshService
-    ): QuotaRepository = CodexRepositoryImpl(apiService, tokenRefreshService)
+        tokenRefreshService: CodexTokenRefreshService,
+        client: NativeCodexBarClient
+    ): QuotaRepository = CodexRepositoryImpl(apiService, tokenRefreshService,
+        client.takeIf { com.codexbar.android.BuildConfig.NATIVE_CLI_ENABLED && android.os.Build.VERSION.SDK_INT >= 28 })
 
     @Provides
     @Singleton

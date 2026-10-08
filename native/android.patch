@@ -946,6 +946,30 @@ index c024338..43940a4 100644
  #elseif canImport(Musl)
  import Musl
  #endif
+diff --git a/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift b/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
+--- a/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
++++ b/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
+@@ -436,6 +436,11 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
+             accessToken: credentials.accessToken,
+             accountId: credentials.accountId,
+             env: context.env)
++        #if os(Android)
++        if let expected = credentials.accountId, let returned = usage.accountId, expected != returned {
++            throw CodexOAuthFetchError.unauthorized
++        }
++        #endif
+         let resetCreditsAttempted = Self.shouldFetchResetCredits(context)
+         let resetCredits = try await Self.fetchResetCreditsIfRequested(
+             context: context,
+@@ -489,4 +494,8 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
+     func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
++        #if os(Android)
++        // Android owns renewal; explicit OAuth must never spawn the desktop Codex CLI.
++        if context.sourceMode == .oauth { return false }
++        #endif
+         let isExplicitNativeRefresh = if let credentialsError = error as? CodexOAuthCredentialsError,
+                                          case .nativeRefreshRequired = credentialsError
+         {
 diff --git a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
 index 7b7dcaf..54670b6 100644
 --- a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift

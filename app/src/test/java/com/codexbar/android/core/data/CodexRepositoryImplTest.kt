@@ -73,6 +73,40 @@ class CodexRepositoryImplTest {
     }
 
     @Test
+    fun `native retry uses atomically published rotation and never Kotlin usage`() = runTest {
+        val initial = testCredential.copy(lastRefresh = java.time.Instant.now())
+        var published = false
+        var calls = 0
+        val session = CredentialSession(AccountConnection.create(AiService.CODEX), initial) { old, next ->
+            assertEquals(initial, old)
+            assertEquals("synthetic-next-access", next.accessToken)
+            assertEquals("synthetic-next-refresh", next.refreshToken)
+            published = true
+            true
+        }
+        val native = org.mockito.Mockito.mock(com.codexbar.android.core.nativecli.NativeCodexBarClient::class.java) { invocation ->
+            if (invocation.method.name == "fetchCodex") {
+                val supplied = invocation.getArgument<Credential.CodexCredential>(0)
+                calls++
+                if (calls == 1) {
+                    assertEquals(initial, supplied)
+                    Result.Failure(AppError.AuthError(AiService.CODEX, true))
+                } else {
+                    assertTrue(published)
+                    assertEquals(session.credential, supplied)
+                    Result.Failure(AppError.RateLimited)
+                }
+            } else org.mockito.Mockito.RETURNS_DEFAULTS.answer(invocation)
+        }
+        mockWebServer.enqueue(MockResponse().setBody("""{"access_token":"synthetic-next-access","refresh_token":"synthetic-next-refresh"}"""))
+        val result = CodexRepositoryImpl(apiService, tokenRefreshService, native).fetchQuota(session) as Result.Failure
+        assertEquals(AppError.RateLimited, result.error)
+        assertEquals(2, calls)
+        assertEquals(1, mockWebServer.requestCount)
+        assertEquals("/oauth/token", mockWebServer.takeRequest().path)
+    }
+
+    @Test
     fun `draft refresh stays in request memory without overwriting saved credentials`() = runTest {
         val draft = CredentialSession(AccountConnection.create(AiService.CODEX), testCredential)
         mockWebServer.enqueue(MockResponse().setResponseCode(401))

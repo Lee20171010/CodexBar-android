@@ -8,6 +8,10 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Route Codex quota through native Core OAuth on API 28+ native builds while Android
+  remains the sole token writer. Preserve API 26/27 compatibility, private ephemeral
+  credential files, account matching, bounded renewal and supplemental model windows.
+
 - DeepSeek API-key accounts using the official numeric USD/CNY balance endpoint;
   no inferred spending, exchange rates or quota windows.
 - GitHub Copilot accounts via the pinned native API source, with separate Premium/Chat
