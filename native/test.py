@@ -220,7 +220,28 @@ def verify_quota_demo(run_id):
                 else:
                     raise AssertionError(f"Detail must scroll to its actions: {mode}")
                 capture(mode + "-scrolled")
-        print("Quota UI: phone, dark, 200% text, wide and detail semantics passed", flush=True)
+        adb("shell", "am", "force-stop", PACKAGE)
+        adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.NativeCliSmokeActivity",
+            "--ez", "ui_demo", "true", "--ez", "ui_rich", "true")
+        tree = snapshot("rich")
+        node = next(n for n in tree.iter("node") if "Demo account" in n.get("text", ""))
+        x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.attrib["bounds"]))
+        adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+        width, height = list(map(int, re.findall(r"\d+", adb("shell", "wm", "size").stdout)))[-2:]
+        seen = set()
+        for index in range(15):
+            tree = snapshot("rich-scrolled")
+            text = " ".join(n.get("text", "") + " " + n.get("content-desc", "") for n in tree.iter("node"))
+            for key in ("Linear estimate", "Reported balance: 0.0 credits", "Reported available reset credits: 1", "Restore defaults"):
+                if key in text:
+                    seen.add(key)
+            if index == 0 or "Restore defaults" in text:
+                capture("rich-chart" if index == 0 else "rich-controls")
+            if "Restore defaults" in text:
+                break
+            adb("shell", "input", "swipe", str(width // 2), str(height * 4 // 5), str(width // 2), str(height // 3), "350")
+        assert len(seen) == 4, f"Rich detail missing: {seen}"
+        print("Quota UI: phone, dark, 200% text, wide, detail, chart, credits and display controls passed", flush=True)
         return True
     finally:
         adb("shell", "am", "force-stop", PACKAGE, check=False)
@@ -228,6 +249,7 @@ def verify_quota_demo(run_id):
 
 
 def main():
+    global PACKAGE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--abi", choices=("x86_64", "arm64-v8a"), default="x86_64")
     parser.add_argument("--configuration", choices=("debug", "release"), default="debug")
@@ -236,8 +258,13 @@ def main():
     parser.add_argument("--copilot", action="store_true", help="Also test Copilot API with a fixed invalid token")
     parser.add_argument("--deepseek", action="store_true", help="Also test DeepSeek API with a fixed invalid key")
     parser.add_argument("--ui-demo", action="store_true", help="Check synthetic compact/detail UI in four layouts")
+    parser.add_argument("--product-only", action="store_true", help="Verify the daily nativeRelease APK without diagnostic code")
     parser.add_argument("--locked", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.product_only and (args.configuration != "release" or args.ui_demo):
+        parser.error("--product-only requires release and cannot run synthetic demo code")
+    if args.configuration == "release" and not args.product_only:
+        PACKAGE = "com.codexbar.android.native.acceptance"
     for name, value in (("ANDROID_TEST_ADB_WRAPPER", ADB), ("ANDROID_TEST_SESSION_WRAPPER", SESSION_WRAPPER)):
         if not value:
             parser.error(f"Set {name} to the configured wrapper before running device checks")
@@ -251,8 +278,9 @@ def main():
                                 *(["--openrouter"] if args.openrouter else []),
                                 *(["--copilot"] if args.copilot else []),
                                 *(["--deepseek"] if args.deepseek else []),
-                                *(["--ui-demo"] if args.ui_demo else [])])
-    variant = "nativeRelease" if args.configuration == "release" else "nativeDebug"
+                                 *(["--ui-demo"] if args.ui_demo else []),
+                                 *(["--product-only"] if args.product_only else [])])
+    variant = ("nativeRelease" if args.product_only else "nativeAcceptance") if args.configuration == "release" else "nativeDebug"
     apk = ROOT / f"app/build/outputs/apk/{variant}/app-{variant}.apk"
     if not apk.is_file():
         raise SystemExit(f"Build :app:assemble{variant[0].upper() + variant[1:]} first")
@@ -261,12 +289,21 @@ def main():
     existing = adb("shell", "pm", "path", PACKAGE, check=False)
     if "package:" in existing.stdout:
         raise SystemExit("Test package already installed; refusing to replace existing data")
-    suffix = "-release" if args.configuration == "release" else ""
+    suffix = "-product" if args.product_only else "-release" if args.configuration == "release" else ""
     report_path = ROOT / f"build/native/device-report-{args.abi}{suffix}.json"
     run_id = str(uuid.uuid4())
     try:
         print(f"Installing {apk.stat().st_size // 1024 // 1024} MiB {args.abi} APK…", flush=True)
         print(adb("install", "--abi", args.abi, str(apk), timeout=900).stdout, flush=True)
+        if args.product_only:
+            forbidden = adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.NativeCliSmokeActivity", check=False)
+            assert "does not exist" in forbidden.stdout + forbidden.stderr, "Daily APK includes diagnostic activity"
+            report = dict(apkSha256=apk_hash, apkBytes=apk.stat().st_size, abi=args.abi,
+                          configuration=variant, productUiPassed=verify_product_ui(run_id), passed=True)
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            report_path.write_text(json.dumps(report, indent=2) + "\n")
+            print(f"Report: {report_path}", flush=True)
+            return 0
         adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.NativeCliSmokeActivity",
             "--es", "run_id", run_id, "--ez", "test_go", str(args.opencode_go).lower(),
             "--ez", "test_openrouter", str(args.openrouter).lower(),

@@ -90,15 +90,16 @@ the production client restricts API-key providers to API and Codex to OAuth. `te
 runtime lock, refuses to replace an existing test package, then installs, reads
 the report and uninstalls. The report is `build/native/device-report-<abi>.json`.
 
-## Optimized ARM64 acceptance APK
+## Optimized ARM64 daily and acceptance APKs
 
-Prefer this variant for the remote emulator and phone delivery:
+Build daily delivery and isolated diagnostics from the same native payload:
 
 ```sh
 python3 native/build.py --tools "$SWIFT_ANDROID_TOOLS" --abi arm64-v8a --configuration release
 # With the private signing environment configured:
-bash ./gradlew :app:assembleNativeRelease --max-workers=2
+bash ./gradlew :app:assembleNativeRelease :app:assembleNativeAcceptance --max-workers=2
 python3 native/test.py --abi arm64-v8a --configuration release
+python3 native/test.py --abi arm64-v8a --configuration release --product-only
 ```
 
 This uses Swift Release with `-Osize`, linker section garbage collection, stripped
@@ -107,20 +108,23 @@ Release payloads are separate from Debug payloads under
 `build/native/package/release/arm64-v8a/`. The APK is
 `app/build/outputs/apk/nativeRelease/app-nativeRelease.apk`.
 
-`nativeRelease` is non-debuggable and uses the same isolated `.native` application
-ID and existing signing key. Its Codexbar launcher opens the dashboard;
-the credential-free self-test is an explicit diagnostic activity. It is a release-optimized native
-test build, not a completed product
-migration. The default production `release` variant has no acceptance activity.
+`nativeRelease` is the non-debuggable daily build, retaining `.native` and the existing
+signing identity so updates preserve accounts. Its Codexbar launcher opens the
+dashboard; diagnostic activities and synthetic fixtures are absent. `nativeAcceptance`
+uses `.native.acceptance`, the same optimization/signing settings and native payload,
+but includes fixed diagnostic probes and synthetic Compose fixtures. Its APK is
+`app/build/outputs/apk/nativeAcceptance/app-nativeAcceptance.apk`.
 
 Because `run-as` is unavailable for a non-debuggable APK, the harness reads the
 fixed synthetic report from a dedicated logcat tag and matches a fresh run ID.
-It does not clear shared logs. The saved release report records the tested APK's
-SHA-256, byte size and ABI, allowing the exact verified artifact to be delivered.
+It does not clear shared logs. Acceptance and daily product reports record separate
+SHA-256 values, byte sizes and ABI. `--product-only` verifies the exact daily artifact's
+launcher, login affordance, offline notices and absence of diagnostics, without
+account access. Neither report substitutes for owner-authorized quota acceptance.
 
 ## Acceptance and artifact delivery
 
-For the Go API/Settings check, use the exact Release APK just built:
+For the synthetic Go API/Settings check, use the isolated optimized acceptance APK:
 
 ```sh
 python3 native/test.py --abi arm64-v8a --configuration release --opencode-go

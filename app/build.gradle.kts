@@ -15,8 +15,8 @@ android {
         applicationId = "com.codexbar.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.0.4-beta"
+        versionCode = 6
+        versionName = "0.0.5-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "false")
@@ -65,6 +65,11 @@ android {
             versionNameSuffix = "-native"
             buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "true")
         }
+        create("nativeAcceptance") {
+            initWith(getByName("nativeRelease"))
+            applicationIdSuffix = ".native.acceptance"
+            matchingFallbacks += "release"
+        }
     }
 
     sourceSets.getByName("nativeDebug") {
@@ -74,7 +79,12 @@ android {
         assets.srcDir(rootProject.file("build/native/package/$nativeAbi/assets"))
     }
     sourceSets.getByName("nativeRelease") {
+        jniLibs.srcDir(rootProject.file("build/native/package/release/arm64-v8a/jniLibs"))
+        assets.srcDir(rootProject.file("build/native/package/release/arm64-v8a/assets"))
+    }
+    sourceSets.getByName("nativeAcceptance") {
         java.srcDir("src/nativeDebug/java")
+        manifest.srcFile("src/nativeDebug/AndroidManifest.xml")
         jniLibs.srcDir(rootProject.file("build/native/package/release/arm64-v8a/jniLibs"))
         assets.srcDir(rootProject.file("build/native/package/release/arm64-v8a/assets"))
     }
@@ -108,9 +118,9 @@ android {
     }
 }
 
-tasks.matching { it.name in listOf("preNativeDebugBuild", "preNativeReleaseBuild") }.configureEach {
+tasks.matching { it.name in listOf("preNativeDebugBuild", "preNativeReleaseBuild", "preNativeAcceptanceBuild") }.configureEach {
     doFirst {
-        val release = name == "preNativeReleaseBuild"
+        val release = name != "preNativeDebugBuild"
         val abi = if (release) "arm64-v8a" else providers.gradleProperty("nativeAbi").getOrElse("x86_64")
         val payload = rootProject.file("build/native/package/${if (release) "release/" else ""}$abi")
         check(file("$payload/jniLibs/$abi/libcodexbar.so").isFile &&

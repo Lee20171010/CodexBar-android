@@ -1,3 +1,18 @@
+diff --git a/Sources/CodexBarCLI/CLIIO.swift b/Sources/CodexBarCLI/CLIIO.swift
+--- a/Sources/CodexBarCLI/CLIIO.swift
++++ b/Sources/CodexBarCLI/CLIIO.swift
+@@ -139,5 +139,10 @@
+     static func adjacentVersionFileVersion(for executableURL: URL) -> String? {
+-        let versionURL = executableURL
++        var versionURL = executableURL
+             .deletingLastPathComponent()
+             .appendingPathComponent("VERSION")
++        #if os(Android)
++        if let bundle = ProcessInfo.processInfo.environment["CODEXBAR_RESOURCE_BUNDLE_PATH"], bundle.hasPrefix("/") {
++            versionURL = URL(fileURLWithPath: bundle).deletingLastPathComponent().appendingPathComponent("VERSION")
++        }
++        #endif
+         guard let raw = try? String(contentsOf: versionURL, encoding: .utf8) else {
 diff --git a/Package.swift b/Package.swift
 index dc07ea1..aa7c3e9 100644
 --- a/Package.swift
@@ -990,7 +1005,7 @@ diff --git a/Sources/CodexBarCLI/CLIUsageCommand.swift b/Sources/CodexBarCLI/CLI
 @@ -74,2 +74,20 @@
          let providerList = provider.asList
 +        #if os(Android)
-+        if values.flags.contains("status-only") {
++        if values.flags.contains("statusOnly") {
 +            struct StatusOutput: Encodable {
 +                let provider: String
 +                let status: ProviderStatusPayload?

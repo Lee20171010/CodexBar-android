@@ -1,5 +1,25 @@
 # CodexBar Android Test Plan
 
+## Production packaging and daily artifact
+
+`nativeRelease` is the daily build: dashboard launcher only, no diagnostic activity,
+`.native` identity, versionCode 6 / `0.0.5-beta-native`, minSdk 26, ARM64-only. The
+release-optimized diagnostics moved to a separate `nativeAcceptance` variant
+(`.native.acceptance`) that reuses the same ARM64 Release payload and adds the smoke
+activity, synthetic UI demo and the fresh-install cadence-persistence probe.
+
+Signed ARM64 `0.0.5-beta-native` daily APK: **35,763,607 bytes**, SHA-256:
+
+```text
+8b40cc0ba8095559a005a86e7d7dc3c972e6a1d4348eb0fa9b955553d6c1b9c1
+```
+
+Locked-runtime acceptance on that payload passed all six App-UID probes (version with
+numeric CLI version from the packaged resource directory, resource smoke, config
+validate, credential-free status-only, expected missing-credential error, manual-cadence
+persistence) plus product UI on the daily APK itself (launcher, sign-in entry, offline
+attribution; smoke activity confirmed absent from the manifest).
+
 ## Reported credits
 
 100 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Added fixtures
@@ -34,8 +54,9 @@ and deletion. Device notification permission/display acceptance is pending.
 87 JVM tests, Debug lint and Native Debug compilation pass. Fixtures cover every
 Core status indicator, stale/future checks, provider/source mismatch, unknown failures,
 concurrent accounts, five-minute throttling and persisted-cache restart. Optimized
-ARM64 Core build passed (56.84 seconds). The App-UID harness now checks credential-free
-`--status-only` output for a provider with no feed; final device execution is pending.
+ARM64 Core build passed. The App-UID `--status-only` probe now passes on device after
+fixing the Android flag lookup to the ArgumentParser property name (`statusOnly`);
+the earlier dashed-name check silently fell through to the quota path.
 No fixture or unknown response proves a real service healthy.
 
 ## Responsive account widgets
@@ -50,9 +71,10 @@ is not widget-host acceptance.
 
 85 JVM tests and Debug lint pass, including terminal/transient retry classification
 and simultaneous foreground/worker coalescing with retained rotated credentials.
-Native Debug compilation also passes. Saved-cadence/Manual/boot and actual
-WorkManager startup are subject to final locked Release acceptance; host tests do
-not simulate Android job scheduling or OEM restrictions.
+Native Debug compilation also passes. The acceptance build's fresh-install probe passed
+on device: a saved 15-minute cadence schedules the unique periodic work, Manual (0)
+cancels it and it stays cancelled across startup reapply, and the legacy second token
+writer is never scheduled. Long-run OEM doze behavior remains an observation target.
 
 ## Compact dashboard and detail
 
@@ -266,7 +288,7 @@ Latest functional verification: **2026-10-08**.
 
 | Gate | Recorded result |
 | --- | --- |
-| JVM suite | 74/74 passed; Debug/Native Release lint and native Debug Kotlin compilation passed |
+| JVM suite | 100/100 passed; Debug/Native Release/Native Acceptance lint and native compilation passed |
 | Toolchain integrity check | Passed; three official cached archive hashes matched |
 | Full Android Core/CLI compilation | x86_64 and ARM64 passed |
 | Initial App-UID smoke | 4/4 on x86_64 and 4/4 on ARM64 native-bridge path |
@@ -276,6 +298,8 @@ Latest functional verification: **2026-10-08**.
 | OpenRouter acceptance | 6/6 combined native probes; Go and OpenRouter masked draft/rejection/no-publication UI flows passed |
 | Added-provider runtime | Eight synthetic probes passed, including Go/OpenRouter/Copilot/DeepSeek rejection; all four masked draft/rejection/no-publication UI paths passed |
 | Product UI / original artwork | Dashboard launcher, Codex sign-in entry, offline MIT reader and system Codexbar label passed; screenshot review confirmed original artwork under the system mask |
+| Production acceptance (0.0.5-beta) | Six App-UID probes on the acceptance build (incl. numeric CLI version, status-only, manual-cadence persistence) and daily-APK product UI passed on the API 36 ARM64-bridge emulator |
+| Owner live confirmation | Owner reported Codex and OpenCode Go quotas working on the phone (0.0.4-beta-native, Kotlin Codex path); native-path live renewal remains owner-authorized pending |
 | Test cleanup | Owned test installation removed before releasing the lock |
 
 Runtime evidence is from an **Android 16 / API 36 x86_64 emulator** supporting an
@@ -299,6 +323,8 @@ d7761ce5d78d4310e1d503203e0532fdfd9f1075425677afe2d15d387cd77b69
 
 This hash identifies the tested artifact; later documentation/history edits do not
 imply that a newly rebuilt APK will have identical bytes. Revalidate changed payloads.
+The current daily artifact is the 0.0.5-beta-native APK identified at the top of this
+document.
 
 The upstream Swift `make check` attempt stopped because `plutil` was unavailable;
 plain `make test` stopped because the host `swift` was not on PATH in the isolated
@@ -321,7 +347,9 @@ and committed screenshots. Still pending:
 - [ ] Exercise offline, timeout and rate-limit behavior through the user-facing UI.
 - [ ] Verify background Go refresh updates widgets, notifications and the tile over time.
 - [ ] Verify foreground/background overlap and cancellation during navigation on-device.
-- [ ] Resolve and verify refresh-interval/Manual preference scheduling; the current setter only saves preferences.
+- [x] Refresh-interval/Manual scheduling: setter reschedules immediately, startup
+  reapplies the saved cadence, and the acceptance probe confirmed schedule/cancel/
+  reapply on device. Long-run OEM behavior remains observational.
 - [ ] Verify account renewal for existing OAuth providers independently of Go API-key support.
 
 Future provider ports must satisfy their own credential, mapping and runtime checks;

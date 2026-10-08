@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.5-beta-native
+
+- Keep the daily `.native` identity and signing key, remove diagnostic activities,
+  and move release-optimized synthetic checks to `.native.acceptance`.
+- Resolve the pinned CLI version from its packaged resource directory on Android.
+
 ## Reported credits
 
 - Preserve native Codex credit balances, separate personal caps and read-only reset

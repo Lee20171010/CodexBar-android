@@ -43,7 +43,8 @@ class NativeCliSmokeActivity : ComponentActivity() {
                 isAppearanceLightNavigationBars = !intent.getBooleanExtra("ui_dark", false)
             }
             if (intent.getBooleanExtra("ui_wide", false)) requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            setContent { QuotaDemo(intent.getBooleanExtra("ui_dark", false), intent.getBooleanExtra("ui_large", false)) }
+            setContent { QuotaDemo(intent.getBooleanExtra("ui_dark", false), intent.getBooleanExtra("ui_large", false),
+                intent.getBooleanExtra("ui_rich", false)) }
             return
         }
         val status = TextView(this).apply {
@@ -71,6 +72,9 @@ class NativeCliSmokeActivity : ComponentActivity() {
         val runId = intent.getStringExtra("run_id") ?: UUID.randomUUID().toString()
         lifecycleScope.launch {
             val report = runInterruptible(Dispatchers.IO) { runProbes() }.put("runId", runId)
+            val schedulePassed = verifyScheduling(applicationContext)
+            report.getJSONArray("results").put(JSONObject().put("name", "manual-cadence-persistence").put("passed", schedulePassed))
+            report.put("passed", report.getBoolean("passed") && schedulePassed)
             for ((flag, service, name) in listOf(
                 Triple("test_go", AiService.OPENCODE_GO, "opencode-go-api-invalid-key"),
                 Triple("test_openrouter", AiService.OPENROUTER, "openrouter-api-invalid-key"),
@@ -149,7 +153,8 @@ class NativeCliSmokeActivity : ComponentActivity() {
                 results.put(result)
             }
             probe("version", listOf("--version")) {
-                it.getInt("exitCode") == 0 && it.getString("stdout").contains("CodexBar")
+                it.getInt("exitCode") == 0 && it.getString("stdout").contains("CodexBar") &&
+                    it.getString("stdout").contains(File(home, "VERSION").readText().trim())
             }
             probe("resources", emptyList(), mapOf("CODEXBAR_RESOURCE_SMOKE" to "1")) {
                 it.getInt("exitCode") == 0 && it.getString("stdout").contains("CODEXBAR_RESOURCE_SMOKE_OK")

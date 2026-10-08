@@ -23,7 +23,7 @@ These screenshots show the original Android UI. Current builds add multi-account
 - Quick Settings tile for at-a-glance status
 - WorkManager-based background refresh
 - Persistent notification with per-service breakdown
-- Local alerts for detected quota reset times
+- Opt-in alerts after measured quota recovery, with durable duplicate suppression
 - Encrypted credential storage
 - Material 3 with Dynamic Color
 
@@ -33,11 +33,16 @@ These screenshots show the original Android UI. Current builds add multi-account
 | --- | --- |
 | `debug` / `release` | Existing Kotlin provider paths; no bundled CLI or native API-key settings |
 | `nativeDebug` | Native diagnostics for a selected ABI |
-| `nativeRelease` | Optimized ARM64 native test build with seven providers |
+| `nativeRelease` | Optimized ARM64 daily build with seven providers; no diagnostic activity |
+| `nativeAcceptance` | Isolated, release-optimized synthetic diagnostics |
 
-The app minimum is Android 8.0 / API 26; the native engine requires Android 9 / API 28. The native test package is `com.codexbar.android.native`, separate from the original app.
+The app minimum is Android 8.0 / API 26; the native engine requires Android 9 / API 28.
+The daily package remains `com.codexbar.android.native`, preserving earlier native-build
+accounts and signing identity. Diagnostics use `com.codexbar.android.native.acceptance`.
 
-For the native build, follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [native build guide](native/README.md). Prefer `nativeRelease` for remote testing and phone delivery. The measured Go APK is approximately **33.3 MiB**.
+For the native build, follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [native build guide](native/README.md).
+Deliver `nativeRelease`; use `nativeAcceptance` for synthetic runtime probes. Both reuse
+the pinned ARM64 payload. Current artifact measurements and acceptance limits live in [TEST.md](TEST.md).
 
 Credentials are stored encrypted on-device and sent directly to the corresponding provider for authenticated requests. There is no project-operated quota backend.
 
@@ -61,7 +66,7 @@ entry remains available; another application's client ID is not bundled.
 GitHub Copilot is also available in native-engine builds: **Settings → Add GitHub
 Copilot account** accepts a GitHub OAuth token with Copilot access. A short-lived
 Copilot session token is not interchangeable. This integration queries github.com;
-enterprise hosts and integrated GitHub browser sign-in are not implemented. Premium
+enterprise hosts are not implemented. Browser device sign-in requires the registration above. Premium
 and Chat windows are reported separately when supplied; plan-only responses do not
 imply zero usage. Real-account acceptance remains pending.
 

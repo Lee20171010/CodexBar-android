@@ -39,7 +39,8 @@ reset. Unknown duration/reset omits the even-use guide. Estimates are not guaran
 
 Recovery alerts are opt-in and default off. A notification requires the same account,
 generation, source, and stable window ID to move from at least 95% used to at most
-80% remaining-constrained in a fresh measurement. Reset timestamps, first cache loads,
+80% used in a fresh measurement. The thresholds are uniform across providers;
+provider-specific recovery evidence remains a refinement. Reset timestamps, first cache loads,
 legacy data, stale or future readings, and cache restoration cannot trigger it.
 The durable receipt is written before display and suppresses repeats for the reported
 window duration, or one day when unknown. Notification content is account name,
@@ -357,7 +358,8 @@ lookup resolves the sibling C++ library. Executable code is supplied at build ti
 | --- | --- | --- |
 | `debug`, `release` | Not packaged; native-provider settings hidden | Original app package and dashboard |
 | `nativeDebug` | Selected prebuilt ABI payload | Separate `.native` package; explicit smoke activity |
-| `nativeRelease` | ARM64 Release payload | Separate `.native` package; dashboard launcher and explicit smoke activity |
+| `nativeRelease` | ARM64 Release payload | Separate `.native` package; dashboard launcher only, no diagnostic activity |
+| `nativeAcceptance` | Same ARM64 Release payload | `.native.acceptance` package; release-optimized synthetic diagnostics |
 
 `nativeRelease` is non-debuggable, signed with the operator-provided key, and uses
 R8/resource shrinking. Swift uses `-Osize`, linker section collection and symbol
@@ -376,9 +378,12 @@ readings for widgets and updates notifications/tile state. Widget cache storage 
 separate from encrypted credentials.
 
 WorkManager schedules require network connectivity and are best-effort rather than
-precise timers. Initial scheduling currently uses the 30-minute default. The Settings
-screen persists the selected interval, but its setter does not reschedule WorkManager;
-the Manual/interval controls are therefore not a verified scheduling contract yet.
+precise timers. The Settings interval is rescheduled immediately and re-applied at
+app startup; Manual cancels the periodic and automatic retry work while keeping the
+explicit one-shot refresh. Per-account one-shot work validates the current generation
+and mode before refreshing, so deleted or reconnected accounts cannot publish stale
+results. Scheduling behavior is exercised by JVM tests and the acceptance build's
+cadence persistence probe; long-run device behavior remains an observation target.
 
 ## 8. Current limits and acceptance boundary
 

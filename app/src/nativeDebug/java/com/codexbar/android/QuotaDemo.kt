@@ -18,17 +18,23 @@ import java.time.Instant
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(name = "Phone", widthDp = 360, heightDp = 720)
 @Composable
-internal fun QuotaDemo(dark: Boolean = false, large: Boolean = false) {
+internal fun QuotaDemo(dark: Boolean = false, large: Boolean = false, rich: Boolean = false) {
     val now = Instant.parse("2026-10-08T12:00:00Z")
     val quota = QuotaInfo(AiService.CODEX, listOf(
         UsageWindow("5-Hour", .57, now.plusSeconds(7200), "primary"),
         UsageWindow("7-Day", .03, now.plusSeconds(172800), "secondary"),
         UsageWindow("Demo long model-specific code-review quota pool", 1.15, null, "model", supplemental = true)
-    ), null, "Demo plan", now.minusSeconds(7200), source = "synthetic-demo")
+    ), null, "Demo plan", now.minusSeconds(7200), source = "synthetic-demo",
+        credits = if (rich) ReportedCredits(0.0, false, null, now) else null,
+        resetInventory = if (rich) ResetInventory(1, listOf(ResetCredit("usage_limit", "available", now.plusSeconds(86400))), now) else null)
     val account = AccountConnection("CODEX", AiService.CODEX, "Demo account with a long readable name",
         "00000000-0000-0000-0000-000000000001")
+    var display by remember { mutableStateOf(DisplayOptions()) }
     val card = ServiceCardData(account, emptyList(), null, quota.tier,
-        snapshot = QuotaSnapshot(quota, now, QuotaFailure.NETWORK))
+        snapshot = QuotaSnapshot(quota, now, QuotaFailure.NETWORK), display = display,
+        history = if (rich) mapOf("primary" to WindowHistory(now.plusSeconds(7200).epochSecond, 18000,
+            listOf(PaceSample(now.minusSeconds(3600).epochSecond, .8), PaceSample(now.minusSeconds(1800).epochSecond, .6),
+                PaceSample(now.epochSecond, .43)), "synthetic-demo")) else emptyMap())
     var details by remember { mutableStateOf(false) }
     CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, if (large) 2f else 1f)) {
         CodexBarTheme(darkTheme = dark, dynamicColor = false) {
@@ -40,10 +46,10 @@ internal fun QuotaDemo(dark: Boolean = false, large: Boolean = false) {
                             Text("Synthetic demo", style = MaterialTheme.typography.titleLarge)
                             ServiceCard(card, { details = true }, Modifier.fillMaxWidth(), now)
                         }
-                        if (wide) QuotaDetail(card, now, {}, {}, Modifier.weight(1f))
+                         if (wide) QuotaDetail(card, now, {}, {}, Modifier.weight(1f), if (rich) { { display = it } } else null)
                     }
                     if (details && !wide) ModalBottomSheet(onDismissRequest = { details = false }) {
-                        QuotaDetail(card, now, {}, {}, Modifier.fillMaxWidth())
+                         QuotaDetail(card, now, {}, {}, Modifier.fillMaxWidth(), if (rich) { { display = it } } else null)
                     }
                 }
             }
