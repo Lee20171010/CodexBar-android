@@ -1,5 +1,12 @@
 # CodexBar Android Test Plan
 
+## Confirmed quota recovery
+
+90 JVM tests, Debug lint and Native Debug compilation pass. Fixtures reject timestamp
+jitter, first observations, stale/future/legacy readings, source changes and repeated
+rolling events. Encrypted receipt tests cover restart, sibling isolation, reconnect
+and deletion. Device notification permission/display acceptance is pending.
+
 ## Official service status
 
 87 JVM tests, Debug lint and Native Debug compilation pass. Fixtures cover every

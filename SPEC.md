@@ -1,5 +1,15 @@
 # CodexBar Android Technical Specification
 
+## Confirmed quota recovery
+
+Recovery alerts are opt-in and default off. A notification requires the same account,
+generation, source, and stable window ID to move from at least 95% used to at most
+80% remaining-constrained in a fresh measurement. Reset timestamps, first cache loads,
+legacy data, stale or future readings, and cache restoration cannot trigger it.
+The durable receipt is written before display and suppresses repeats for the reported
+window duration, or one day when unknown. Notification content is account name,
+window label and remaining percent only.
+
 ## Official service status
 
 Android's `usage --status-only` CLI route invokes Core status metadata/fetchers before

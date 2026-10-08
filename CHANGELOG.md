@@ -1,5 +1,10 @@
 # Changelog
 
+## Confirmed quota recovery
+
+- Alert only after a fresh same-source reading confirms recovery from near exhaustion.
+  Persist the receipt before notifying and keep alerts opt-in and private.
+
 ## Official service status
 
 - Fetch pinned Core official status separately from quota and credentials, throttle

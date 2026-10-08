@@ -117,6 +117,12 @@ class AccountQuotaCoordinator @Inject constructor(
         val snapshot = snapshot(connection).after(result, Instant.now())
         quotaState.update { it + (connection.id to AccountQuota(connection, result, snapshot)) }
         widgets.saveSnapshot(connection, snapshot)
+        if (result is Result.Success) {
+            prefs.recordRecovery(connection, result.value).forEach { window ->
+                notifications.showResetNotification(connection, window.label,
+                    com.codexbar.android.core.presentation.QuotaPresentation.remainingPercent(window.utilization))
+            }
+        }
         updateNotifications()
     }
 

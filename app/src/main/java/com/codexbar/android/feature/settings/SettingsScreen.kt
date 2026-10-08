@@ -102,8 +102,16 @@ fun SettingsScreen(
         ) {
             // Notifications
             NotificationsSection(
+                title = stringResource(R.string.notification_status_title),
+                description = stringResource(R.string.notification_status_description),
                 enabled = uiState.notificationsEnabled,
                 onToggle = { viewModel.setNotificationsEnabled(it) }
+            )
+            NotificationsSection(
+                title = stringResource(R.string.recovery_setting_title),
+                description = stringResource(R.string.recovery_setting_description),
+                enabled = uiState.recoveryAlertsEnabled,
+                onToggle = { viewModel.setRecoveryAlertsEnabled(it) }
             )
 
             Text("Accounts", style = MaterialTheme.typography.titleLarge)
@@ -425,9 +433,14 @@ private fun RefreshIntervalSection(
 
 @Composable
 private fun NotificationsSection(
+    title: String,
+    description: String,
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val permission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(), onResult = onToggle)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -442,18 +455,23 @@ private fun NotificationsSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Notifications",
+                    text = title,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Quota status and reset alerts",
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Switch(
                 checked = enabled,
-                onCheckedChange = onToggle
+                onCheckedChange = { checked ->
+                    if (checked && android.os.Build.VERSION.SDK_INT >= 33 &&
+                        androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
+                        android.content.pm.PackageManager.PERMISSION_GRANTED) permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    else onToggle(checked)
+                }
             )
         }
     }

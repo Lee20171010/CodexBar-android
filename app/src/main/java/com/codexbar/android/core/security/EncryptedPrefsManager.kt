@@ -10,6 +10,7 @@ import com.codexbar.android.core.domain.model.Credential
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.encodeToString
 import java.io.IOException
 import java.time.Instant
 import java.util.UUID
@@ -168,6 +169,27 @@ class EncryptedPrefsManager internal constructor(
 
     fun setNotificationsEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("notifications_enabled", enabled).apply()
+    }
+
+    fun isRecoveryAlertsEnabled(): Boolean = prefs.getBoolean("recovery_alerts_enabled", false)
+
+    fun setRecoveryAlertsEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("recovery_alerts_enabled", enabled).apply()
+    }
+
+    /** Persist receipt before notification: restart cannot repeat an already claimed recovery. */
+    @Synchronized
+    fun recordRecovery(connection: AccountConnection, quota: com.codexbar.android.core.domain.model.QuotaInfo):
+        List<com.codexbar.android.core.domain.model.UsageWindow> {
+        if (!isCurrent(connection) || quota.service != connection.service) return emptyList()
+        val key = "${connection.id}_recovery_v1"
+        val previous = runCatching {
+            kotlinx.serialization.json.Json.decodeFromString<Map<String, com.codexbar.android.core.notification.RecoveryReading>>(
+                prefs.getString(key, null) ?: "{}")
+        }.getOrDefault(emptyMap())
+        val (next, recovered) = com.codexbar.android.core.notification.QuotaRecovery.observe(previous, quota, Instant.now().epochSecond)
+        commit(prefs.edit().putString(key, kotlinx.serialization.json.Json.encodeToString(next)))
+        return if (isRecoveryAlertsEnabled()) recovered else emptyList()
     }
 
     @Synchronized

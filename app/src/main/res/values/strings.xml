@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="notification_status_title">Persistent quota status</string>
+    <string name="notification_status_description">Show remaining quota in notifications</string>
+    <string name="recovery_setting_title">Confirmed quota recovery</string>
+    <string name="recovery_setting_description">Alert after a fresh reading confirms recovery from near exhaustion</string>
+    <string name="recovery_title">%1$s quota available again</string>
+    <string name="recovery_detail">%1$s · %2$d%% remaining in the latest reading</string>
     <string name="official_status">Official service status: %1$s</string>
     <string name="status_operational">Operational</string>
     <string name="status_incident">Incident reported</string>

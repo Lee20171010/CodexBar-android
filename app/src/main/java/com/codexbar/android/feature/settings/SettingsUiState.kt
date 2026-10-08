@@ -10,6 +10,7 @@ data class SettingsUiState(
     },
     val refreshIntervalMinutes: Long = 30L,
     val notificationsEnabled: Boolean = true,
+    val recoveryAlertsEnabled: Boolean = false,
     val showDeleteConfirmDialog: Boolean = false
 )
 

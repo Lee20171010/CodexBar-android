@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="notification_status_title">常駐額度狀態</string>
+    <string name="notification_status_description">在通知中顯示剩餘額度</string>
+    <string name="recovery_setting_title">確認額度恢復通知</string>
+    <string name="recovery_setting_description">新讀數確認額度從接近用盡恢復後才通知</string>
+    <string name="recovery_title">%1$s 額度再次可用</string>
+    <string name="recovery_detail">%1$s · 最新讀數剩餘 %2$d%%</string>
     <string name="official_status">官方服務狀態：%1$s</string>
     <string name="status_operational">正常運作</string>
     <string name="status_incident">已通報事故</string>

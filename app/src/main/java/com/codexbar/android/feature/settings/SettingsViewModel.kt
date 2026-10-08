@@ -38,7 +38,8 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState(
         connections = prefsManager.loadConnections(),
         refreshIntervalMinutes = prefsManager.getRefreshInterval(),
-        notificationsEnabled = prefsManager.isNotificationsEnabled()
+        notificationsEnabled = prefsManager.isNotificationsEnabled(),
+        recoveryAlertsEnabled = prefsManager.isRecoveryAlertsEnabled()
     ))
     val uiState = _uiState.asStateFlow()
     private val validationJobs = mutableMapOf<AiService, Job>()
@@ -202,6 +203,11 @@ class SettingsViewModel @Inject constructor(
         prefsManager.setNotificationsEnabled(enabled)
         _uiState.update { it.copy(notificationsEnabled = enabled) }
         accounts.updateNotifications()
+    }
+
+    fun setRecoveryAlertsEnabled(enabled: Boolean) {
+        prefsManager.setRecoveryAlertsEnabled(enabled)
+        _uiState.update { it.copy(recoveryAlertsEnabled = enabled) }
     }
 
     fun showDeleteConfirmDialog() { _uiState.update { it.copy(showDeleteConfirmDialog = true) } }

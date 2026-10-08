@@ -122,6 +122,7 @@ class QuotaNotificationService @Inject constructor(
         )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setSmallIcon(R.drawable.ic_quota)
             .setCustomContentView(remoteViews)
             .setContentIntent(dashboardPendingIntent)
@@ -133,7 +134,7 @@ class QuotaNotificationService @Inject constructor(
         manager.notify(NOTIFICATION_ID, notification)
     }
 
-    fun showResetNotification(connection: AccountConnection, windowLabel: String) {
+    fun showResetNotification(connection: AccountConnection, windowLabel: String, remainingPercent: Int) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (!manager.areNotificationsEnabled()) return
         val dashboardIntent = Intent().apply {
@@ -148,8 +149,9 @@ class QuotaNotificationService @Inject constructor(
 
         val notification = NotificationCompat.Builder(context, RESET_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_quota)
-            .setContentTitle("${connection.name} quota reset")
-            .setContentText("$windowLabel window has been reset. Your quota is fully available.")
+            .setContentTitle(context.getString(R.string.recovery_title, connection.name))
+            .setContentText(context.getString(R.string.recovery_detail, windowLabel, remainingPercent))
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setContentIntent(dashboardPendingIntent)
             .setAutoCancel(true)
             .build()

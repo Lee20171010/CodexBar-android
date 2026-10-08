@@ -42,21 +42,6 @@ class QuotaRefreshWorker @AssistedInject constructor(
                 return Result.success()
             }
             val result = accounts.refresh(connection)
-            if (result is com.codexbar.android.core.domain.model.Result.Success) {
-                prefsManager.publishIfCurrent(connection) {
-                    if (prefsManager.isNotificationsEnabled()) {
-                        val previous = prefsManager.loadResetTimes(connection)
-                        val now = Instant.now()
-                        result.value.windows.forEach { window ->
-                            val old = previous[window.label]
-                            if (old != null && old.isBefore(now) && window.resetsAt?.isAfter(now) == true) {
-                                notificationService.showResetNotification(connection, window.label)
-                            }
-                        }
-                        prefsManager.saveResetTimes(connection, result.value.windows.map { it.label to it.resetsAt })
-                    }
-                }
-            }
             updateQuotaSurfaces(applicationContext)
             officialStatus.refresh(connection.service)
             if (result is com.codexbar.android.core.domain.model.Result.Failure && shouldRetry(result.error)) Result.retry()
