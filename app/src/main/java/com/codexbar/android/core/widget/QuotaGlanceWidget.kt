@@ -45,6 +45,7 @@ import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.model.balanceText
 import com.codexbar.android.core.domain.model.spendText
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.presentation.QuotaPresentation
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -137,8 +138,9 @@ class QuotaGlanceWidget : GlanceAppWidget() {
         showRefresh: Boolean
     ) {
         val service = connection.service
-        val quota = widgetPrefs.getCachedQuota(connection)
-        val windows = quota?.windows.orEmpty()
+        val snapshot = widgetPrefs.getSnapshot(connection)
+        val quota = snapshot.quota
+        val windows = quota?.let(QuotaPresentation::principal).orEmpty()
         val tier = quota?.tier
 
         Column(modifier = GlanceModifier.fillMaxWidth()) {
@@ -199,6 +201,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
 
             Spacer(modifier = GlanceModifier.height(8.dp))
 
+            Text(QuotaPresentation.status(snapshot), style = TextStyle(color = ColorProvider(Color.White), fontSize = 11.sp))
             // Each usage window — same layout as app dashboard
             for ((index, window) in windows.withIndex()) {
                 if (index > 0) Spacer(modifier = GlanceModifier.height(6.dp))
@@ -212,7 +215,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
             }
             if (quota == null) {
                 Text(
-                    text = "Waiting for data...",
+                    text = "Refresh or reconnect in the app",
                     style = TextStyle(
                         color = ColorProvider(Color.White.copy(alpha = 0.4f)),
                         fontSize = 12.sp
@@ -227,9 +230,8 @@ class QuotaGlanceWidget : GlanceAppWidget() {
         window: UsageWindow
     ) {
         val utilization = window.utilization.toFloat().coerceIn(0f, 1f)
-        val remaining = ((1f - utilization) * 100).toInt()
-        val resetsAt = window.resetsAt?.epochSecond
-        val resetText = resetsAt?.let { formatResetTime(it) } ?: ""
+        val remaining = QuotaPresentation.remainingPercent(window.utilization)
+        val resetText = QuotaPresentation.reset(window.resetsAt) ?: ""
 
         Column(modifier = GlanceModifier.fillMaxWidth()) {
             // Label + percentage
@@ -266,7 +268,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
                 Row(modifier = GlanceModifier.fillMaxWidth()) {
                     Spacer(modifier = GlanceModifier.defaultWeight())
                     Text(
-                        text = "Resets in $resetText",
+                        text = resetText,
                         style = TextStyle(
                             color = ColorProvider(Color.White.copy(alpha = 0.4f)),
                             fontSize = 10.sp

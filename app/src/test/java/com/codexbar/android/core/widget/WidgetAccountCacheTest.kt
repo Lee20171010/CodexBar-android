@@ -7,11 +7,12 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class WidgetAccountCacheTest {
+    private val measuredAt = Instant.now()
     @Test fun `money budget identity and age survive cache restart without invented quota`() {
         val memory = MemoryPreferences()
         val cache = WidgetPrefsManager(memory.prefs)
         val account = AccountConnection.create(AiService.OPENROUTER)
-        val quota = QuotaInfo(AiService.OPENROUTER, emptyList(), null, fetchedAt = Instant.ofEpochSecond(2000),
+        val quota = QuotaInfo(AiService.OPENROUTER, emptyList(), null, fetchedAt = measuredAt,
             money = ReportedMoney(0.0, null, "USD", null, Instant.ofEpochSecond(1000)))
         cache.cacheQuota(account, quota)
         assertEquals(quota, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
@@ -54,7 +55,10 @@ class WidgetAccountCacheTest {
         val memory = MemoryPreferences()
         val cache = WidgetPrefsManager(memory.prefs)
         val account = AccountConnection.create(AiService.CODEX)
-        cache.cacheQuota(account, quota())
+        val prefix = "cache_${account.id}_"
+        memory.values["${prefix}generation"] = account.generation
+        memory.values["${prefix}labels"] = setOf("Window, with comma")
+        memory.values["${prefix}updated_at"] = measuredAt.toEpochMilli()
         val key = "cache_${account.id}_Window, with comma_util"
         memory.values.remove(key)
         assertNull(cache.getCachedQuota(account))
@@ -63,5 +67,5 @@ class WidgetAccountCacheTest {
     }
 
     private fun quota() = QuotaInfo(AiService.CODEX, listOf(UsageWindow("Window, with comma", 0.5, null)),
-        null, "Pro", Instant.ofEpochSecond(1000))
+        null, "Pro", measuredAt)
 }

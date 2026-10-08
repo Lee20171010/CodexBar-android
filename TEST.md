@@ -1,5 +1,16 @@
 # CodexBar Android Test Plan
 
+## Shared snapshots
+
+84 JVM tests and Debug lint passed, including owner-to-cache failure publication.
+
+Fixtures cover repeated labels with distinct IDs, model pools, duration/source and
+measurement-age preservation across transient failure and cache restart, reconnect
+isolation, authentication invalidation, retention pruning, future timestamps,
+over-quota rounding and reset-due wording. Existing legacy-cache tests retain missing
+and invalid-value coverage. Final all-surface Release/runtime acceptance remains a
+separate gate from these JVM checks.
+
 ## Copilot device sign-in
 
 81 JVM tests and Debug lint passed after this addition.

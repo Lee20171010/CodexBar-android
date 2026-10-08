@@ -105,7 +105,8 @@ object NativeQuotaCliParser {
                 windows = windows,
                 tier = plan,
                 extraUsage = null,
-                fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content)
+                fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content),
+                source = if (service == AiService.CODEX) "native-oauth" else "native-api"
             ))
         } catch (_: Exception) {
             Result.Failure(AppError.ParseError("Unexpected ${service.displayName} response from the native CLI."))

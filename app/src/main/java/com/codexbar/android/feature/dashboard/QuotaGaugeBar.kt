@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.Duration
 import java.time.Instant
+import com.codexbar.android.core.presentation.QuotaPresentation
 
 private val AmberWarning = Color(0xFFFFC107)
 
@@ -65,7 +66,7 @@ fun QuotaGaugeBar(
         label = "gauge_color"
     )
 
-    val resetText = resetsAt?.let { formatResetTime(it) }
+    val resetText = QuotaPresentation.reset(resetsAt)
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -101,7 +102,7 @@ fun QuotaGaugeBar(
             if (showPercentage) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "${(remaining * 100).toInt()}% left",
+                    text = "${QuotaPresentation.remainingPercent(utilization)}% left",
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.Medium,
                         fontSize = 12.sp
@@ -120,19 +121,5 @@ fun QuotaGaugeBar(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-    }
-}
-
-private fun formatResetTime(resetsAt: Instant): String? {
-    val now = Instant.now()
-    if (resetsAt.isBefore(now)) return null
-    val duration = Duration.between(now, resetsAt)
-    val totalMinutes = duration.toMinutes()
-    val hours = duration.toHours()
-    val days = duration.toDays()
-    return when {
-        days >= 1 -> "Resets in ${days}d ${hours % 24}h"
-        hours >= 1 -> "Resets in ${hours}h ${totalMinutes % 60}m"
-        else -> "Resets in ${totalMinutes}m"
     }
 }

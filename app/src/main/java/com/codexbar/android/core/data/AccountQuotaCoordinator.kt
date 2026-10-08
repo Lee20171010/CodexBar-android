@@ -12,6 +12,8 @@ import com.codexbar.android.core.domain.repository.StaleCredentialException
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.widget.WidgetPrefsManager
 import com.codexbar.android.core.notification.QuotaNotificationService
+import com.codexbar.android.core.presentation.QuotaSnapshot
+import java.time.Instant
 import com.codexbar.android.di.ClaudeRepository
 import com.codexbar.android.di.CodexRepository
 import com.codexbar.android.di.GeminiRepository
@@ -30,7 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-data class AccountQuota(val connection: AccountConnection, val result: Result<QuotaInfo, AppError>)
+data class AccountQuota(val connection: AccountConnection, val result: Result<QuotaInfo, AppError>, val snapshot: QuotaSnapshot = QuotaSnapshot())
 
 /** All foreground/background fetches for one connection share this refresh writer. */
 @Singleton
@@ -106,10 +108,15 @@ class AccountQuotaCoordinator @Inject constructor(
     }
 
     private fun publish(connection: AccountConnection, result: Result<QuotaInfo, AppError>) {
-        if (result is Result.Success) widgets.cacheQuota(connection, result.value)
-        quotaState.update { it + (connection.id to AccountQuota(connection, result)) }
+        val snapshot = snapshot(connection).after(result, Instant.now())
+        quotaState.update { it + (connection.id to AccountQuota(connection, result, snapshot)) }
+        widgets.saveSnapshot(connection, snapshot)
         updateNotifications()
     }
+
+    fun snapshot(connection: AccountConnection): QuotaSnapshot =
+        quotaState.value[connection.id]?.takeIf { it.connection.generation == connection.generation }?.snapshot
+            ?.retained(Instant.now()) ?: widgets.getSnapshot(connection)
 
     fun updateNotifications(): Unit = synchronized(prefs) {
         val current = prefs.loadConnections()
@@ -117,9 +124,7 @@ class AccountQuotaCoordinator @Inject constructor(
             notifications.showQuotaNotification(emptyList())
         } else {
             notifications.showQuotaNotification(current.mapNotNull { connection ->
-                val record = quotaState.value[connection.id]?.takeIf { it.connection.generation == connection.generation }
-                val quota = (record?.result as? Result.Success)?.value ?: return@mapNotNull null
-                connection to quota
+                connection to snapshot(connection)
             })
         }
     }

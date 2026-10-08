@@ -1,5 +1,26 @@
 # CodexBar Android Technical Specification
 
+## Shared measurement snapshots
+
+Dashboard, widgets, persistent notification and tile read connection/generation-scoped
+snapshots. A successful measurement owns its source, stable window IDs, durations,
+model-pool classification and timestamp. A transient failure retains that measurement
+with a typed failure and separate attempt time; authentication rejection removes its
+values. Reconnect never adopts the previous generation's reading. Saved account order
+is stable, and model-only pools do not become notification/widget general headlines.
+
+Readings older than one hour are stale; successful data is retained at most seven
+days. A clock rollback marks data stale, and a timestamp more than five minutes in
+the future is unavailable. A past reset means refresh to confirm, not recovered quota.
+All surfaces use the same remaining-percentage rounding, age and reset semantics.
+
+The existing private widget preferences now store versioned structured snapshots;
+old label-keyed entries are read as legacy/stale until a real refresh replaces them.
+Credentials and account identity are untouched. Downgraded builds may show no cached
+reading until refresh; the cache is disposable and can be repopulated without changing
+accounts. Cloud backup and device-transfer extraction exclude app data, including
+measurement caches. No credentials are stored in snapshots.
+
 ## 1. Purpose and current scope
 
 CodexBar Android presents AI-service quota information through a Compose dashboard,

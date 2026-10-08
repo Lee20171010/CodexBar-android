@@ -37,6 +37,20 @@ class AccountQuotaCoordinatorTest {
         assertNull(cache.getCachedQuota(saved))
     }
 
+    @Test fun `owner publishes identical cached failure and keeps only same-owner last good`() = runTest {
+        val account = save("first")
+        coordinator.refresh(account)
+        val measured = coordinator.snapshot(account).quota
+        fetch = { Result.Failure(AppError.ServiceUnavailable) }
+        coordinator.refresh(account)
+        assertEquals(measured, coordinator.snapshot(account).quota)
+        assertEquals(coordinator.snapshot(account), cache.getSnapshot(account))
+        fetch = { Result.Failure(AppError.AuthError(account.service, true)) }
+        coordinator.refresh(account)
+        assertNull(coordinator.snapshot(account).quota)
+        assertEquals(coordinator.snapshot(account), cache.getSnapshot(account))
+    }
+
     @Test fun `same-account overlap reloads rotated credentials and siblings remain independent`() = runTest {
         val first = save("first")
         val sibling = save("sibling")
@@ -131,5 +145,5 @@ class AccountQuotaCoordinatorTest {
     }
     private fun key(token: String) = Credential.OpenCodeGoCredential(token)
     private fun success(connection: AccountConnection) = Result.Success(QuotaInfo(connection.service,
-        listOf(UsageWindow("5-Hour", 0.25, null)), null, fetchedAt = Instant.ofEpochSecond(1000)))
+        listOf(UsageWindow("5-Hour", 0.25, null)), null, fetchedAt = Instant.now()))
 }

@@ -9,6 +9,8 @@ import android.service.quicksettings.TileService
 import com.codexbar.android.MainActivity
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.widget.WidgetPrefsManager
+import com.codexbar.android.core.presentation.QuotaPresentation
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -17,6 +19,7 @@ class QuotaTileService : TileService() {
 
     @Inject
     lateinit var prefsManager: EncryptedPrefsManager
+    @Inject lateinit var widgetPrefs: WidgetPrefsManager
 
     override fun onStartListening() {
         super.onStartListening()
@@ -67,7 +70,8 @@ class QuotaTileService : TileService() {
     }
 
     private fun buildSummarySubtitle(): String {
-        // Summary will be updated by WorkManager after fetch
-        return prefsManager.loadConnections().joinToString(" | ") { it.name }
+        return prefsManager.loadConnections().joinToString(" | ") {
+            "${it.name}: ${QuotaPresentation.summary(widgetPrefs.getSnapshot(it))}"
+        }
     }
 }

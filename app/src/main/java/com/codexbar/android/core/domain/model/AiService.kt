@@ -1,5 +1,6 @@
 package com.codexbar.android.core.domain.model
 
+@kotlinx.serialization.Serializable
 enum class AiService(
     val displayName: String,
     val brandColor: Long,

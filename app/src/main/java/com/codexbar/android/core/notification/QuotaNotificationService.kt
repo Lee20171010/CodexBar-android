@@ -13,6 +13,8 @@ import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.QuotaInfo
+import com.codexbar.android.core.presentation.QuotaSnapshot
+import com.codexbar.android.core.presentation.QuotaPresentation
 import com.codexbar.android.core.workmanager.QuotaRefreshWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
@@ -59,7 +61,7 @@ class QuotaNotificationService @Inject constructor(
         manager.createNotificationChannels(listOf(monitorChannel, resetChannel))
     }
 
-    fun showQuotaNotification(quotas: List<Pair<AccountConnection, QuotaInfo>>) {
+    fun showQuotaNotification(quotas: List<Pair<AccountConnection, QuotaSnapshot>>) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (quotas.isEmpty()) {
             manager.cancel(NOTIFICATION_ID)
@@ -69,14 +71,12 @@ class QuotaNotificationService @Inject constructor(
         val remoteViews = RemoteViews(context.packageName, R.layout.notification_compact)
 
         // Populate service data
-        quotas.forEachIndexed { index, (connection, quota) ->
+        quotas.forEachIndexed { index, (connection, snapshot) ->
             if (index >= 3) return@forEachIndexed // Max 3 services
 
-            val maxUtilization = quota.windows.maxOfOrNull { it.utilization }
-            val progress = ((maxUtilization ?: 0.0) * 100).toInt().coerceIn(0, 100)
-            val value = if (maxUtilization != null) "${progress}%" else quota.money?.let {
-                it.balance?.let { balance -> "${it.currency} ${String.format("%.2f", balance)}" } ?: "Balance unavailable"
-            } ?: "Unavailable"
+            val maxUtilization = snapshot.quota?.let(QuotaPresentation::principal)?.maxOfOrNull { it.utilization }
+            val progress = maxUtilization?.let(QuotaPresentation::remainingPercent) ?: 0
+            val value = QuotaPresentation.summary(snapshot)
             val barId = listOf(R.id.progress_bar_1, R.id.progress_bar_2, R.id.progress_bar_3)[index]
             remoteViews.setViewVisibility(barId, if (maxUtilization == null) android.view.View.GONE else android.view.View.VISIBLE)
 
@@ -99,8 +99,7 @@ class QuotaNotificationService @Inject constructor(
             }
         }
 
-        val elapsed = formatElapsed(quotas.minOfOrNull { it.second.fetchedAt })
-        remoteViews.setTextViewText(R.id.update_time, "Updated: $elapsed")
+        remoteViews.setTextViewText(R.id.update_time, QuotaPresentation.age(quotas.mapNotNull { it.second.quota?.fetchedAt }.minOrNull()))
 
         // Refresh action
         val refreshIntent = Intent(context, RefreshReceiver::class.java).apply {

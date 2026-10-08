@@ -44,15 +44,13 @@ class DashboardViewModel @Inject constructor(
                     val result = quotas[connection.id]?.takeIf {
                         it.connection.generation == connection.generation
                     }?.result
-                    when (result) {
-                        is Result.Success -> mapToCardData(connection, result.value)
-                        is Result.Failure -> {
-                            errors[connection] = result.error
-                            ServiceCardData(connection, emptyList(), null, null, error = result.error)
-                        }
-                        null -> ServiceCardData(connection, emptyList(), null, null, isLoading = true)
-                    }
-                }.sortedByDescending { card -> card.windows.maxOfOrNull { it.utilization } ?: 0.0 }
+                    val snapshot = accounts.snapshot(connection)
+                    val error = (result as? Result.Failure)?.error
+                    if (error != null) errors[connection] = error
+                    val card = snapshot.quota?.let { mapToCardData(connection, it) }
+                        ?: ServiceCardData(connection, emptyList(), null, null)
+                    card.copy(error = error, snapshot = snapshot)
+                }
                 when {
                     cards.isNotEmpty() && cards.all { it.isLoading } -> DashboardUiState.Loading
                     errors.isNotEmpty() -> DashboardUiState.PartialSuccess(cards, errors)

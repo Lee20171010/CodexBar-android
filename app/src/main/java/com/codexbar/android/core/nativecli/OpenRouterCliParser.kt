@@ -59,7 +59,7 @@ object OpenRouterCliParser {
             require(period == null || (period.length <= 120 && period.none(Char::isISOControl)))
             val moneyAt = cost?.get("updatedAt")?.jsonPrimitive?.content?.let(Instant::parse) ?: fetchedAt
             Result.Success(QuotaInfo(AiService.OPENROUTER, windows, null, fetchedAt = fetchedAt,
-                money = ReportedMoney(balance, spent, currency, period, moneyAt)))
+                money = ReportedMoney(balance, spent, currency, period, moneyAt), source = "native-api"))
         } catch (_: Exception) {
             Result.Failure(AppError.ParseError("Unexpected OpenRouter response from the native CLI."))
         }

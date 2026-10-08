@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.balanceText
 import com.codexbar.android.core.domain.model.spendText
+import com.codexbar.android.core.presentation.QuotaPresentation
 
 @Composable
 fun ServiceCard(
@@ -80,6 +81,9 @@ fun ServiceCard(
                 }
             }
 
+            Text(QuotaPresentation.status(cardData.snapshot), style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+
             // Error state
             if (cardData.error != null) {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -97,7 +101,7 @@ fun ServiceCard(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-                return@Column
+                if (cardData.snapshot.quota == null) return@Column
             }
 
             Spacer(modifier = Modifier.height(12.dp))

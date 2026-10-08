@@ -8,6 +8,11 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- Share generation-scoped last-good measurements, typed failures, source and age
+  across dashboard, widgets, notification and tile; invalidate rejected credentials.
+- Preserve stable window identity and model-pool metadata in bounded private caches;
+  align remaining-percent rounding and reset-due wording across surfaces.
+
 - Add registration-gated GitHub device sign-in with cancellable polling and quota
   validation before publication. Keep manual Copilot OAuth token entry available.
 

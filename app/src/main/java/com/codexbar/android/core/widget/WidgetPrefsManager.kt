@@ -8,6 +8,9 @@ import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.model.UsageWindowKind
 import com.codexbar.android.core.domain.model.ReportedMoney
+import com.codexbar.android.core.presentation.QuotaSnapshot
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import javax.inject.Inject
@@ -37,7 +40,7 @@ class WidgetPrefsManager internal constructor(private val prefs: SharedPreferenc
         editor.apply()
     }
 
-    fun deleteAccountCache(id: String) {
+    @Synchronized fun deleteAccountCache(id: String) {
         val editor = prefs.edit()
         prefs.all.keys.filter { it.startsWith("cache_${id}_") }.forEach(editor::remove)
         editor.apply()
@@ -45,30 +48,46 @@ class WidgetPrefsManager internal constructor(private val prefs: SharedPreferenc
 
     fun cacheQuota(connection: AccountConnection, quota: QuotaInfo) {
         require(quota.service == connection.service)
+        saveSnapshot(connection, QuotaSnapshot(quota, quota.fetchedAt))
+    }
+
+    @Synchronized fun saveSnapshot(connection: AccountConnection, snapshot: QuotaSnapshot) {
+        require(snapshot.quota == null || snapshot.quota.service == connection.service)
         val prefix = "cache_${connection.id}_"
         val editor = prefs.edit()
         prefs.all.keys.filter { it.startsWith(prefix) }.forEach(editor::remove)
         editor.putString("${prefix}generation", connection.generation)
-            .putStringSet("${prefix}labels", quota.windows.map { it.label }.toSet())
-            .putString("${prefix}tier", quota.tier)
-            .putLong("${prefix}updated_at", quota.fetchedAt.toEpochMilli())
-        quota.windows.forEach {
-            editor.putString("${prefix}${it.label}_id", it.id)
-            editor.putString("${prefix}${it.label}_kind", it.kind.name)
-            editor.putFloat("${prefix}${it.label}_util", it.utilization.toFloat())
-            it.resetsAt?.let { reset -> editor.putLong("${prefix}${it.label}_resets", reset.epochSecond) }
-        }
-        quota.money?.let {
-            editor.putString("${prefix}money_currency", it.currency)
-                .putString("${prefix}money_period", it.period)
-                .putString("${prefix}money_balance", it.balance?.toString())
-                .putString("${prefix}money_spent", it.spent?.toString())
-                .putLong("${prefix}money_at", it.fetchedAt.toEpochMilli())
-        }
-        editor.apply()
+            .putString("${prefix}snapshot_v1", Json.encodeToString(snapshot))
+        check(editor.commit()) { "Could not persist quota reading" }
     }
 
-    fun getCachedQuota(connection: AccountConnection): QuotaInfo? {
+    @Synchronized fun getSnapshot(connection: AccountConnection, now: Instant = Instant.now()): QuotaSnapshot {
+        val stored = readSnapshot(connection)
+        val retained = stored.retained(now)
+        if (retained != stored) saveSnapshot(connection, retained)
+        return retained
+    }
+
+    fun getCachedQuota(connection: AccountConnection): QuotaInfo? = getSnapshot(connection).quota
+
+    private fun readSnapshot(connection: AccountConnection): QuotaSnapshot {
+        val values = prefs.all
+        val prefix = "cache_${connection.id}_"
+        if (values["${prefix}generation"] != connection.generation) return QuotaSnapshot()
+        val encoded = values["${prefix}snapshot_v1"] as? String
+        if (encoded == null) return QuotaSnapshot(getLegacyQuota(connection)?.copy(source = "legacy"))
+        return try {
+            require(encoded.length <= 262144)
+            val snapshot = Json.decodeFromString<QuotaSnapshot>(encoded)
+            val quota = snapshot.quota
+            require(quota == null || (quota.service == connection.service && quota.windows.size <= 100 &&
+                quota.windows.map { it.id }.distinct().size == quota.windows.size &&
+                quota.windows.all { it.utilization.isFinite() && it.utilization >= 0 }))
+            snapshot
+        } catch (_: Exception) { QuotaSnapshot() }
+    }
+
+    private fun getLegacyQuota(connection: AccountConnection): QuotaInfo? {
         // One immutable preference snapshot: reconnect cannot mix generations across window reads.
         val snapshot = prefs.all
         val prefix = "cache_${connection.id}_"
