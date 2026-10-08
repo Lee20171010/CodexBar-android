@@ -29,6 +29,7 @@ class NativeCodexBarClient @Inject constructor(
         val (provider, keyVariable) = when (service) {
             AiService.OPENCODE_GO -> "opencodego" to "OPENCODE_API_KEY"
             AiService.OPENROUTER -> "openrouter" to "OPENROUTER_API_KEY"
+            AiService.COPILOT -> "copilot" to "COPILOT_API_TOKEN"
             else -> return@withLock Result.Failure(AppError.ParseError("Unsupported native API-key provider."))
         }
         if (apiKey.isBlank() || apiKey.any { it.isWhitespace() || it.isISOControl() }) {
@@ -75,8 +76,8 @@ class NativeCodexBarClient @Inject constructor(
                     home.deleteRecursively()
                 }
             }
-            if (service == AiService.OPENCODE_GO) OpenCodeGoCliParser.parse(capture)
-            else OpenRouterCliParser.parse(capture)
+            if (service == AiService.OPENROUTER) OpenRouterCliParser.parse(capture)
+            else NativeQuotaCliParser.parse(capture, service)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (_: Exception) {

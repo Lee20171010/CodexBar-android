@@ -57,7 +57,7 @@ def verify_api_settings(run_id, provider, display_name):
                 tap(add_buttons[0])
                 continue
             fields = [n for n in tree.iter("node") if n.get("class") == "android.widget.EditText" and
-                      any(c.get("text") == f"{display_name} API Key" for c in n.iter("node"))]
+                      any(c.get("text") == ("GitHub OAuth token" if provider == "copilot" else f"{display_name} API Key") for c in n.iter("node"))]
             if fields:
                 field = fields[0]
                 assert field.get("password") == "true", "API key field must be masked"
@@ -98,6 +98,7 @@ def main():
     parser.add_argument("--configuration", choices=("debug", "release"), default="debug")
     parser.add_argument("--opencode-go", action="store_true", help="Also test Go API with a fixed invalid key")
     parser.add_argument("--openrouter", action="store_true", help="Also test OpenRouter API with a fixed invalid key")
+    parser.add_argument("--copilot", action="store_true", help="Also test Copilot API with a fixed invalid token")
     parser.add_argument("--locked", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     for name, value in (("ANDROID_TEST_ADB_WRAPPER", ADB), ("ANDROID_TEST_SESSION_WRAPPER", SESSION_WRAPPER)):
@@ -110,7 +111,8 @@ def main():
                                 str(Path(__file__).resolve()), "--abi", args.abi,
                                 "--configuration", args.configuration, "--locked",
                                 *(["--opencode-go"] if args.opencode_go else []),
-                                *(["--openrouter"] if args.openrouter else [])])
+                                *(["--openrouter"] if args.openrouter else []),
+                                *(["--copilot"] if args.copilot else [])])
     variant = "nativeRelease" if args.configuration == "release" else "nativeDebug"
     apk = ROOT / f"app/build/outputs/apk/{variant}/app-{variant}.apk"
     if not apk.is_file():
@@ -128,7 +130,8 @@ def main():
         print(adb("install", "--abi", args.abi, str(apk), timeout=900).stdout, flush=True)
         adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.NativeCliSmokeActivity",
             "--es", "run_id", run_id, "--ez", "test_go", str(args.opencode_go).lower(),
-            "--ez", "test_openrouter", str(args.openrouter).lower())
+            "--ez", "test_openrouter", str(args.openrouter).lower(),
+            "--ez", "test_copilot", str(args.copilot).lower())
         deadline = time.monotonic() + 210
         while time.monotonic() < deadline:
             # Release must stay non-debuggable. Read only this run's synthetic report from logcat.
@@ -147,7 +150,8 @@ def main():
                     report.update(apkSha256=apk_hash, apkBytes=apk.stat().st_size,
                                   abi=args.abi, configuration=args.configuration)
                     for enabled, provider, name in ((args.opencode_go, "go", "OpenCode Go"),
-                                                    (args.openrouter, "openrouter", "OpenRouter")):
+                                                    (args.openrouter, "openrouter", "OpenRouter"),
+                                                    (args.copilot, "copilot", "GitHub Copilot")):
                         if enabled and report.get("passed"):
                             try:
                                 report[f"{provider}SettingsPassed"] = verify_api_settings(run_id, provider, name)

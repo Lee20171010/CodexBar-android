@@ -12,10 +12,12 @@ successful real-account quota retrieval are distinct gates.
 | Claude / Codex / Gemini | Kotlin | HTTP fixtures | Full account acceptance pending | Pending |
 | OpenCode Go | Native API in native-engine builds | Parser, repository, account lifecycle | Invalid-key CLI and Settings rejection | Pending |
 | OpenRouter | Native API in native-engine builds | Budget/balance parser, ownership, cache | Invalid-key native and Settings rejection passed | Pending |
-| Copilot / DeepSeek | Not implemented | Not recorded | Not recorded | Not recorded |
+| Copilot | Native API in native-engine builds | Premium/chat/plan-only parser and account isolation | Pending | Pending |
+| DeepSeek | Not implemented | Not recorded | Not recorded | Not recorded |
 
-Codex device-code login is not implemented. Public-client/source compatibility must
-be established before adding an OAuth flow; manual credentials remain available.
+Codex device-code login is implemented with synthetic protocol checks. Owner-authorized
+browser login, real quota retrieval and token renewal remain separate pending gates;
+manual credentials remain available.
 
 ## 2. Host checks
 
@@ -36,7 +38,7 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher and tile visual runtime acceptance remain pending.
 
-The JVM suite currently contains **67 tests**:
+The JVM suite currently contains **71 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -46,8 +48,9 @@ The JVM suite currently contains **67 tests**:
 | OpenCode Go repository | 2 | Missing key avoids execution; rejected keys are retained |
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |
 | Go CLI parser | 5 | Window mapping, provider/source isolation, invalid data, truncation, sanitized errors |
+| Copilot CLI parser | 3 | Premium/chat identity, plan-only results, over-quota values, invalid data and sanitized auth rejection |
 | OpenRouter repository | 1 | Explicit provider/key ownership and wrong-credential rejection before native execution |
-| Codex device-code auth | 6 | Pending/success/PKCE, denial/expiry, slow-down timing, cancellation, oversized responses and redirect rejection |
+| Codex device-code auth | 7 | Pending/success/PKCE, denial/expiry/deadline, slow-down timing, cancellation, oversized responses and redirect rejection |
 | OpenRouter CLI parser | 4 | Balance-only versus capped budgets, zero/unknown, measurement age, malformed data, process failures and sanitized API errors |
 | Account storage | 9 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes, invalid identities and OpenRouter restart isolation |
 | Account coordinator | 6 | Failed draft isolation, serialized rotation, independent siblings, late deletion results, cancellation and reconnect |

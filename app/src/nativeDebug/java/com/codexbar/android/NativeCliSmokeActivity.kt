@@ -56,7 +56,8 @@ class NativeCliSmokeActivity : ComponentActivity() {
             val report = runInterruptible(Dispatchers.IO) { runProbes() }.put("runId", runId)
             for ((flag, service, name) in listOf(
                 Triple("test_go", AiService.OPENCODE_GO, "opencode-go-api-invalid-key"),
-                Triple("test_openrouter", AiService.OPENROUTER, "openrouter-api-invalid-key")
+                Triple("test_openrouter", AiService.OPENROUTER, "openrouter-api-invalid-key"),
+                Triple("test_copilot", AiService.COPILOT, "copilot-api-invalid-token")
             )) {
                 if (!intent.getBooleanExtra(flag, false)) continue
                 // Exercise the production client with an intentionally invalid key, never a saved account.

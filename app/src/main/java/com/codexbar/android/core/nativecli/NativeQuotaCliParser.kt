@@ -15,9 +15,11 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
-object OpenCodeGoCliParser {
-    fun parse(capture: CliProcess.Result): Result<QuotaInfo, AppError> {
-        if (capture.timedOut) return Result.Failure(AppError.NetworkError("OpenCode Go request timed out."))
+object NativeQuotaCliParser {
+    fun parse(capture: CliProcess.Result, service: AiService = AiService.OPENCODE_GO): Result<QuotaInfo, AppError> {
+        require(service == AiService.OPENCODE_GO || service == AiService.COPILOT)
+        val provider = if (service == AiService.COPILOT) "copilot" else "opencodego"
+        if (capture.timedOut) return Result.Failure(AppError.NetworkError("${service.displayName} request timed out."))
         if (capture.stdoutTruncated || capture.stderrTruncated) {
             return Result.Failure(AppError.ParseError("Native CLI output exceeded its size limit."))
         }
@@ -25,25 +27,28 @@ object OpenCodeGoCliParser {
             val envelopes = Json.parseToJsonElement(capture.stdout).jsonArray
             require(envelopes.size == 1)
             val envelope = envelopes.single().jsonObject
-            require(envelope["provider"]?.jsonPrimitive?.content == "opencodego")
+            require(envelope["provider"]?.jsonPrimitive?.content == provider)
             require(envelope["source"]?.jsonPrimitive?.content == "api")
             val error = envelope["error"]?.takeUnless { it == JsonNull }?.jsonObject
             if (error != null) {
                 val message = error["message"]?.jsonPrimitive?.contentOrNull.orEmpty()
                 val mapped = when {
-                    message.contains("credentials are invalid or expired", ignoreCase = true) ->
-                        AppError.AuthError(AiService.OPENCODE_GO, isTerminal = true)
+                    message.contains("credentials are invalid or expired", ignoreCase = true) ||
+                        (service == AiService.COPILOT && message.contains("NSURLErrorDomain") && Regex("-1013(?![0-9])").containsMatchIn(message)) ->
+                        AppError.AuthError(service, isTerminal = true)
                     message.contains("HTTP 429") -> AppError.RateLimited
                     message.contains("HTTP 503") -> AppError.ServiceUnavailable
                     message.contains("No OpenCode Go subscription") ->
                         AppError.NetworkError("No active OpenCode Go subscription is available for this key.")
-                    else -> AppError.NetworkError("OpenCode Go query failed. Check your API key and connection.")
+                    else -> AppError.NetworkError("${service.displayName} query failed. Check your credential and connection.")
                 }
                 return Result.Failure(mapped)
             }
             require(capture.exitCode == 0)
             val usage = envelope.getValue("usage").jsonObject
-            val windows = listOf("primary" to "5-Hour", "secondary" to "Weekly", "tertiary" to "Monthly")
+            val labels = if (service == AiService.COPILOT) listOf("primary" to "Premium", "secondary" to "Chat")
+                else listOf("primary" to "5-Hour", "secondary" to "Weekly", "tertiary" to "Monthly")
+            val windows = labels
                 .mapNotNull { (name, label) ->
                     val window = usage[name]?.takeUnless { it == JsonNull }?.jsonObject ?: return@mapNotNull null
                     if (window["isSyntheticPlaceholder"]?.jsonPrimitive?.booleanOrNull == true) return@mapNotNull null
@@ -55,15 +60,18 @@ object OpenCodeGoCliParser {
                         resetsAt = window["resetsAt"]?.jsonPrimitive?.contentOrNull?.let(Instant::parse)
                     )
                 }
-            require(windows.isNotEmpty())
+            val plan = if (service == AiService.COPILOT) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
+                ?.takeIf { it.isNotBlank() && it.length <= 128 && it.none(Char::isISOControl) } else null
+            require(windows.isNotEmpty() || (service == AiService.COPILOT && plan != null))
             Result.Success(QuotaInfo(
-                service = AiService.OPENCODE_GO,
+                service = service,
                 windows = windows,
+                tier = plan,
                 extraUsage = null,
                 fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content)
             ))
         } catch (_: Exception) {
-            Result.Failure(AppError.ParseError("Unexpected OpenCode Go response from the native CLI."))
+            Result.Failure(AppError.ParseError("Unexpected ${service.displayName} response from the native CLI."))
         }
     }
 }

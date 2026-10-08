@@ -6,6 +6,7 @@ import com.codexbar.android.core.domain.model.Result
 import java.time.Instant
 import org.junit.Assert.*
 import org.junit.Test
+import com.codexbar.android.core.nativecli.NativeQuotaCliParser as OpenCodeGoCliParser
 
 class OpenCodeGoCliParserTest {
     private val success = """[{"provider":"opencodego","source":"api","usage":{

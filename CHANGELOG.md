@@ -8,6 +8,8 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- GitHub Copilot accounts via the pinned native API source, with separate Premium/Chat
+  measurements and plan-only responses retained without inventing zero usage.
 - Codex browser/device-code sign-in with bounded polling, PKCE exchange, cancellation
   and validated encrypted account publication; existing manual token entry remains available.
 - OpenRouter API-key accounts through the pinned native engine, with reported
@@ -46,7 +48,7 @@ from the pinned Swift Core/CLI source revision.
 
 ### Verification
 
-- 67 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
+- 71 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
   device acceptance remains separate from these synthetic tests.
 - The Go Release APK passed five runtime probes and Settings validation on an
   API 36 emulator's ARM64 native-bridge path. See [TEST.md](TEST.md) for exact scope.

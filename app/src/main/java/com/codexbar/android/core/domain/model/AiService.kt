@@ -30,6 +30,12 @@ enum class AiService(
         baseUrl = "https://opencode.ai/",
         requiresManualCredentials = true
     ),
+    COPILOT(
+        displayName = "GitHub Copilot",
+        brandColor = 0xFF6E40C9,
+        baseUrl = "https://api.github.com/",
+        requiresManualCredentials = true
+    ),
     OPENROUTER(
         displayName = "OpenRouter",
         brandColor = 0xFF6467F2,
@@ -37,5 +43,5 @@ enum class AiService(
         requiresManualCredentials = true
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT
 }

@@ -35,4 +35,8 @@ sealed class Credential {
     class OpenRouterCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class CopilotCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

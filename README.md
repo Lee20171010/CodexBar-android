@@ -41,6 +41,15 @@ For the native build, follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [native 
 
 Credentials are stored encrypted on-device and sent directly to the corresponding provider for authenticated requests. There is no project-operated quota backend.
 
+## GitHub Copilot setup
+
+GitHub Copilot is also available in native-engine builds: **Settings → Add GitHub
+Copilot account** accepts a GitHub OAuth token with Copilot access. A short-lived
+Copilot session token is not interchangeable. This integration queries github.com;
+enterprise hosts and integrated GitHub browser sign-in are not implemented. Premium
+and Chat windows are reported separately when supplied; plan-only responses do not
+imply zero usage. Real-account acceptance remains pending.
+
 ## OpenRouter setup
 
 In a native-engine build, choose **Settings → Add OpenRouter account**, enter an
