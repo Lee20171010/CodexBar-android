@@ -1,5 +1,16 @@
 # CodexBar Android Technical Specification
 
+## Display profiles
+
+Account overview preferences use stable window IDs, show-amounts and absolute-reset
+switches. Detail retains every quota window. Hidden windows still participate in
+pace, recovery and risk; near-exhausted hidden metrics show a warning. Each widget
+stores its own per-account profile, independent of dashboard choices. Restore
+Defaults clears only that profile. Disappearing metrics retain their hidden ID;
+renaming/localizing labels does not change selection. Account deletion clears its
+profiles; widget deletion clears only that widget's profile. These preferences never
+alter credentials, ownership, fetch sources or scheduling.
+
 ## Quota history and pace
 
 History uses the no-backup display cache, keyed by account generation and stable

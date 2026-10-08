@@ -11,6 +11,7 @@ import com.codexbar.android.core.domain.model.ReportedMoney
 import com.codexbar.android.core.presentation.QuotaSnapshot
 import com.codexbar.android.core.presentation.QuotaPace
 import com.codexbar.android.core.presentation.WindowHistory
+import com.codexbar.android.core.presentation.DisplayOptions
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -42,9 +43,22 @@ class WidgetPrefsManager internal constructor(private val prefs: SharedPreferenc
         editor.apply()
     }
 
+    fun displayOptions(connection: AccountConnection, widgetId: Int? = null): DisplayOptions = runCatching {
+        Json.decodeFromString<DisplayOptions>(prefs.getString(displayKey(connection, widgetId), null) ?: "{}")
+    }.getOrDefault(DisplayOptions())
+
+    fun saveDisplayOptions(connection: AccountConnection, options: DisplayOptions, widgetId: Int? = null) {
+        require(options.hiddenWindows.size <= 100 && options.hiddenWindows.all { it.length <= 256 })
+        check(prefs.edit().putString(displayKey(connection, widgetId), Json.encodeToString(options)).commit())
+    }
+
+    private fun displayKey(connection: AccountConnection, widgetId: Int?) =
+        if (widgetId == null) "display_${connection.id}" else "widget_${widgetId}_display_${connection.id}"
+
     @Synchronized fun deleteAccountCache(id: String) {
         val editor = prefs.edit()
-        prefs.all.keys.filter { it.startsWith("cache_${id}_") || it == "history_${id}" || it == "history_${id}_generation" }.forEach(editor::remove)
+        prefs.all.keys.filter { it.startsWith("cache_${id}_") || it == "history_${id}" || it == "history_${id}_generation" ||
+            it == "display_$id" || (it.startsWith("widget_") && it.endsWith("_display_$id")) }.forEach(editor::remove)
         editor.apply()
     }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## Display profiles
+
+- Add per-account overview window/amount choices, absolute reset times and Restore
+  Defaults. Widgets have independent profiles; hidden quota risk remains visible.
+
 ## Quota history and pace
 
 - Keep bounded, generation-scoped successful history and show one remaining-over-time

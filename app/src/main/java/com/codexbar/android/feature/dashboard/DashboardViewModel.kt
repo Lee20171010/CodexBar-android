@@ -37,11 +37,12 @@ class DashboardViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
     private var refreshJob: Job? = null
+    private val displayRevision = MutableStateFlow(0)
 
     init {
         prefsManager.loadConnections()
         viewModelScope.launch {
-            combine(prefsManager.connections, accounts.quotas, officialStatus.statuses) { connections, quotas, statuses ->
+            combine(prefsManager.connections, accounts.quotas, officialStatus.statuses, displayRevision) { connections, quotas, statuses, _ ->
                 val errors = mutableMapOf<AccountConnection, AppError>()
                 val cards = connections.map { connection ->
                     val result = quotas[connection.id]?.takeIf {
@@ -54,7 +55,7 @@ class DashboardViewModel @Inject constructor(
                         ?: ServiceCardData(connection, emptyList(), null, null)
                     card.copy(error = error, snapshot = snapshot,
                         officialStatus = statuses[connection.service] ?: com.codexbar.android.core.data.OfficialStatus(),
-                        history = widgets.history(connection))
+                        history = widgets.history(connection), display = widgets.displayOptions(connection))
                 }
                 when {
                     cards.isNotEmpty() && cards.all { it.isLoading } -> DashboardUiState.Loading
@@ -87,6 +88,11 @@ class DashboardViewModel @Inject constructor(
                 _isRefreshing.value = false
             }
         }
+    }
+
+    fun setDisplay(connection: AccountConnection, options: com.codexbar.android.core.presentation.DisplayOptions) {
+        prefsManager.publishIfCurrent(connection) { widgets.saveDisplayOptions(connection, options) }
+        displayRevision.value++
     }
 
     private fun mapToCardData(connection: AccountConnection, quota: QuotaInfo) = ServiceCardData(

@@ -40,7 +40,8 @@ open class QuotaGlanceWidget(private val singleAccount: Boolean = false) : Glanc
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val dependencies = EntryPointAccessors.fromApplication(context, Dependencies::class.java)
-        val pins = dependencies.widgets().getSelectedConnections(GlanceAppWidgetManager(context).getAppWidgetId(id))
+        val widgetId = GlanceAppWidgetManager(context).getAppWidgetId(id)
+        val pins = dependencies.widgets().getSelectedConnections(widgetId)
         val accounts = dependencies.accounts().loadConnections().associateBy { it.id }
         val selected = pins.sorted().map { accounts[it] }.let { if (singleAccount) it.take(1) else it }
         provideContent {
@@ -52,7 +53,7 @@ open class QuotaGlanceWidget(private val singleAccount: Boolean = false) : Glanc
                     if (selected.isEmpty()) Label(context.getString(R.string.widget_no_accounts))
                     selected.take(capacity).forEachIndexed { index, account ->
                         if (account == null) Label(context.getString(R.string.widget_account_unavailable))
-                        else AccountSection(account, dependencies.widgets(), index == 0, singleAccount && height >= 240.dp)
+                        else AccountSection(account, dependencies.widgets(), widgetId, index == 0, singleAccount && height >= 240.dp)
                         if (index < capacity - 1) Spacer(GlanceModifier.height(8.dp))
                     }
                     if (selected.size > capacity) Label(context.getString(R.string.widget_more_accounts, selected.size - capacity))
@@ -62,10 +63,11 @@ open class QuotaGlanceWidget(private val singleAccount: Boolean = false) : Glanc
     }
 
     @Composable
-    private fun AccountSection(account: AccountConnection, prefs: WidgetPrefsManager, refresh: Boolean, expanded: Boolean) {
+    private fun AccountSection(account: AccountConnection, prefs: WidgetPrefsManager, widgetId: Int, refresh: Boolean, expanded: Boolean) {
         val context = LocalContext.current
         val snapshot = prefs.getSnapshot(account)
         val quota = snapshot.quota
+        val display = prefs.displayOptions(account, widgetId)
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(account.name, GlanceModifier.defaultWeight(), maxLines = 1,
                 style = TextStyle(color = ColorProvider(Color.White), fontSize = 15.sp, fontWeight = FontWeight.Bold))
@@ -74,19 +76,20 @@ open class QuotaGlanceWidget(private val singleAccount: Boolean = false) : Glanc
                 colorFilter = ColorFilter.tint(ColorProvider(Color.White)))
         }
         Label(QuotaPresentation.status(context, snapshot))
-        val principal = quota?.let(QuotaPresentation::principal).orEmpty()
+        if (quota != null && display.hiddenRisk(quota)) Label(context.getString(R.string.hidden_quota_risk))
+        val principal = quota?.let(display::visible).orEmpty().filterNot { it.supplemental }
         val windows = if (expanded) principal.take(if (LocalSize.current.height >= 360.dp) 4 else 2)
             else principal.sortedByDescending { it.utilization }.take(1)
         windows.forEach { window ->
             Label("${window.label} · ${context.getString(R.string.percent_left, QuotaPresentation.remainingPercent(window.utilization))}")
             if (expanded) {
                 LinearProgressIndicator((1 - window.utilization).toFloat().coerceIn(0f, 1f), GlanceModifier.fillMaxWidth())
-                QuotaPresentation.reset(context, window.resetsAt)?.let { Label(it) }
+                display.reset(context, window.resetsAt)?.let { Label(it) }
                 Spacer(GlanceModifier.height(8.dp))
             }
         }
         if (expanded && principal.size > windows.size) Label(context.getString(R.string.widget_more_windows, principal.size - windows.size))
-        quota?.money?.let { Label(it.balanceText()) }
+        quota?.money?.takeIf { display.showAmounts }?.let { Label(it.balanceText()) }
         if (quota == null) Label(context.getString(R.string.widget_open_app))
     }
 

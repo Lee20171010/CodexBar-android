@@ -34,6 +34,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import com.codexbar.android.core.presentation.DisplayOptions
+import com.codexbar.android.feature.settings.DisplayControls
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,6 +98,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                     }
                 }
                 val anyChecked = checkedState.values.any { it }
+                val displayOptions = remember { mutableStateMapOf<String, DisplayOptions>() }
 
                 Scaffold(
                     topBar = {
@@ -138,6 +141,10 @@ class WidgetConfigurationActivity : ComponentActivity() {
                                         checkedState[service.id] = checked
                                     }
                                 )
+                                if (checkedState[service.id] == true) DisplayControls(
+                                    widgetPrefsManager.getCachedQuota(service)?.windows.orEmpty(),
+                                    displayOptions[service.id] ?: widgetPrefsManager.displayOptions(service, appWidgetId),
+                                    { displayOptions[service.id] = it })
                             }
                         }
 
@@ -162,7 +169,12 @@ class WidgetConfigurationActivity : ComponentActivity() {
                             Spacer(modifier = Modifier.width(12.dp))
 
                             Button(
-                                onClick = { confirmSelection(checkedState) },
+                                onClick = {
+                                    availableServices.filter { checkedState[it.id] == true }.forEach { account ->
+                                        displayOptions[account.id]?.let { widgetPrefsManager.saveDisplayOptions(account, it, appWidgetId) }
+                                    }
+                                    confirmSelection(checkedState)
+                                },
                                 enabled = anyChecked,
                                 modifier = Modifier.weight(1f)
                             ) {

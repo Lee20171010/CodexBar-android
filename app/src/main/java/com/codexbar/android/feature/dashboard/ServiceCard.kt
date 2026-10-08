@@ -40,10 +40,11 @@ fun ServiceCard(
                 }
             }
             quota?.let {
-                QuotaPresentation.principal(it).forEach { window ->
-                    QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now)
+                cardData.display.visible(it).filterNot { it.supplemental }.forEach { window ->
+                    QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now, cardData.display)
                 }
-                if (it.windows.none { window -> !window.supplemental }) {
+                if (cardData.display.hiddenRisk(it)) Text(stringResource(R.string.hidden_quota_risk), color = MaterialTheme.colorScheme.error)
+                if (it.windows.none { window -> !window.supplemental } && cardData.display.showAmounts) {
                     Text(it.money?.balanceText() ?: stringResource(R.string.quota_unavailable), style = MaterialTheme.typography.bodySmall)
                 }
             }

@@ -60,4 +60,9 @@
     <string name="widget_more_windows">+%1$d windows · Open app</string>
     <string name="widget_open_app">Refresh or reconnect in the app</string>
     <string name="widget_refresh">Refresh pinned accounts</string>
+    <string name="display_options">Overview display (detail keeps all windows)</string>
+    <string name="display_amounts">Show reported amounts</string>
+    <string name="display_absolute_reset">Show reset date and time</string>
+    <string name="restore_defaults">Restore defaults</string>
+    <string name="hidden_quota_risk">A hidden quota is nearly exhausted. Open details.</string>
 </resources>

@@ -34,7 +34,8 @@ data class ServiceCardData(
     val money: ReportedMoney? = null,
     val snapshot: QuotaSnapshot = QuotaSnapshot(),
     val officialStatus: com.codexbar.android.core.data.OfficialStatus = com.codexbar.android.core.data.OfficialStatus(),
-    val history: Map<String, WindowHistory> = emptyMap()
+    val history: Map<String, WindowHistory> = emptyMap(),
+    val display: com.codexbar.android.core.presentation.DisplayOptions = com.codexbar.android.core.presentation.DisplayOptions()
 ) {
     val service: AiService get() = connection.service
 }

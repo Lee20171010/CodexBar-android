@@ -58,4 +58,9 @@
     <string name="widget_more_windows">另有 %1$d 個額度視窗 · 開啟應用程式</string>
     <string name="widget_open_app">請在應用程式更新或重新連線</string>
     <string name="widget_refresh">更新釘選帳號</string>
+    <string name="display_options">總覽顯示（詳細頁保留所有額度）</string>
+    <string name="display_amounts">顯示回報金額</string>
+    <string name="display_absolute_reset">顯示重設日期與時間</string>
+    <string name="restore_defaults">恢復預設</string>
+    <string name="hidden_quota_risk">隱藏的額度接近耗盡，請查看詳細資訊。</string>
 </resources>

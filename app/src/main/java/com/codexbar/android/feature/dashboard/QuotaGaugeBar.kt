@@ -18,7 +18,8 @@ fun QuotaGaugeBar(
     modifier: Modifier = Modifier,
     label: String? = null,
     resetsAt: Instant? = null,
-    now: Instant = Instant.now()
+    now: Instant = Instant.now(),
+    display: com.codexbar.android.core.presentation.DisplayOptions = com.codexbar.android.core.presentation.DisplayOptions()
 ) {
     val remaining = (1 - utilization).coerceIn(0.0, 1.0).toFloat()
     val color = if (utilization >= .85) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
@@ -29,7 +30,7 @@ fun QuotaGaugeBar(
                 style = MaterialTheme.typography.labelLarge, color = color)
         }
         LinearProgressIndicator(progress = { remaining }, modifier = Modifier.fillMaxWidth().height(4.dp), color = color)
-        QuotaPresentation.reset(LocalContext.current, resetsAt, now)?.let {
+        display.reset(LocalContext.current, resetsAt, now)?.let {
             Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

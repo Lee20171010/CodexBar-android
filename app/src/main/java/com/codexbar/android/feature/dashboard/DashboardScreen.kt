@@ -70,13 +70,13 @@ fun DashboardScreen(onNavigateToSettings: () -> Unit, viewModel: DashboardViewMo
                         if (wide && selected != null) {
                             VerticalDivider()
                             QuotaDetail(selected, now, { viewModel.refresh(selected.connection) }, onNavigateToSettings,
-                                Modifier.weight(1f).fillMaxHeight())
+                                 Modifier.weight(1f).fillMaxHeight(), { viewModel.setDisplay(selected.connection, it) })
                         }
                     }
                     if (!wide && selected != null) {
                         ModalBottomSheet(onDismissRequest = { selectedId = null }) {
                             QuotaDetail(selected, now, { viewModel.refresh(selected.connection) }, onNavigateToSettings,
-                                Modifier.fillMaxWidth())
+                                 Modifier.fillMaxWidth(), { viewModel.setDisplay(selected.connection, it) })
                         }
                     }
                 }

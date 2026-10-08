@@ -21,7 +21,8 @@ import java.time.format.FormatStyle
 
 @Composable
 internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> Unit, onSettings: () -> Unit,
-    modifier: Modifier = Modifier) {
+    modifier: Modifier = Modifier,
+    onDisplayChange: ((com.codexbar.android.core.presentation.DisplayOptions) -> Unit)? = null) {
     val snapshot = card.snapshot.retained(now)
     val quota = snapshot.quota
     Column(modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -46,20 +47,21 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
             }
             it.windows.forEach { window ->
                 if (window.supplemental) Text(stringResource(R.string.model_specific), style = MaterialTheme.typography.labelSmall)
-                QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now)
+                QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now, card.display)
                 if (window.utilization > 1) Text(stringResource(R.string.over_quota), color = MaterialTheme.colorScheme.error)
             }
-            it.money?.let { money ->
+            it.money?.takeIf { card.display.showAmounts }?.let { money ->
                 HorizontalDivider()
                 Text(money.balanceText())
                 Text(money.spendText())
                 Text(QuotaPresentation.age(LocalContext.current, money.fetchedAt, now), style = MaterialTheme.typography.labelSmall)
             }
-            it.extraUsage?.let { extra ->
+            it.extraUsage?.takeIf { card.display.showAmounts }?.let { extra ->
                 Text(stringResource(R.string.reported_credits, extra.currency, extra.usedCredits, extra.monthlyLimit))
             }
             val measured = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).withZone(ZoneId.systemDefault()).format(it.fetchedAt)
             Text(stringResource(R.string.measurement_source, it.source, measured), style = MaterialTheme.typography.labelSmall)
+            if (onDisplayChange != null) com.codexbar.android.feature.settings.DisplayControls(it.windows, card.display, onDisplayChange)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(onClick = onRefresh) { Text(stringResource(R.string.refresh)) }

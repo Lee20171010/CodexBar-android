@@ -1,5 +1,12 @@
 # CodexBar Android Test Plan
 
+## Display profiles
+
+97 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Fixtures cover
+stable metric IDs across labels/disappearance, hidden-risk retention, independent
+dashboard/widget/account choices, persistence, reconnect and deletion. Final Release
+interaction checks remain separate from these automated checks.
+
 ## Quota history and pace
 
 95 JVM tests, Debug lint and Native Debug compilation pass. Pace fixtures cover a
