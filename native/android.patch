@@ -970,6 +970,44 @@ diff --git a/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift 
          let isExplicitNativeRefresh = if let credentialsError = error as? CodexOAuthCredentialsError,
                                           case .nativeRefreshRequired = credentialsError
          {
+diff --git a/Sources/CodexBarCLI/CLIOptions.swift b/Sources/CodexBarCLI/CLIOptions.swift
+--- a/Sources/CodexBarCLI/CLIOptions.swift
++++ b/Sources/CodexBarCLI/CLIOptions.swift
+@@ -186,4 +186,9 @@
+     var status: Bool = false
+-
++
++    #if os(Android)
++    @Flag(name: .long("status-only"), help: "Fetch official provider status without credentials or quota")
++    var statusOnly: Bool = false
++    #endif
++
+     @Flag(name: .long("web"), help: "Alias for --source web")
+     var web: Bool = false
+diff --git a/Sources/CodexBarCLI/CLIUsageCommand.swift b/Sources/CodexBarCLI/CLIUsageCommand.swift
+--- a/Sources/CodexBarCLI/CLIUsageCommand.swift
++++ b/Sources/CodexBarCLI/CLIUsageCommand.swift
+@@ -74,2 +74,20 @@
+         let providerList = provider.asList
++        #if os(Android)
++        if values.flags.contains("status-only") {
++            struct StatusOutput: Encodable {
++                let provider: String
++                let status: ProviderStatusPayload?
++            }
++            var statuses: [StatusOutput] = []
++            for provider in providerList {
++                statuses.append(StatusOutput(provider: provider.rawValue, status: await Self.fetchStatus(for: provider)))
++            }
++            let encoder = JSONEncoder()
++            encoder.dateEncodingStrategy = .iso8601
++            if let data = try? encoder.encode(statuses) {
++                print(String(decoding: data, as: UTF8.self))
++            }
++            return
++        }
++        #endif
+         let setup = Self.usageFetchSetup(values: values, providers: providerList, output: output)
 diff --git a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
 index 7b7dcaf..54670b6 100644
 --- a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift

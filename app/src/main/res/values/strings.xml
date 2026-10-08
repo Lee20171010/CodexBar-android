@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="official_status">Official service status: %1$s</string>
+    <string name="status_operational">Operational</string>
+    <string name="status_incident">Incident reported</string>
+    <string name="status_maintenance">Maintenance</string>
+    <string name="status_unknown">Unknown / unavailable</string>
+    <string name="status_checked">Status check: %1$s</string>
     <string name="settings">Settings</string>
     <string name="refresh">Refresh</string>
     <string name="account_settings">Account settings</string>

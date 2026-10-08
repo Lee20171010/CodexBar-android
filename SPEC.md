@@ -1,5 +1,15 @@
 # CodexBar Android Technical Specification
 
+## Official service status
+
+Android's `usage --status-only` CLI route invokes Core status metadata/fetchers before
+creating any credential or quota context. Codex, Claude and Copilot have official
+sources in the pinned Core; other providers remain unavailable rather than healthy.
+Status cache is provider-scoped, shared by all accounts, throttled to five minutes,
+and considered unknown after thirty minutes or clock rollback. It never changes a
+quota result or infers an incident from quota/auth/network errors. Detail shows
+source and independent check age; overview only surfaces recently reported incidents.
+
 ## Widget families
 
 Overview and pinned-account widgets share generation-scoped snapshots and explicit

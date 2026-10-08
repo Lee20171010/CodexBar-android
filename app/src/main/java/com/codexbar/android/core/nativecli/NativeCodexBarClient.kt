@@ -31,6 +31,14 @@ class NativeCodexBarClient @Inject constructor(
 
     suspend fun fetchApiKey(service: AiService, apiKey: String): Result<QuotaInfo, AppError> = fetch(service, apiKey)
 
+    suspend fun fetchStatus(provider: String): CliProcess.Result? = mutex.withLock {
+        require(provider in setOf("codex", "claude", "copilot"))
+        if (Build.VERSION.SDK_INT < 28) return@withLock null
+        try { run(provider, statusOnly = true) }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (_: Exception) { null }
+    }
+
     private suspend fun fetch(service: AiService, apiKey: String, codex: Credential.CodexCredential? = null): Result<QuotaInfo, AppError> = mutex.withLock {
         val (provider, keyVariable) = when (service) {
             AiService.OPENCODE_GO -> "opencodego" to "OPENCODE_API_KEY"
@@ -54,7 +62,22 @@ class NativeCodexBarClient @Inject constructor(
             return@withLock Result.Failure(AppError.ParseError("Install the native-engine build to use ${service.displayName}."))
         }
         try {
-            val capture = runInterruptible(Dispatchers.IO) {
+            val capture = run(provider, keyVariable, apiKey, codex)
+            if (service == AiService.OPENROUTER) OpenRouterCliParser.parse(capture)
+            else NativeQuotaCliParser.parse(capture, service)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Never expose raw subprocess output or exceptions containing request/credential details.
+            Result.Failure(AppError.NetworkError("${service.displayName} query failed. Check your connection and try again."))
+        }
+    }
+
+    private suspend fun run(provider: String, keyVariable: String = "", apiKey: String = "",
+                            codex: Credential.CodexCredential? = null, statusOnly: Boolean = false): CliProcess.Result =
+        runInterruptible(Dispatchers.IO) {
+                val binary = File(context.applicationInfo.nativeLibraryDir, "libcodexbar.so")
+                check(binary.canExecute())
                 // Per-request private workspace avoids stale assets/provider state after app updates.
                 // The API key exists only in memory and the child's environment, never in these files.
                 CodexCredentialBridge.clearAbandonedHomes(context.noBackupFilesDir)
@@ -82,22 +105,15 @@ class NativeCodexBarClient @Inject constructor(
                         "CODEXBAR_CONFIG" to config.path,
                         "CODEXBAR_RESOURCE_BUNDLE_PATH" to File(home, "CodexBar_CodexBarCore.bundle").path,
                     ))
-                    if (codex == null) env[keyVariable] = apiKey
-                    CliProcess.run(binary, listOf("usage", "--provider", provider, "--source", if (codex == null) "api" else "oauth", "--json"),
+                    if (!statusOnly && codex == null) env[keyVariable] = apiKey
+                    val arguments = if (statusOnly) listOf("usage", "--provider", provider, "--status-only", "--json")
+                        else listOf("usage", "--provider", provider, "--source", if (codex == null) "api" else "oauth", "--json")
+                    CliProcess.run(binary, arguments,
                         env, home, 45_000)
                 } finally {
                     home.deleteRecursively()
                 }
             }
-            if (service == AiService.OPENROUTER) OpenRouterCliParser.parse(capture)
-            else NativeQuotaCliParser.parse(capture, service)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            // Never expose raw subprocess output or exceptions containing request/credential details.
-            Result.Failure(AppError.NetworkError("${service.displayName} query failed. Check your connection and try again."))
-        }
-    }
 
     private fun copyAssets(path: String, target: File) {
         val children = context.assets.list(path).orEmpty()

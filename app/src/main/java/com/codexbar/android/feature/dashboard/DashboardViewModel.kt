@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 class DashboardViewModel @Inject constructor(
     private val accounts: AccountQuotaCoordinator,
     private val prefsManager: EncryptedPrefsManager,
+    private val officialStatus: com.codexbar.android.core.data.OfficialStatusRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -38,7 +39,7 @@ class DashboardViewModel @Inject constructor(
     init {
         prefsManager.loadConnections()
         viewModelScope.launch {
-            combine(prefsManager.connections, accounts.quotas) { connections, quotas ->
+            combine(prefsManager.connections, accounts.quotas, officialStatus.statuses) { connections, quotas, statuses ->
                 val errors = mutableMapOf<AccountConnection, AppError>()
                 val cards = connections.map { connection ->
                     val result = quotas[connection.id]?.takeIf {
@@ -49,7 +50,7 @@ class DashboardViewModel @Inject constructor(
                     if (error != null) errors[connection] = error
                     val card = snapshot.quota?.let { mapToCardData(connection, it) }
                         ?: ServiceCardData(connection, emptyList(), null, null)
-                    card.copy(error = error, snapshot = snapshot)
+                    card.copy(error = error, snapshot = snapshot, officialStatus = statuses[connection.service] ?: com.codexbar.android.core.data.OfficialStatus())
                 }
                 when {
                     cards.isNotEmpty() && cards.all { it.isLoading } -> DashboardUiState.Loading
@@ -65,10 +66,14 @@ class DashboardViewModel @Inject constructor(
 
     fun refresh(connection: AccountConnection? = null) {
         if (refreshJob?.isActive == true) return
+        val connections = connection?.let(::listOf) ?: prefsManager.loadConnections()
+        viewModelScope.launch {
+            connections.map { it.service }.distinct().forEach { officialStatus.refresh(it) }
+        }
         refreshJob = viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                (connection?.let(::listOf) ?: prefsManager.loadConnections()).map { account ->
+                connections.map { account ->
                     async { accounts.refresh(account) }
                 }.awaitAll()
                 updateQuotaSurfaces(context)

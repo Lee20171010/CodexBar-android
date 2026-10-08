@@ -1,5 +1,10 @@
 # Changelog
 
+## Official service status
+
+- Fetch pinned Core official status separately from quota and credentials, throttle
+  shared-provider checks, and display sourced incident/maintenance/unknown states.
+
 ## Responsive account widgets
 
 - Add separate pinned-account and account-overview widgets with compact/tall layouts,

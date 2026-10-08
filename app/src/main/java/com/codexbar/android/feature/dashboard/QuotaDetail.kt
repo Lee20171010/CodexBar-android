@@ -28,6 +28,7 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
         Text(listOfNotNull(card.service.displayName, quota?.tier).joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
         Text(QuotaPresentation.status(LocalContext.current, snapshot, now), style = MaterialTheme.typography.labelMedium)
         card.error?.let { Text(errorText(it), color = MaterialTheme.colorScheme.error) }
+        OfficialStatusText(card.officialStatus, now)
         quota?.let {
             it.windows.forEach { window ->
                 if (window.supplemental) Text(stringResource(R.string.model_specific), style = MaterialTheme.typography.labelSmall)
@@ -51,4 +52,21 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
             TextButton(onClick = onSettings) { Text(stringResource(R.string.account_settings)) }
         }
     }
+}
+
+@Composable
+internal fun OfficialStatusText(status: com.codexbar.android.core.data.OfficialStatus, now: Instant) {
+    val indicator = if (status.isRecent(now.epochSecond)) status.indicator else "unknown"
+    val label = stringResource(when (indicator) {
+        "none" -> R.string.status_operational
+        "minor", "major", "critical" -> R.string.status_incident
+        "maintenance" -> R.string.status_maintenance
+        else -> R.string.status_unknown
+    })
+    Text(stringResource(R.string.official_status, label), style = MaterialTheme.typography.labelMedium)
+    if (status.isRecent(now.epochSecond)) status.description?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+    status.source?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+    if (status.checkedAt > 0) Text(stringResource(R.string.status_checked,
+        QuotaPresentation.age(LocalContext.current, Instant.ofEpochSecond(status.checkedAt), now)),
+        style = MaterialTheme.typography.labelSmall)
 }

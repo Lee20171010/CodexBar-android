@@ -1,5 +1,14 @@
 # CodexBar Android Test Plan
 
+## Official service status
+
+87 JVM tests, Debug lint and Native Debug compilation pass. Fixtures cover every
+Core status indicator, stale/future checks, provider/source mismatch, unknown failures,
+concurrent accounts, five-minute throttling and persisted-cache restart. Optimized
+ARM64 Core build passed (56.84 seconds). The App-UID harness now checks credential-free
+`--status-only` output for a provider with no feed; final device execution is pending.
+No fixture or unknown response proves a real service healthy.
+
 ## Responsive account widgets
 
 85 JVM tests, Debug lint and Native Debug compilation pass. Existing widget-cache

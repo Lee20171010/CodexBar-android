@@ -31,7 +31,8 @@ data class ServiceCardData(
     val isLoading: Boolean = false,
     val error: AppError? = null,
     val money: ReportedMoney? = null,
-    val snapshot: QuotaSnapshot = QuotaSnapshot()
+    val snapshot: QuotaSnapshot = QuotaSnapshot(),
+    val officialStatus: com.codexbar.android.core.data.OfficialStatus = com.codexbar.android.core.data.OfficialStatus()
 ) {
     val service: AiService get() = connection.service
 }

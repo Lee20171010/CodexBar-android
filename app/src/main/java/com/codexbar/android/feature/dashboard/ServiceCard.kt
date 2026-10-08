@@ -50,6 +50,7 @@ fun ServiceCard(
             Text(QuotaPresentation.status(LocalContext.current, snapshot, now), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             cardData.error?.let { Text(errorText(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+            if (cardData.officialStatus.hasIncident(now.epochSecond)) OfficialStatusText(cardData.officialStatus, now)
         }
     }
 }

@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="official_status">官方服務狀態：%1$s</string>
+    <string name="status_operational">正常運作</string>
+    <string name="status_incident">已通報事故</string>
+    <string name="status_maintenance">維護中</string>
+    <string name="status_unknown">未知／無法取得</string>
+    <string name="status_checked">狀態檢查：%1$s</string>
     <string name="copilot_registration_pending">GitHub 裝置登入尚待本專案註冊 OAuth 應用程式。仍可在下方驗證既有 OAuth 權杖。</string>
     <string name="sign_in_github">使用 GitHub 登入</string>
     <string name="github_device_help">請在瀏覽器授權。儲存帳號前會驗證 Copilot 配額存取權限。</string>

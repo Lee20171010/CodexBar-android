@@ -22,6 +22,7 @@ class QuotaRefreshWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val accounts: AccountQuotaCoordinator,
     private val prefsManager: EncryptedPrefsManager,
+    private val officialStatus: com.codexbar.android.core.data.OfficialStatusRepository,
     private val notificationService: QuotaNotificationService
 ) : CoroutineWorker(context, workerParams) {
     override suspend fun doWork(): Result {
@@ -36,7 +37,10 @@ class QuotaRefreshWorker @AssistedInject constructor(
             val connection = prefsManager.loadConnections().find {
                 it.id == id && it.generation == inputData.getString("generation")
             } ?: return Result.success()
-            if (!manual && accounts.snapshot(connection).freshness() == Freshness.RECONNECT) return Result.success()
+            if (!manual && accounts.snapshot(connection).freshness() == Freshness.RECONNECT) {
+                officialStatus.refresh(connection.service)
+                return Result.success()
+            }
             val result = accounts.refresh(connection)
             if (result is com.codexbar.android.core.domain.model.Result.Success) {
                 prefsManager.publishIfCurrent(connection) {
@@ -54,6 +58,7 @@ class QuotaRefreshWorker @AssistedInject constructor(
                 }
             }
             updateQuotaSurfaces(applicationContext)
+            officialStatus.refresh(connection.service)
             if (result is com.codexbar.android.core.domain.model.Result.Failure && shouldRetry(result.error)) Result.retry()
             else Result.success()
         } catch (cancelled: CancellationException) {

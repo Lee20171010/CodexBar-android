@@ -157,6 +157,12 @@ class NativeCliSmokeActivity : ComponentActivity() {
             probe("config", listOf("config", "validate")) {
                 it.getInt("exitCode") == 0
             }
+            probe("status-only", listOf("usage", "--provider", "opencodego", "--status-only", "--json")) {
+                val output = JSONArray(it.getString("stdout"))
+                val status = output.getJSONObject(0)
+                it.getInt("exitCode") == 0 && output.length() == 1 &&
+                    status.getString("provider") == "opencodego" && !status.has("usage") && !status.has("error")
+            }
             probe("missing-credentials", listOf("usage", "--provider", "codex", "--source", "oauth",
                 "--json")) {
                 val output = JSONArray(it.getString("stdout"))
