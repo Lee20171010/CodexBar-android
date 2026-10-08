@@ -9,6 +9,8 @@ import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.model.UsageWindowKind
 import com.codexbar.android.core.domain.model.ReportedMoney
 import com.codexbar.android.core.presentation.QuotaSnapshot
+import com.codexbar.android.core.presentation.QuotaPace
+import com.codexbar.android.core.presentation.WindowHistory
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -42,9 +44,35 @@ class WidgetPrefsManager internal constructor(private val prefs: SharedPreferenc
 
     @Synchronized fun deleteAccountCache(id: String) {
         val editor = prefs.edit()
-        prefs.all.keys.filter { it.startsWith("cache_${id}_") }.forEach(editor::remove)
+        prefs.all.keys.filter { it.startsWith("cache_${id}_") || it == "history_${id}" || it == "history_${id}_generation" }.forEach(editor::remove)
         editor.apply()
     }
+
+    @Synchronized fun recordHistory(connection: AccountConnection, quota: QuotaInfo, now: java.time.Instant = java.time.Instant.now()):
+        Map<String, WindowHistory> {
+        require(quota.service == connection.service)
+        val key = "history_${connection.id}"
+        if (prefs.getString("${key}_generation", null) != connection.generation) {
+            prefs.edit().remove(key).putString("${key}_generation", connection.generation).apply()
+        }
+        val previous = history(connection, now)
+        val next = QuotaPace.record(previous, quota, now.epochSecond)
+        check(prefs.edit().putString(key, Json.encodeToString(next)).commit())
+        return next
+    }
+
+    @Synchronized fun history(connection: AccountConnection, now: Instant = Instant.now()): Map<String, WindowHistory> = runCatching {
+        if (prefs.getString("history_${connection.id}_generation", null) != connection.generation) emptyMap()
+        else {
+            val key = "history_${connection.id}"
+            val encoded = prefs.getString(key, null) ?: "{}"
+            require(encoded.length <= 262144)
+            val history = Json.decodeFromString<Map<String, WindowHistory>>(encoded)
+            QuotaPace.retained(history, now.epochSecond).also { retained ->
+                if (retained != history) prefs.edit().putString(key, Json.encodeToString(retained)).apply()
+            }
+        }
+    }.getOrDefault(emptyMap())
 
     fun cacheQuota(connection: AccountConnection, quota: QuotaInfo) {
         require(quota.service == connection.service)

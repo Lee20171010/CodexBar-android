@@ -1,5 +1,13 @@
 # CodexBar Android Test Plan
 
+## Quota history and pace
+
+95 JVM tests, Debug lint and Native Debug compilation pass. Pace fixtures cover a
+fixed reset cycle, moving resets, source changes, recovery, gaps, sparse/unknown data,
+duplicate/backwards/future measurements, over-quota data, exact 48-sample retention,
+restart/generation isolation, sibling deletion and 14-day expiry. Chart runtime and
+accessibility inspection remain part of final device acceptance.
+
 ## Confirmed quota recovery
 
 90 JVM tests, Debug lint and Native Debug compilation pass. Fixtures reject timestamp

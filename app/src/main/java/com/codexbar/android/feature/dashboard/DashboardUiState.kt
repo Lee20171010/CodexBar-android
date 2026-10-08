@@ -5,6 +5,7 @@ import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.ReportedMoney
 import com.codexbar.android.core.presentation.QuotaSnapshot
+import com.codexbar.android.core.presentation.WindowHistory
 import java.time.Instant
 
 sealed class DashboardUiState {
@@ -32,7 +33,8 @@ data class ServiceCardData(
     val error: AppError? = null,
     val money: ReportedMoney? = null,
     val snapshot: QuotaSnapshot = QuotaSnapshot(),
-    val officialStatus: com.codexbar.android.core.data.OfficialStatus = com.codexbar.android.core.data.OfficialStatus()
+    val officialStatus: com.codexbar.android.core.data.OfficialStatus = com.codexbar.android.core.data.OfficialStatus(),
+    val history: Map<String, WindowHistory> = emptyMap()
 ) {
     val service: AiService get() = connection.service
 }

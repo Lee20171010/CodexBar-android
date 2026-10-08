@@ -20,6 +20,8 @@
     <string name="widget_description">快速查看 AI 服務配額用量</string>
     <string name="settings">設定</string>
     <string name="refresh">重新整理</string>
+    <string name="pace_estimate">線性估計，不保證剩餘時間</string>
+    <string name="pace_runs_out">估計 %1$s用盡</string>
     <string name="account_settings">帳號設定</string>
     <string name="no_accounts">尚未設定帳號</string>
     <string name="percent_left">剩餘 %1$d%%</string>

@@ -1,5 +1,11 @@
 # Changelog
 
+## Quota history and pace
+
+- Keep bounded, generation-scoped successful history and show one remaining-over-time
+  chart with a labeled linear estimate. Source changes, resets, recovery and gaps
+  break the line; reported duration/reset are required for an even-use guide.
+
 ## Confirmed quota recovery
 
 - Alert only after a fresh same-source reading confirms recovery from near exhaustion.

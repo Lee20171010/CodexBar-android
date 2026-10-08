@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.balanceText
 import com.codexbar.android.core.domain.model.spendText
+import com.codexbar.android.core.presentation.QuotaPace
 import com.codexbar.android.core.presentation.QuotaPresentation
 import java.time.Instant
 import java.time.ZoneId
@@ -30,6 +31,19 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
         card.error?.let { Text(errorText(it), color = MaterialTheme.colorScheme.error) }
         OfficialStatusText(card.officialStatus, now)
         quota?.let {
+            QuotaPace.principal(it)?.let { principal ->
+                QuotaPace.estimate(card.history[principal.id], now.epochSecond)?.let { estimate ->
+                    Text(stringResource(R.string.pace_estimate), style = MaterialTheme.typography.labelSmall)
+                    PaceChart(estimate)
+                    estimate.runsOutAt?.let { at ->
+                        Text(stringResource(R.string.pace_runs_out, DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
+                            .withZone(ZoneId.systemDefault()).format(Instant.ofEpochSecond(at))))
+                    }
+                    estimate.cycleEnd?.let { end ->
+                        QuotaPresentation.reset(LocalContext.current, Instant.ofEpochSecond(end), now)?.let { Text(it) }
+                    }
+                }
+            }
             it.windows.forEach { window ->
                 if (window.supplemental) Text(stringResource(R.string.model_specific), style = MaterialTheme.typography.labelSmall)
                 QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now)

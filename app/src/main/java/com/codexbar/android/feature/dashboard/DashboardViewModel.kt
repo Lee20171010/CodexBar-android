@@ -9,6 +9,7 @@ import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.widget.WidgetPrefsManager
 import com.codexbar.android.core.widget.updateQuotaSurfaces
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,6 +29,7 @@ class DashboardViewModel @Inject constructor(
     private val accounts: AccountQuotaCoordinator,
     private val prefsManager: EncryptedPrefsManager,
     private val officialStatus: com.codexbar.android.core.data.OfficialStatusRepository,
+    private val widgets: WidgetPrefsManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -50,7 +52,9 @@ class DashboardViewModel @Inject constructor(
                     if (error != null) errors[connection] = error
                     val card = snapshot.quota?.let { mapToCardData(connection, it) }
                         ?: ServiceCardData(connection, emptyList(), null, null)
-                    card.copy(error = error, snapshot = snapshot, officialStatus = statuses[connection.service] ?: com.codexbar.android.core.data.OfficialStatus())
+                    card.copy(error = error, snapshot = snapshot,
+                        officialStatus = statuses[connection.service] ?: com.codexbar.android.core.data.OfficialStatus(),
+                        history = widgets.history(connection))
                 }
                 when {
                     cards.isNotEmpty() && cards.all { it.isLoading } -> DashboardUiState.Loading

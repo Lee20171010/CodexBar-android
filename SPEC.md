@@ -1,5 +1,19 @@
 # CodexBar Android Technical Specification
 
+## Quota history and pace
+
+History uses the no-backup display cache, keyed by account generation and stable
+principal window ID. Retain at most 48 samples per window, 16 windows per account,
+and 14 days. Only successful fresh readings enter history; duplicate, out-of-order,
+future and legacy readings do not add samples. Changed source, reset, duration,
+increased remaining capacity or a gap over six hours starts a new segment. Account
+deletion removes history and its generation marker. Reads prune expired samples.
+
+One principal-window chart uses epoch-second differences, not floating-point epoch
+timestamps. A linear estimate requires three samples spanning at least 15 minutes,
+with a latest sample no older than six hours. No projection continues past a known
+reset. Unknown duration/reset omits the even-use guide. Estimates are not guarantees.
+
 ## Confirmed quota recovery
 
 Recovery alerts are opt-in and default off. A notification requires the same account,
