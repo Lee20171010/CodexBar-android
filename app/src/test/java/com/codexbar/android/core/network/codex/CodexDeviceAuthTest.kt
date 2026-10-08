@@ -93,6 +93,17 @@ class CodexDeviceAuthTest {
         assertEquals(3, server.requestCount)
     }
 
+    @Test fun `deadline is rechecked after polling delay before starting network work`() = runBlocking {
+        var clockReads = 0
+        val auth = CodexDeviceAuth(NetworkModule.provideCodexTokenOkHttpClient(), server.url("/")) {
+            if (clockReads++ == 0) 0L else 10_000L
+        }
+        val challenge = CodexDeviceAuth.Challenge("TEST-CODE", "synthetic-device-id", 1, 10_000)
+        val failure = runCatching { withTimeout(1000) { auth.awaitCredential(challenge) } }.exceptionOrNull()
+        assertTrue(failure is IOException)
+        assertEquals(0, server.requestCount)
+    }
+
     @Test fun `malformed PKCE cannot exchange tokens`() = runBlocking {
         code(); grant("mismatch")
         val failure = runCatching { auth.awaitCredential(auth.requestCode()) }.exceptionOrNull()

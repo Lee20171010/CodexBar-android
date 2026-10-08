@@ -61,6 +61,7 @@ class CodexDeviceAuth internal constructor(
             var interval = challenge.intervalMillis
             while (true) {
                 delay(interval)
+                if (monotonicMillis() >= challenge.deadline) throw IOException("Device code expired. Start sign-in again.")
                 val response = post("api/accounts/deviceauth/token", jsonBody(
                     "device_auth_id" to challenge.deviceId, "user_code" to challenge.userCode))
                 when (response.body.text("error")) {
