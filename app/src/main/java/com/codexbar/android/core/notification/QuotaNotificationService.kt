@@ -72,24 +72,29 @@ class QuotaNotificationService @Inject constructor(
         quotas.forEachIndexed { index, (connection, quota) ->
             if (index >= 3) return@forEachIndexed // Max 3 services
 
-            val maxUtilization = quota.windows.maxOfOrNull { it.utilization } ?: 0.0
-            val progress = (maxUtilization * 100).toInt()
+            val maxUtilization = quota.windows.maxOfOrNull { it.utilization }
+            val progress = ((maxUtilization ?: 0.0) * 100).toInt().coerceIn(0, 100)
+            val value = if (maxUtilization != null) "${progress}%" else quota.money?.let {
+                it.balance?.let { balance -> "${it.currency} ${String.format("%.2f", balance)}" } ?: "Balance unavailable"
+            } ?: "Unavailable"
+            val barId = listOf(R.id.progress_bar_1, R.id.progress_bar_2, R.id.progress_bar_3)[index]
+            remoteViews.setViewVisibility(barId, if (maxUtilization == null) android.view.View.GONE else android.view.View.VISIBLE)
 
             when (index) {
                 0 -> {
                     remoteViews.setTextViewText(R.id.service_name_1, connection.name)
                     remoteViews.setProgressBar(R.id.progress_bar_1, 100, progress, false)
-                    remoteViews.setTextViewText(R.id.progress_text_1, "${progress}%")
+                    remoteViews.setTextViewText(R.id.progress_text_1, value)
                 }
                 1 -> {
                     remoteViews.setTextViewText(R.id.service_name_2, connection.name)
                     remoteViews.setProgressBar(R.id.progress_bar_2, 100, progress, false)
-                    remoteViews.setTextViewText(R.id.progress_text_2, "${progress}%")
+                    remoteViews.setTextViewText(R.id.progress_text_2, value)
                 }
                 2 -> {
                     remoteViews.setTextViewText(R.id.service_name_3, connection.name)
                     remoteViews.setProgressBar(R.id.progress_bar_3, 100, progress, false)
-                    remoteViews.setTextViewText(R.id.progress_text_3, "${progress}%")
+                    remoteViews.setTextViewText(R.id.progress_text_3, value)
                 }
             }
         }

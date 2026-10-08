@@ -7,14 +7,28 @@ data class QuotaInfo(
     val windows: List<UsageWindow>,
     val extraUsage: ExtraUsage?,
     val tier: String? = null,
+    val fetchedAt: Instant,
+    val money: ReportedMoney? = null
+)
+
+/** Reported monetary counters, independent of quota windows. Null is unknown, not zero. */
+data class ReportedMoney(
+    val balance: Double?,
+    val spent: Double?,
+    val currency: String,
+    val period: String?,
     val fetchedAt: Instant
 )
 
 data class UsageWindow(
     val label: String,
     val utilization: Double, // 0.0 ~ 1.0
-    val resetsAt: Instant?
+    val resetsAt: Instant?,
+    val id: String = label,
+    val kind: UsageWindowKind = UsageWindowKind.QUOTA
 )
+
+enum class UsageWindowKind { QUOTA, BUDGET }
 
 data class ExtraUsage(
     val isEnabled: Boolean,

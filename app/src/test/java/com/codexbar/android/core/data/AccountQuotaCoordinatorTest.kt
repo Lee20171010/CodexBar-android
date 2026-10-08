@@ -25,7 +25,7 @@ class AccountQuotaCoordinatorTest {
     private val repository = object : QuotaRepository {
         override suspend fun fetchQuota(session: CredentialSession) = fetch(session)
     }
-    private val coordinator = AccountQuotaCoordinator(repository, repository, repository, repository,
+    private val coordinator = AccountQuotaCoordinator(repository, repository, repository, repository, repository,
         prefs, cache, mock(QuotaNotificationService::class.java))
 
     @Test fun `failed draft never replaces saved account or publishes draft rotations`() = runTest {

@@ -14,6 +14,22 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class AccountStorageTest {
+    @Test fun `OpenRouter keys retain provider and sibling ownership across restart`() {
+        val memory = MemoryPreferences()
+        val store = EncryptedPrefsManager(memory.prefs)
+        val first = AccountConnection.create(AiService.OPENROUTER)
+        val second = AccountConnection.create(AiService.OPENROUTER)
+        val key = Credential.OpenRouterCredential("synthetic-router-a")
+        assertFalse(key.toString().contains(key.accessToken))
+        assertTrue(store.saveValidatedConnection(first, key))
+        assertTrue(store.saveValidatedConnection(second, Credential.OpenRouterCredential("synthetic-router-b")))
+        val restarted = EncryptedPrefsManager(memory.prefs)
+        assertTrue(restarted.loadCredential(first) is Credential.OpenRouterCredential)
+        assertEquals(key.accessToken, restarted.loadCredential(first)?.accessToken)
+        restarted.deleteConnection(first)
+        assertEquals("synthetic-router-b", restarted.loadCredential(second)?.accessToken)
+    }
+
     @Test fun `legacy adoption is idempotent and rollback preserves original keys`() {
         val memory = MemoryPreferences()
         memory.values.putAll(mapOf(

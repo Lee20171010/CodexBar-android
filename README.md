@@ -2,7 +2,7 @@
 
 > **Unofficial Android port** of [**CodexBar**](https://github.com/steipete/CodexBar) by [@steipete](https://github.com/steipete). Independently maintained; not published, endorsed or supported by the macOS upstream or service providers.
 
-Monitor AI-service quotas on Android. This fork integrates an Android-native Swift Core/CLI alongside the existing Kotlin app. **OpenCode Go uses the native engine**; Claude, Codex (ChatGPT), and Gemini retain their Kotlin implementations.
+Monitor AI-service quotas on Android. This fork integrates an Android-native Swift Core/CLI alongside the existing Kotlin app. **OpenCode Go and OpenRouter use the native engine**; Claude, Codex (ChatGPT), and Gemini retain their Kotlin implementations.
 
 The native integration is currently an experimental build. Its automated acceptance covers synthetic credentials; see [TEST.md](TEST.md) for results and remaining real-account/device checks.
 
@@ -12,11 +12,12 @@ The native integration is currently an experimental build. Its automated accepta
   <img src="docs/Screenshot_20260305_025207_CodexBar.jpg" width="320" alt="Settings" />
 </p>
 
-These screenshots show the original Android UI. Native-engine builds additionally expose OpenCode Go settings.
+These screenshots show the original Android UI. Native-engine builds additionally expose OpenCode Go and OpenRouter settings.
 
 ## Features
 
 - On-demand quota monitoring for Claude, Codex, Gemini, and OpenCode Go in native-engine builds
+- OpenRouter reported USD balance/spend and API-key budget, without inventing timed quota windows
 - OpenCode Go API-key configuration with 5-hour, weekly, and monthly windows when supplied by the provider
 - Animated gauge bars showing remaining usage percentage
 - Quick Settings tile for at-a-glance status
@@ -30,15 +31,27 @@ These screenshots show the original Android UI. Native-engine builds additionall
 
 | Build | Purpose |
 | --- | --- |
-| `debug` / `release` | Existing Kotlin provider paths; no bundled CLI or Go setting |
+| `debug` / `release` | Existing Kotlin provider paths; no bundled CLI or native API-key settings |
 | `nativeDebug` | Native diagnostics for a selected ABI |
-| `nativeRelease` | Optimized ARM64 native test build with OpenCode Go |
+| `nativeRelease` | Optimized ARM64 native test build with OpenCode Go and OpenRouter |
 
 The app minimum is Android 8.0 / API 26; the native engine requires Android 9 / API 28. The native test package is `com.codexbar.android.native`, separate from the original app.
 
 For the native build, follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [native build guide](native/README.md). Prefer `nativeRelease` for remote testing and phone delivery. The measured Go APK is approximately **33.3 MiB**.
 
 Credentials are stored encrypted on-device and sent directly to the corresponding provider for authenticated requests. There is no project-operated quota backend.
+
+## OpenRouter setup
+
+In a native-engine build, choose **Settings → Add OpenRouter account**, enter an
+account name and OpenRouter API key, then **Validate & save**. Validation uses the
+pinned native Core's public API source. Saved accounts participate in ordinary
+dashboard, worker and widget refreshes.
+
+OpenRouter exposes financial counters: reported USD balance/spend and, when the
+key has a cap, an **API key budget**. Missing balance is **unavailable**, not zero;
+balance-only accounts have no synthetic quota bar or reset time. Real-account
+accuracy remains an acceptance gate; see [TEST.md](TEST.md).
 
 ## OpenCode Go setup
 

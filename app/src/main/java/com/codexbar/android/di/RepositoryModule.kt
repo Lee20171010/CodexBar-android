@@ -4,6 +4,7 @@ import com.codexbar.android.core.data.ClaudeRepositoryImpl
 import com.codexbar.android.core.data.CodexRepositoryImpl
 import com.codexbar.android.core.data.GeminiRepositoryImpl
 import com.codexbar.android.core.data.OpenCodeGoRepositoryImpl
+import com.codexbar.android.core.data.OpenRouterRepositoryImpl
 import com.codexbar.android.core.nativecli.NativeCodexBarClient
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.network.claude.ClaudeApiService
@@ -35,9 +36,18 @@ annotation class GeminiRepository
 @Retention(AnnotationRetention.BINARY)
 annotation class OpenCodeGoRepository
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class OpenRouterRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
+
+    @Provides
+    @Singleton
+    @OpenRouterRepository
+    fun provideOpenRouterRepository(client: NativeCodexBarClient): QuotaRepository = OpenRouterRepositoryImpl(client)
 
     @Provides
     @Singleton

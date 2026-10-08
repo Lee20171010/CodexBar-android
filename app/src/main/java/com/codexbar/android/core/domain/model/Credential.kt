@@ -31,4 +31,8 @@ sealed class Credential {
     class OpenCodeGoCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class OpenRouterCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

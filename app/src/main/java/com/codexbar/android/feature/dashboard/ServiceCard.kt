@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.codexbar.android.core.domain.model.AppError
+import com.codexbar.android.core.domain.model.balanceText
+import com.codexbar.android.core.domain.model.spendText
 
 @Composable
 fun ServiceCard(
@@ -131,6 +133,10 @@ fun ServiceCard(
             }
 
             // Extra usage (Claude credits)
+            cardData.money?.let { money ->
+                Text(money.balanceText(), style = MaterialTheme.typography.bodyMedium)
+                Text(money.spendText(), style = MaterialTheme.typography.bodySmall)
+            }
             cardData.extraUsage?.let { extra ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(

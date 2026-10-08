@@ -7,6 +7,22 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class WidgetAccountCacheTest {
+    @Test fun `money budget identity and age survive cache restart without invented quota`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.OPENROUTER)
+        val quota = QuotaInfo(AiService.OPENROUTER, emptyList(), null, fetchedAt = Instant.ofEpochSecond(2000),
+            money = ReportedMoney(0.0, null, "USD", null, Instant.ofEpochSecond(1000)))
+        cache.cacheQuota(account, quota)
+        assertEquals(quota, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
+        val capped = quota.copy(windows = listOf(UsageWindow("Key budget", 1.25, null,
+            "api-key-budget", UsageWindowKind.BUDGET)))
+        cache.cacheQuota(account, capped)
+        assertEquals(capped, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
+        cache.cacheQuota(account, capped.copy(money = null))
+        assertNull(cache.getCachedQuota(account)?.money)
+    }
+
     @Test fun `legacy pins remain legacy IDs across restart and cache deletion`() {
         val memory = MemoryPreferences()
         memory.values["widget_7_services"] = setOf("CODEX")

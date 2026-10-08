@@ -8,6 +8,10 @@ from the pinned Swift Core/CLI source revision.
 
 ### Added
 
+- OpenRouter API-key accounts through the pinned native engine, with reported
+  USD balance/spend and explicitly typed key budgets on dashboard, widgets and
+  notifications; missing values remain unknown and balance-only results have no
+  invented quota windows.
 - Multi-account Settings, Dashboard, background refresh, widgets, tile and notification
   routing, with private validated drafts and one serialized refresh writer per account.
 - Explicit credential sessions for provider fetches; draft token rotation stays in
@@ -38,7 +42,7 @@ from the pinned Swift Core/CLI source revision.
 
 ### Verification
 
-- 53 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
+- 60 JVM tests, Debug lint and toolchain-integrity checks passed; account routing
   device acceptance remains separate from these synthetic tests.
 - The Go Release APK passed five runtime probes and Settings validation on an
   API 36 emulator's ARM64 native-bridge path. See [TEST.md](TEST.md) for exact scope.

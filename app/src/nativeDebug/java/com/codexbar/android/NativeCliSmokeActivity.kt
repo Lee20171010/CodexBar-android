@@ -54,13 +54,17 @@ class NativeCliSmokeActivity : ComponentActivity() {
         val runId = intent.getStringExtra("run_id") ?: UUID.randomUUID().toString()
         lifecycleScope.launch {
             val report = runInterruptible(Dispatchers.IO) { runProbes() }.put("runId", runId)
-            if (intent.getBooleanExtra("test_go", false)) {
+            for ((flag, service, name) in listOf(
+                Triple("test_go", AiService.OPENCODE_GO, "opencode-go-api-invalid-key"),
+                Triple("test_openrouter", AiService.OPENROUTER, "openrouter-api-invalid-key")
+            )) {
+                if (!intent.getBooleanExtra(flag, false)) continue
                 // Exercise the production client with an intentionally invalid key, never a saved account.
-                val result = NativeCodexBarClient(applicationContext).fetchOpenCodeGo("codexbar-invalid-synthetic-key")
+                val result = NativeCodexBarClient(applicationContext).fetchApiKey(service, "codexbar-invalid-synthetic-key")
                 val passed = result is Result.Failure && result.error is AppError.AuthError &&
-                    result.error.service == AiService.OPENCODE_GO
+                    result.error.service == service
                 report.getJSONArray("results").put(JSONObject()
-                    .put("name", "opencode-go-api-invalid-key").put("passed", passed)
+                    .put("name", name).put("passed", passed)
                     .put("resultType", if (result is Result.Failure) result.error.javaClass.simpleName else "UnexpectedSuccess"))
                 report.put("passed", report.getBoolean("passed") && passed)
             }

@@ -3,6 +3,7 @@ package com.codexbar.android.feature.dashboard
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.AppError
+import com.codexbar.android.core.domain.model.ReportedMoney
 import java.time.Instant
 
 sealed class DashboardUiState {
@@ -27,7 +28,8 @@ data class ServiceCardData(
     val extraUsage: ExtraUsageUi?,
     val tier: String?,
     val isLoading: Boolean = false,
-    val error: AppError? = null
+    val error: AppError? = null,
+    val money: ReportedMoney? = null
 ) {
     val service: AiService get() = connection.service
 }

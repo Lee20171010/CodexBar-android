@@ -113,7 +113,7 @@ fun SettingsScreen(
                 }
             }
 
-            AiService.entries.filter { it != AiService.OPENCODE_GO || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
+            AiService.entries.filter { !it.usesNativeApiKey || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
                 val state = uiState.serviceStates[service] ?: ServiceCredentialState()
                 if (state.connection == null) OutlinedButton(
                     onClick = { viewModel.beginAdd(service) }, modifier = Modifier.fillMaxWidth()
@@ -226,10 +226,10 @@ private fun ServiceCredentialSection(
             OutlinedTextField(
                 value = state.accessToken,
                 onValueChange = { onFieldChange("accessToken", it) },
-                label = { Text(if (service == AiService.OPENCODE_GO) "OpenCode Go API Key" else "Access Token") },
+                label = { Text(if (service.usesNativeApiKey) "${service.displayName} API Key" else "Access Token") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                supportingText = if (service == AiService.OPENCODE_GO) {
-                    { Text("Paste your OpenCode Go API key. Stored encrypted; quota is fetched by the native Core/CLI.") }
+                supportingText = if (service.usesNativeApiKey) {
+                    { Text("Paste your ${service.displayName} API key. Stored encrypted; data is fetched by the native Core/CLI.") }
                 } else null,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth(),
@@ -238,7 +238,7 @@ private fun ServiceCredentialSection(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (service != AiService.OPENCODE_GO) OutlinedTextField(
+            if (!service.usesNativeApiKey) OutlinedTextField(
                 value = state.refreshToken,
                 onValueChange = { onFieldChange("refreshToken", it) },
                 label = { Text("Refresh Token") },

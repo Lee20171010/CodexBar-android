@@ -21,12 +21,12 @@ class RuntimeConfigurationTest(unittest.TestCase):
     def test_configured_wrapper_preserves_acceptance_options(self):
         with patch.object(runtime, "ADB", "/fixture/adb"), \
              patch.object(runtime, "SESSION_WRAPPER", "/fixture/session"), \
-             patch("sys.argv", ["test.py", "--abi", "arm64-v8a", "--configuration", "release", "--opencode-go"]), \
+             patch("sys.argv", ["test.py", "--abi", "arm64-v8a", "--configuration", "release", "--opencode-go", "--openrouter"]), \
              patch.object(runtime.subprocess, "call", return_value=0) as dispatch:
             self.assertEqual(runtime.main(), 0)
         command = dispatch.call_args.args[0]
         self.assertEqual(command[0], "/fixture/session")
-        self.assertEqual(command[3:], ["--abi", "arm64-v8a", "--configuration", "release", "--locked", "--opencode-go"])
+        self.assertEqual(command[3:], ["--abi", "arm64-v8a", "--configuration", "release", "--locked", "--opencode-go", "--openrouter"])
 
 
 if __name__ == "__main__":

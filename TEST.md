@@ -7,6 +7,16 @@ This document owns test commands, evidence and remaining acceptance work.
 development setup. Compilation, smoke checks, negative authentication tests and
 successful real-account quota retrieval are distinct gates.
 
+| Provider | Ordinary refresh path implemented | Synthetic checks | Android App-UID evidence | Owner-authorized live quota |
+| --- | --- | --- | --- | --- |
+| Claude / Codex / Gemini | Kotlin | HTTP fixtures | Full account acceptance pending | Pending |
+| OpenCode Go | Native API in native-engine builds | Parser, repository, account lifecycle | Invalid-key CLI and Settings rejection | Pending |
+| OpenRouter | Native API in native-engine builds | Budget/balance parser, ownership, cache | Invalid-key native and Settings rejection passed | Pending |
+| Copilot / DeepSeek | Not implemented | Not recorded | Not recorded | Not recorded |
+
+Codex device-code login is not implemented. Public-client/source compatibility must
+be established before adding an OAuth flow; manual credentials remain available.
+
 ## 2. Host checks
 
 From the repository root:
@@ -26,7 +36,7 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher and tile visual runtime acceptance remain pending.
 
-The JVM suite currently contains **53 tests**:
+The JVM suite currently contains **60 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -36,9 +46,11 @@ The JVM suite currently contains **53 tests**:
 | OpenCode Go repository | 2 | Missing key avoids execution; rejected keys are retained |
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |
 | Go CLI parser | 5 | Window mapping, provider/source isolation, invalid data, truncation, sanitized errors |
-| Account storage | 8 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes and invalid identities |
+| OpenRouter repository | 1 | Explicit provider/key ownership and wrong-credential rejection before native execution |
+| OpenRouter CLI parser | 4 | Balance-only versus capped budgets, zero/unknown, measurement age, malformed data, process failures and sanitized API errors |
+| Account storage | 9 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes, invalid identities and OpenRouter restart isolation |
 | Account coordinator | 6 | Failed draft isolation, serialized rotation, independent siblings, late deletion results, cancellation and reconnect |
-| Widget account cache | 3 | Legacy pins, deleted-owner isolation, generation snapshots, actual measurement age and invalid/absent data |
+| Widget account cache | 4 | Legacy pins, deleted-owner isolation, generation snapshots, actual measurement age, invalid/absent data and money/budget round trips |
 
 Account storage tests use an in-memory SharedPreferences double, including the
 memory-before-disk-failure behavior. They do not verify Android Keystore encryption
@@ -99,6 +111,8 @@ local operator configuration. Prefer the Release variant to reduce remote transf
 
 ```sh
 python3 native/test.py --abi arm64-v8a --configuration release --opencode-go
+# Also exercise OpenRouter's native/API and masked-draft rejection paths:
+python3 native/test.py --abi arm64-v8a --configuration release --opencode-go --openrouter
 ```
 
 The harness holds one shared-runtime lock through discovery, installation, launch,
@@ -106,7 +120,7 @@ assertions and cleanup. It refuses to replace an existing test package. Release
 results are collected from a dedicated logcat tag using a unique run ID, without
 clearing shared logs or enabling `run-as` on the non-debuggable APK.
 
-The five probes are:
+The probes are:
 
 1. CLI launch/version command exits successfully.
 2. Resource smoke initializes an actual bundled provider plugin and emits its success marker.
@@ -114,6 +128,8 @@ The five probes are:
 4. Codex without credentials emits the expected provider-error JSON; exit 1 is intentional.
 5. The production Go client makes an HTTPS request with a fixed invalid key and
    maps its rejection to the expected authentication failure.
+6. With `--openrouter`, the production OpenRouter client rejects a fixed invalid key;
+   its Settings draft stays masked and is not published after validation fails.
 
 With `--opencode-go`, UI automation also opens an account draft in Settings, verifies
 masked Go key input, presses Validate & save and checks the expected rejection.
@@ -136,13 +152,14 @@ Latest functional verification: **2026-10-08**.
 
 | Gate | Recorded result |
 | --- | --- |
-| JVM suite | 53/53 passed; Debug lint passed |
+| JVM suite | 60/60 passed; Debug lint passed |
 | Toolchain integrity check | Passed; three official cached archive hashes matched |
 | Full Android Core/CLI compilation | x86_64 and ARM64 passed |
 | Initial App-UID smoke | 4/4 on x86_64 and 4/4 on ARM64 native-bridge path |
 | Optimized ARM64 APK | Release/R8/resource shrinking and signature checks passed |
 | Go native API acceptance | 5/5 runtime probes passed with synthetic credentials |
 | Go Settings acceptance | Masked draft, native validation rejection and no saved account passed |
+| OpenRouter acceptance | 6/6 combined native probes; Go and OpenRouter masked draft/rejection/no-publication UI flows passed |
 | Test cleanup | Owned test installation removed before releasing the lock |
 
 Runtime evidence is from an **Android 16 / API 36 x86_64 emulator** supporting an

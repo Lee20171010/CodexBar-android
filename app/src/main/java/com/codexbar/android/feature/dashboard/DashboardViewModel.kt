@@ -86,6 +86,7 @@ class DashboardViewModel @Inject constructor(
         connection = connection,
         windows = quota.windows.map { UsageWindowUi(it.label, it.utilization, it.resetsAt) },
         extraUsage = quota.extraUsage?.let { ExtraUsageUi(it.monthlyLimit, it.usedCredits, it.utilization, it.currency) },
-        tier = quota.tier
+        tier = quota.tier,
+        money = quota.money
     )
 }

@@ -42,6 +42,8 @@ import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.model.UsageWindow
+import com.codexbar.android.core.domain.model.balanceText
+import com.codexbar.android.core.domain.model.spendText
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -204,7 +206,11 @@ class QuotaGlanceWidget : GlanceAppWidget() {
             }
 
             // Show placeholder if no cached data yet
-            if (windows.isEmpty()) {
+            quota?.money?.let { money ->
+                Text(money.balanceText(), style = TextStyle(color = ColorProvider(Color.White), fontSize = 12.sp))
+                Text(money.spendText(), style = TextStyle(color = ColorProvider(Color.White.copy(alpha = 0.7f)), fontSize = 12.sp))
+            }
+            if (quota == null) {
                 Text(
                     text = "Waiting for data...",
                     style = TextStyle(
@@ -220,7 +226,7 @@ class QuotaGlanceWidget : GlanceAppWidget() {
     private fun WindowRow(
         window: UsageWindow
     ) {
-        val utilization = window.utilization.toFloat()
+        val utilization = window.utilization.toFloat().coerceIn(0f, 1f)
         val remaining = ((1f - utilization) * 100).toInt()
         val resetsAt = window.resetsAt?.epochSecond
         val resetText = resetsAt?.let { formatResetTime(it) } ?: ""

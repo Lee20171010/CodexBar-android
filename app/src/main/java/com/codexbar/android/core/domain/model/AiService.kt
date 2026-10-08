@@ -29,5 +29,13 @@ enum class AiService(
         brandColor = 0xFF3B82F6,
         baseUrl = "https://opencode.ai/",
         requiresManualCredentials = true
-    )
+    ),
+    OPENROUTER(
+        displayName = "OpenRouter",
+        brandColor = 0xFF6467F2,
+        baseUrl = "https://openrouter.ai/",
+        requiresManualCredentials = true
+    );
+
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER
 }

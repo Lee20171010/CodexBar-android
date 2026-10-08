@@ -16,8 +16,9 @@ instructions live in [CONTRIBUTING.md](CONTRIBUTING.md) and the
 | Codex | Existing Kotlin repository / HTTP services | Access token, refresh token, optional account ID |
 | Gemini | Existing Kotlin repository / HTTP services | Access token, refresh token, OAuth client ID and secret |
 | OpenCode Go | Native Swift Core/CLI, API source | API key |
+| OpenRouter | Native Swift Core/CLI, API source | API key |
 
-OpenCode Go is exposed in native-engine build variants. Compiling the complete CLI
+OpenCode Go and OpenRouter are exposed in native-engine build variants. Compiling the complete CLI
 does not establish Android support for every upstream provider or desktop source.
 
 ## 2. Components and ownership
@@ -75,7 +76,7 @@ app/src/main/java/com/codexbar/android/
 ├── feature/settings/        Credential input, validation and preferences
 ├── core/domain/             AiService, Credential, QuotaInfo, Result, QuotaRepository
 ├── core/data/               Provider repository implementations
-├── core/nativecli/          Native process execution and OpenCode Go result mapping
+├── core/nativecli/          Native process execution and API-provider result mapping
 ├── core/network/            Existing Kotlin HTTP clients and OAuth refresh services
 ├── core/security/           Encrypted preference storage
 ├── core/workmanager/        Scheduled account refresh and legacy work cancellation
@@ -132,6 +133,24 @@ estimates, browser-cookie discovery or another tool's saved account.
 - Raw child stderr, provider error messages and request exceptions are not forwarded
   to user-facing errors by the Go adapter.
 
+### OpenRouter API projection
+
+`OpenRouterRepositoryImpl` uses the same account coordinator and bounded native
+client, with `usage --provider openrouter --source api --json` and a child-only
+`OPENROUTER_API_KEY`. No management key or browser session is requested. The pinned
+upstream plugin calls the public key/credits APIs; provider errors are sanitized.
+
+`UsageWindow.id` and `kind` distinguish the stable `api-key-budget` spending cap
+from timed quota. Synthetic primary windows are discarded. `ReportedMoney` stores
+nullable USD balance/spend, reported period and its original measurement time;
+missing financial values never become zero. Dashboard, cache, widget and ongoing
+notification support balance-only results without inventing a quota bar or reset.
+The cache preserves budget identity/type, over-limit readings and money age.
+These fields are not an Android billing ledger or locally estimated cost.
+
+Codex device-code login, Copilot and DeepSeek are not implemented by this adapter.
+OAuth client/source eligibility and real-account acceptance remain separate gates.
+
 ## 4. Native execution contract
 
 `NativeCodexBarClient` serializes its requests with a coroutine mutex. Each request
@@ -145,7 +164,7 @@ environment. It closes stdin and drains stdout/stderr concurrently. Each stream
 retains at most **1 MiB** while continuing to drain excess bytes, preventing pipe
 deadlock; truncated output is rejected by the parser.
 
-The Go invocation allows **45 seconds for process completion**. Mutex waiting,
+Each supported API invocation allows **45 seconds for process completion**. Mutex waiting,
 asset preparation and bounded cleanup waits are additional time, so this is not
 a 45-second end-to-end latency guarantee. Timeout or coroutine cancellation kills
 and waits for the direct child, closes streams and shuts down reader threads.
