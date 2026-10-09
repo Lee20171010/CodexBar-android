@@ -41,6 +41,9 @@ class SettingsViewModel @Inject constructor(
         refreshIntervalMinutes = prefsManager.getRefreshInterval(),
         notificationsEnabled = prefsManager.isNotificationsEnabled(),
         recoveryAlertsEnabled = prefsManager.isRecoveryAlertsEnabled(),
+        alertDepletedEnabled = prefsManager.isAlertDepletedEnabled(),
+        alertLowEnabled = prefsManager.isAlertLowEnabled(),
+        alertPaceEnabled = prefsManager.isAlertPaceEnabled(),
         globalDisplay = widgets.globalDisplayOptions()
     ))
     val uiState = _uiState.asStateFlow()
@@ -210,6 +213,21 @@ class SettingsViewModel @Inject constructor(
     fun setRecoveryAlertsEnabled(enabled: Boolean) {
         prefsManager.setRecoveryAlertsEnabled(enabled)
         _uiState.update { it.copy(recoveryAlertsEnabled = enabled) }
+    }
+
+    fun setAlertDepletedEnabled(enabled: Boolean) {
+        prefsManager.setAlertDepletedEnabled(enabled)
+        _uiState.update { it.copy(alertDepletedEnabled = enabled) }
+    }
+
+    fun setAlertLowEnabled(enabled: Boolean) {
+        prefsManager.setAlertLowEnabled(enabled)
+        _uiState.update { it.copy(alertLowEnabled = enabled) }
+    }
+
+    fun setAlertPaceEnabled(enabled: Boolean) {
+        prefsManager.setAlertPaceEnabled(enabled)
+        _uiState.update { it.copy(alertPaceEnabled = enabled) }
     }
 
     fun setGlobalDisplay(options: com.codexbar.android.core.presentation.DisplayOptions) {

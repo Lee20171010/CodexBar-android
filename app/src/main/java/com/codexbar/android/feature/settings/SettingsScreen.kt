@@ -264,6 +264,24 @@ private fun SettingsPageContent(
                     enabled = uiState.recoveryAlertsEnabled,
                     onToggle = { viewModel.setRecoveryAlertsEnabled(it) }
                 )
+                NotificationsSection(
+                    title = stringResource(R.string.alert_depleted_setting),
+                    description = stringResource(R.string.alert_depleted_setting_summary),
+                    enabled = uiState.alertDepletedEnabled,
+                    onToggle = { viewModel.setAlertDepletedEnabled(it) }
+                )
+                NotificationsSection(
+                    title = stringResource(R.string.alert_low_setting),
+                    description = stringResource(R.string.alert_low_setting_summary),
+                    enabled = uiState.alertLowEnabled,
+                    onToggle = { viewModel.setAlertLowEnabled(it) }
+                )
+                NotificationsSection(
+                    title = stringResource(R.string.alert_pace_setting),
+                    description = stringResource(R.string.alert_pace_setting_summary),
+                    enabled = uiState.alertPaceEnabled,
+                    onToggle = { viewModel.setAlertPaceEnabled(it) }
+                )
             }
             SettingsPage.MENU -> DisplayPrefsSection(
                 display = uiState.globalDisplay,

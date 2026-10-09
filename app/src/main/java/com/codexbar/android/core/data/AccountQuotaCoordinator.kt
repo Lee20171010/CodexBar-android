@@ -122,6 +122,10 @@ class AccountQuotaCoordinator @Inject constructor(
                 notifications.showResetNotification(connection, window.label,
                     com.codexbar.android.core.presentation.QuotaPresentation.remainingPercent(window.utilization))
             }
+            prefs.recordAlerts(connection, result.value).forEach { (window, kind) ->
+                notifications.showUsageAlert(connection, kind, window.label,
+                    com.codexbar.android.core.presentation.QuotaPresentation.remainingPercent(window.utilization))
+            }
         }
         quotaState.update { it + (connection.id to AccountQuota(connection, result, snapshot)) }
         updateNotifications()

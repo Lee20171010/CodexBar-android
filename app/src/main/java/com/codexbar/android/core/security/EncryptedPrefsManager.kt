@@ -177,6 +177,44 @@ class EncryptedPrefsManager internal constructor(
         prefs.edit().putBoolean("recovery_alerts_enabled", enabled).apply()
     }
 
+    fun isAlertDepletedEnabled(): Boolean = prefs.getBoolean("alert_depleted_enabled", false)
+
+    fun setAlertDepletedEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("alert_depleted_enabled", enabled).apply()
+    }
+
+    fun isAlertLowEnabled(): Boolean = prefs.getBoolean("alert_low_enabled", false)
+
+    fun setAlertLowEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("alert_low_enabled", enabled).apply()
+    }
+
+    fun isAlertPaceEnabled(): Boolean = prefs.getBoolean("alert_pace_enabled", false)
+
+    fun setAlertPaceEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("alert_pace_enabled", enabled).apply()
+    }
+
+    /** Persist receipts before notification: restart cannot repeat an already claimed alert. */
+    @Synchronized
+    fun recordAlerts(connection: AccountConnection, quota: com.codexbar.android.core.domain.model.QuotaInfo):
+        List<Pair<com.codexbar.android.core.domain.model.UsageWindow, com.codexbar.android.core.notification.QuotaAlertKind>> {
+        if (!isCurrent(connection) || quota.service != connection.service) return emptyList()
+        val settings = com.codexbar.android.core.notification.AlertSettings(
+            depleted = isAlertDepletedEnabled(), low = isAlertLowEnabled(), pace = isAlertPaceEnabled()
+        )
+        if (!settings.depleted && !settings.low && !settings.pace) return emptyList()
+        val key = "${connection.id}_alerts_v1"
+        val previous = runCatching {
+            kotlinx.serialization.json.Json.decodeFromString<Map<String, com.codexbar.android.core.notification.AlertReading>>(
+                prefs.getString(key, null) ?: "{}")
+        }.getOrDefault(emptyMap())
+        val (next, alerts) = com.codexbar.android.core.notification.QuotaAlerts
+            .observe(previous, quota, Instant.now().epochSecond, settings)
+        commit(prefs.edit().putString(key, kotlinx.serialization.json.Json.encodeToString(next)))
+        return alerts
+    }
+
     /** Persist receipt before notification: restart cannot repeat an already claimed recovery. */
     @Synchronized
     fun recordRecovery(connection: AccountConnection, quota: com.codexbar.android.core.domain.model.QuotaInfo):

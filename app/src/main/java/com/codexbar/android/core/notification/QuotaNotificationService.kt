@@ -29,8 +29,10 @@ class QuotaNotificationService @Inject constructor(
     companion object {
         const val CHANNEL_ID = "quota_monitor"
         const val RESET_CHANNEL_ID = "quota_reset_alert"
+        const val WARNING_CHANNEL_ID = "quota_warning_alert"
         const val NOTIFICATION_ID = 1001
         const val RESET_NOTIFICATION_ID_BASE = 2000
+        const val WARNING_NOTIFICATION_ID_BASE = 3000
         const val ACTION_REFRESH = "com.codexbar.android.ACTION_REFRESH"
     }
 
@@ -58,7 +60,15 @@ class QuotaNotificationService @Inject constructor(
             description = "Notifies when AI service quotas have been reset"
         }
 
-        manager.createNotificationChannels(listOf(monitorChannel, resetChannel))
+        val warningChannel = NotificationChannel(
+            WARNING_CHANNEL_ID,
+            "Quota Usage Warnings",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Notifies when quotas are low, depleted, or pacing to run out early"
+        }
+
+        manager.createNotificationChannels(listOf(monitorChannel, resetChannel, warningChannel))
     }
 
     fun showQuotaNotification(quotas: List<Pair<AccountConnection, QuotaSnapshot>>) {
@@ -157,6 +167,34 @@ class QuotaNotificationService @Inject constructor(
             .build()
 
         manager.notify("${connection.id}:$windowLabel", RESET_NOTIFICATION_ID_BASE, notification)
+    }
+
+    fun showUsageAlert(connection: AccountConnection, kind: QuotaAlertKind, windowLabel: String, remainingPercent: Int) {
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (!manager.areNotificationsEnabled()) return
+        val titleRes = when (kind) {
+            QuotaAlertKind.DEPLETED -> R.string.alert_depleted_title
+            QuotaAlertKind.LOW -> R.string.alert_low_title
+            QuotaAlertKind.PACE -> R.string.alert_pace_title
+        }
+        val dashboardIntent = Intent().apply {
+            action = Intent.ACTION_VIEW
+            data = android.net.Uri.parse("codexbar://dashboard")
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        val dashboardPendingIntent = PendingIntent.getActivity(
+            context, 0, dashboardIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, WARNING_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_quota)
+            .setContentTitle(context.getString(titleRes, connection.name))
+            .setContentText(context.getString(R.string.alert_detail, windowLabel, remainingPercent))
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setContentIntent(dashboardPendingIntent)
+            .setAutoCancel(true)
+            .build()
+        manager.notify("${connection.id}:$windowLabel:${kind.name}", WARNING_NOTIFICATION_ID_BASE, notification)
     }
 
     fun clearAccount(connection: AccountConnection) {

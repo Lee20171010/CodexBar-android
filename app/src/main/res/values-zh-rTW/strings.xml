@@ -6,6 +6,16 @@
     <string name="recovery_setting_description">新讀數確認額度從接近用盡恢復後才通知</string>
     <string name="recovery_title">%1$s 額度再次可用</string>
     <string name="recovery_detail">%1$s · 最新讀數剩餘 %2$d%%</string>
+    <string name="alert_depleted_setting">額度用盡</string>
+    <string name="alert_depleted_setting_summary">額度區間完全用盡時通知</string>
+    <string name="alert_low_setting">額度偏低警示</string>
+    <string name="alert_low_setting_summary">額度區間剩餘降至 20% 時通知</string>
+    <string name="alert_pace_setting">使用進度預警</string>
+    <string name="alert_pace_setting_summary">週期用量超前進度且預估在重設前用盡時通知</string>
+    <string name="alert_depleted_title">%1$s 額度已用盡</string>
+    <string name="alert_low_title">%1$s 額度偏低</string>
+    <string name="alert_pace_title">%1$s 可能在重設前用盡</string>
+    <string name="alert_detail">%1$s · 剩餘 %2$d%%</string>
     <string name="official_status">官方服務狀態：%1$s</string>
     <string name="status_operational">正常運作</string>
     <string name="status_incident">已通報事故</string>

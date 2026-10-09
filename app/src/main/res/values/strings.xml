@@ -6,6 +6,16 @@
     <string name="recovery_setting_description">Alert after a fresh reading confirms recovery from near exhaustion</string>
     <string name="recovery_title">%1$s quota available again</string>
     <string name="recovery_detail">%1$s · %2$d%% remaining in the latest reading</string>
+    <string name="alert_depleted_setting">Quota depleted</string>
+    <string name="alert_depleted_setting_summary">Alert when a quota window is fully used</string>
+    <string name="alert_low_setting">Low quota warning</string>
+    <string name="alert_low_setting_summary">Alert when a window drops to 20% remaining</string>
+    <string name="alert_pace_setting">Predictive pace warning</string>
+    <string name="alert_pace_setting_summary">Alert when weekly usage is ahead of schedule and projected to run out before reset</string>
+    <string name="alert_depleted_title">%1$s quota depleted</string>
+    <string name="alert_low_title">%1$s quota running low</string>
+    <string name="alert_pace_title">%1$s may run out before reset</string>
+    <string name="alert_detail">%1$s · %2$d%% remaining</string>
     <string name="official_status">Official service status: %1$s</string>
     <string name="status_operational">Operational</string>
     <string name="status_incident">Incident reported</string>
