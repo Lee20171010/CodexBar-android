@@ -143,7 +143,7 @@ class WidgetConfigurationActivity : ComponentActivity() {
                                 )
                                 if (checkedState[service.id] == true) DisplayControls(
                                     widgetPrefsManager.getCachedQuota(service)?.windows.orEmpty(),
-                                    displayOptions[service.id] ?: widgetPrefsManager.displayOptions(service, appWidgetId),
+                                    displayOptions[service.id] ?: widgetPrefsManager.effectiveDisplayOptions(service, appWidgetId),
                                     { displayOptions[service.id] = it })
                             }
                         }

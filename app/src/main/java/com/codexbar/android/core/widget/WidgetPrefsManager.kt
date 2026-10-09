@@ -57,6 +57,11 @@ class WidgetPrefsManager internal constructor(private val prefs: SharedPreferenc
     fun effectiveDisplayOptions(connection: AccountConnection): DisplayOptions =
         if (prefs.contains("display_${connection.id}")) displayOptions(connection) else globalDisplayOptions()
 
+    /** Widget scope: per-widget override first, then the connection/global chain. */
+    fun effectiveDisplayOptions(connection: AccountConnection, widgetId: Int?): DisplayOptions =
+        if (widgetId != null && prefs.contains(displayKey(connection, widgetId))) displayOptions(connection, widgetId)
+        else effectiveDisplayOptions(connection)
+
     private fun saveDisplayOptionsEncoded(key: String, options: DisplayOptions) {
         require(options.hiddenWindows.size <= 100 && options.hiddenWindows.all { it.length <= 256 })
         check(prefs.edit().putString(key, Json.encodeToString(options)).commit())

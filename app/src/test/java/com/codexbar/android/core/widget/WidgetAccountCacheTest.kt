@@ -1,6 +1,7 @@
 package com.codexbar.android.core.widget
 
 import com.codexbar.android.core.domain.model.*
+import com.codexbar.android.core.presentation.DisplayOptions
 import com.codexbar.android.core.security.MemoryPreferences
 import java.time.Instant
 import org.junit.Assert.*
@@ -22,6 +23,20 @@ class WidgetAccountCacheTest {
         assertEquals(capped, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
         cache.cacheQuota(account, capped.copy(money = null))
         assertNull(cache.getCachedQuota(account)?.money)
+    }
+
+    @Test fun `widget display falls back from per-widget to connection then global`() {
+        val memory = MemoryPreferences()
+        val prefs = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        prefs.saveGlobalDisplayOptions(DisplayOptions(fillUsed = true))
+        assertEquals(true, prefs.effectiveDisplayOptions(account, 7).fillUsed)
+        prefs.saveDisplayOptions(account, DisplayOptions(fillUsed = false), 7)
+        assertEquals(false, prefs.effectiveDisplayOptions(account, 7).fillUsed)
+        assertEquals(true, prefs.effectiveDisplayOptions(account, 8).fillUsed)
+        prefs.saveDisplayOptions(account, DisplayOptions(showAmounts = true))
+        assertEquals(true, prefs.effectiveDisplayOptions(account).showAmounts)
+        assertEquals(false, prefs.effectiveDisplayOptions(account, 7).fillUsed)
     }
 
     @Test fun `legacy pins remain legacy IDs across restart and cache deletion`() {
