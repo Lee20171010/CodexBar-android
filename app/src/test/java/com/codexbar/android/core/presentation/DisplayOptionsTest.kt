@@ -63,6 +63,15 @@ class DisplayOptionsTest {
         assertEquals(DisplayOptions(setOf("secondary"), showAmounts = false, absoluteReset = true), decoded)
     }
 
+    @Test fun `per-connection accent and headline window round-trip`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        val options = DisplayOptions(accent = "green", headlineWindow = "weekly")
+        cache.saveDisplayOptions(account, options)
+        assertEquals(options, WidgetPrefsManager(memory.prefs).effectiveDisplayOptions(account))
+    }
+
     @Test fun `warning markers mirror with the fill direction`() {
         assertEquals(listOf(.5f, .2f), DisplayOptions().markerFractions())
         assertEquals(listOf(.5f, .8f), DisplayOptions(fillUsed = true).markerFractions())

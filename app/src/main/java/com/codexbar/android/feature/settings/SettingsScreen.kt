@@ -1,9 +1,13 @@
 package com.codexbar.android.feature.settings
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +36,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -325,6 +331,7 @@ private fun AccountsPage(
                     TextButton(onClick = { viewModel.beginReconnect(account) }) { Text("Reconnect") }
                     TextButton(onClick = { onDelete(account) }) { Text("Delete") }
                 }
+                ProviderDisplaySection(account, viewModel)
             }
         }
     }
@@ -572,6 +579,60 @@ private fun RefreshIntervalSection(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Per-connection display overrides on the provider page, mirroring the Mac
+ * provider detail (headline/percent window + accent). State is local: the
+ * value is read once per account and written through on every change.
+ */
+@Composable
+private fun ProviderDisplaySection(account: AccountConnection, viewModel: SettingsViewModel) {
+    var display by remember(account.id) { mutableStateOf(viewModel.connectionDisplay(account)) }
+    val windows = viewModel.cachedWindows(account)
+    HorizontalDivider(Modifier.padding(vertical = 12.dp))
+    Text(stringResource(R.string.provider_display_title), style = MaterialTheme.typography.titleSmall)
+    if (windows.isNotEmpty()) {
+        Text(stringResource(R.string.provider_headline_title), style = MaterialTheme.typography.bodyMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(
+                selected = display.headlineWindow == null,
+                onClick = { display = display.copy(headlineWindow = null); viewModel.setConnectionDisplay(account, display) },
+                label = { Text(stringResource(R.string.provider_headline_auto)) }
+            )
+            windows.forEach { window ->
+                FilterChip(
+                    selected = display.headlineWindow == window.id,
+                    onClick = { display = display.copy(headlineWindow = window.id); viewModel.setConnectionDisplay(account, display) },
+                    label = { Text(window.label) }
+                )
+            }
+        }
+    }
+    Text(stringResource(R.string.provider_accent_title), style = MaterialTheme.typography.bodyMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        FilterChip(
+            selected = display.accent == null,
+            onClick = { display = display.copy(accent = null); viewModel.setConnectionDisplay(account, display) },
+            label = { Text(stringResource(R.string.provider_accent_default)) }
+        )
+        com.codexbar.android.feature.dashboard.ACCENT_COLORS.forEach { (key, color) ->
+            Box(
+                Modifier
+                    .size(28.dp)
+                    .background(color, CircleShape)
+                    .border(
+                        if (display.accent == key) 2.dp else 0.dp,
+                        MaterialTheme.colorScheme.onSurface,
+                        CircleShape
+                    )
+                    .clickable {
+                        display = display.copy(accent = key)
+                        viewModel.setConnectionDisplay(account, display)
+                    }
+            )
         }
     }
 }

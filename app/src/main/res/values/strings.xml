@@ -99,6 +99,11 @@
     <string name="display_reset_summary">Show date and time instead of a countdown</string>
     <string name="display_amounts_title">Show amounts</string>
     <string name="display_amounts_summary">Display monetary amounts where a provider reports them</string>
+    <string name="provider_display_title">Display</string>
+    <string name="provider_headline_title">Headline window</string>
+    <string name="provider_headline_auto">Auto (highest)</string>
+    <string name="provider_accent_title">Accent color</string>
+    <string name="provider_accent_default">Default</string>
     <string name="about_versions">App %1$s · Bundled Core/CLI %2$s</string>
     <string name="about_source">Source on GitHub</string>
 </resources>

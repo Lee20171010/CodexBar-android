@@ -81,9 +81,10 @@ object QuotaPresentation {
         Freshness.STALE -> context.getString(R.string.stale_measurement, age(context, snapshot.quota?.fetchedAt, now))
         Freshness.CURRENT -> age(context, snapshot.quota?.fetchedAt, now)
     }
-    fun summary(context: Context, snapshot: QuotaSnapshot, now: Instant = Instant.now()): String {
+    fun summary(context: Context, snapshot: QuotaSnapshot, now: Instant = Instant.now(), display: DisplayOptions = DisplayOptions()): String {
         val quota = snapshot.retained(now).quota ?: return status(context, snapshot, now)
-        val window = principal(quota).maxByOrNull { it.utilization }
+        val window = principal(quota).find { it.id == display.headlineWindow }
+            ?: principal(quota).maxByOrNull { it.utilization }
         val value = window?.let { "${it.label} ${context.getString(R.string.percent_left, remainingPercent(it.utilization))}" }
             ?: quota.money?.balanceText() ?: context.getString(R.string.quota_unavailable)
         return "$value · ${status(context, snapshot, now)}"

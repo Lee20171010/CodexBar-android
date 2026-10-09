@@ -217,6 +217,17 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(globalDisplay = options) }
     }
 
+    fun connectionDisplay(account: AccountConnection): com.codexbar.android.core.presentation.DisplayOptions =
+        widgets.effectiveDisplayOptions(account)
+
+    fun setConnectionDisplay(account: AccountConnection, options: com.codexbar.android.core.presentation.DisplayOptions) {
+        widgets.saveDisplayOptions(account, options)
+    }
+
+    /** Window ids for the headline picker come from the last cached reading; empty until first refresh. */
+    fun cachedWindows(account: AccountConnection): List<com.codexbar.android.core.domain.model.UsageWindow> =
+        widgets.getCachedQuota(account)?.windows?.filterNot { it.supplemental }.orEmpty()
+
     fun showDeleteConfirmDialog() { _uiState.update { it.copy(showDeleteConfirmDialog = true) } }
     fun dismissDeleteConfirmDialog() { _uiState.update { it.copy(showDeleteConfirmDialog = false) } }
 

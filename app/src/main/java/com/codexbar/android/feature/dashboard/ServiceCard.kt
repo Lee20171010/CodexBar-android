@@ -30,7 +30,7 @@ fun ServiceCard(
 ) {
     val snapshot = cardData.snapshot.retained(now)
     val quota = snapshot.quota
-    val accent = Color(cardData.service.brandColor)
+    val accent = accentColor(cardData.display.accent) ?: Color(cardData.service.brandColor)
     Card(onClick = onClick, modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

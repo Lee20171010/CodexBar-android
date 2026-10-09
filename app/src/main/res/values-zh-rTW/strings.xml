@@ -97,6 +97,11 @@
     <string name="display_reset_summary">顯示日期時間而非倒數</string>
     <string name="display_amounts_title">顯示金額</string>
     <string name="display_amounts_summary">在服務提供者有回報金額時顯示</string>
+    <string name="provider_display_title">顯示</string>
+    <string name="provider_headline_title">標題視窗</string>
+    <string name="provider_headline_auto">自動（最高）</string>
+    <string name="provider_accent_title">強調色</string>
+    <string name="provider_accent_default">預設</string>
     <string name="about_versions">應用程式 %1$s · 內嵌 Core/CLI %2$s</string>
     <string name="about_source">GitHub 原始碼</string>
 </resources>

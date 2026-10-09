@@ -47,7 +47,8 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
             }
             it.windows.forEach { window ->
                 if (window.supplemental) Text(stringResource(R.string.model_specific), style = MaterialTheme.typography.labelSmall)
-                QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now, card.display)
+                QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now, card.display,
+                    accent = accentColor(card.display.accent) ?: MaterialTheme.colorScheme.primary)
                 if (window.utilization > 1) Text(stringResource(R.string.over_quota), color = MaterialTheme.colorScheme.error)
             }
             it.money?.takeIf { card.display.showAmounts }?.let { money ->
