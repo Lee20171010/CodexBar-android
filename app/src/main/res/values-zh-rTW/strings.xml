@@ -16,6 +16,13 @@
     <string name="alert_low_title">%1$s 額度偏低</string>
     <string name="alert_pace_title">%1$s 可能在重設前用盡</string>
     <string name="alert_detail">%1$s · 剩餘 %2$d%%</string>
+    <string name="general_refresh_title">重新整理間隔</string>
+    <string name="general_refresh_15">15 分鐘</string>
+    <string name="general_refresh_30">30 分鐘</string>
+    <string name="general_refresh_60">1 小時</string>
+    <string name="general_refresh_manual">手動</string>
+    <string name="general_language">應用程式語言</string>
+    <string name="general_language_summary">在系統設定中選擇語言</string>
     <string name="official_status">官方服務狀態：%1$s</string>
     <string name="status_operational">正常運作</string>
     <string name="status_incident">已通報事故</string>

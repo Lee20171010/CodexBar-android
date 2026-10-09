@@ -16,6 +16,13 @@
     <string name="alert_low_title">%1$s quota running low</string>
     <string name="alert_pace_title">%1$s may run out before reset</string>
     <string name="alert_detail">%1$s · %2$d%% remaining</string>
+    <string name="general_refresh_title">Refresh Interval</string>
+    <string name="general_refresh_15">15 min</string>
+    <string name="general_refresh_30">30 min</string>
+    <string name="general_refresh_60">1 hour</string>
+    <string name="general_refresh_manual">Manual</string>
+    <string name="general_language">App Language</string>
+    <string name="general_language_summary">Choose the language in system settings</string>
     <string name="official_status">Official service status: %1$s</string>
     <string name="status_operational">Operational</string>
     <string name="status_incident">Incident reported</string>

@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Error
@@ -246,10 +247,13 @@ private fun SettingsPageContent(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         when (page) {
-            SettingsPage.GENERAL -> RefreshIntervalSection(
-                currentMinutes = uiState.refreshIntervalMinutes,
-                onIntervalChange = { viewModel.setRefreshInterval(it) }
-            )
+            SettingsPage.GENERAL -> {
+                RefreshIntervalSection(
+                    currentMinutes = uiState.refreshIntervalMinutes,
+                    onIntervalChange = { viewModel.setRefreshInterval(it) }
+                )
+                LanguageSection()
+            }
             SettingsPage.ACCOUNTS -> AccountsPage(uiState, viewModel, onRename, onDelete)
             SettingsPage.NOTIFICATIONS -> {
                 NotificationsSection(
@@ -579,12 +583,17 @@ private fun RefreshIntervalSection(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Refresh Interval",
+                text = stringResource(R.string.general_refresh_title),
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            val options = listOf(15L to "15 min", 30L to "30 min", 60L to "1 hour", 0L to "Manual")
+            val options = listOf(
+                15L to stringResource(R.string.general_refresh_15),
+                30L to stringResource(R.string.general_refresh_30),
+                60L to stringResource(R.string.general_refresh_60),
+                0L to stringResource(R.string.general_refresh_manual)
+            )
             val selectedIndex = options.indexOfFirst { it.first == currentMinutes }.takeIf { it >= 0 } ?: 1
 
             SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -598,6 +607,47 @@ private fun RefreshIntervalSection(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Honest Android equivalent of the Mac language picker: the per-app language
+ * system settings screen (API 33+). Hidden where the platform has no per-app locale.
+ */
+@Composable
+private fun LanguageSection() {
+    if (android.os.Build.VERSION.SDK_INT < 33) return
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS)
+                                .addCategory(android.content.Intent.CATEGORY_DEFAULT)
+                                .setData(android.net.Uri.parse("package:${context.packageName}"))
+                        )
+                    }
+                }
+                .padding(16.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(stringResource(R.string.general_language), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(R.string.general_language_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null)
         }
     }
 }
