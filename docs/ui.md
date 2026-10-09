@@ -10,10 +10,14 @@ design authority. The native engine remains pinned independently to v0.71.0.
 ## Status and design workflow
 
 Implemented in `e114632`: dashboard title/percent row, reset placement, 6dp
-provider-accent bar and name/identity/plan header. These source changes follow the
-last delivered daily APK and need renewed Release/UI acceptance. Full UI/UX
-alignment is **not complete**; the remaining sections describe both current
-behavior and targets, not a promise that every Mac capability is available.
+provider-accent bar and name/identity/plan header. The prototype slices are now
+implemented: settings directory (`47e4cfa`), global display preferences
+(`e1bae92`), headline window and accent (`5e2c1be`), localized General with the
+system language entry (`55a239b`), Mac pace with Work days (`c7f8969`), the
+usage-warning notification split (`96221c1`) and the shared widget display chain
+(`490f15d`). Device acceptance against the prototype on the delivered
+`0.0.6-beta-native` APK is the remaining gate; the rows below record deliberate
+boundaries, not unfinished parity promises.
 
 Before the next UI/UX feature, review a side-by-side design: Mac on the left,
 expected mobile interaction on the right. Cover settings, navigation, account
@@ -26,19 +30,21 @@ not evidence that the CLI supplies their illustrated values or controls.
 
 | Mac surface or behavior | Current Android behavior | Alignment work / boundary |
 | --- | --- | --- |
-| Account menu cards and account selection | Named accounts, compact dashboard, phone detail sheet and wide detail panel | Review multi-account navigation and grouping against Mac |
-| Remaining/used percentage | Remaining percentage | Used/remaining switch is planned |
-| Countdown/absolute reset | Per-account and independent widget display profiles | Settings organization still needs design review |
-| Visible usage items | Stable window-ID filters; detail retains all windows and hidden risk remains visible | Align labels, placement and defaults |
-| Provider accent colors | Provider-defined colors on dashboard bars | User-editable colors are planned |
-| Pace copy, bar indicator and Work days | Bounded measurement history and a labeled linear estimate | Mac reserve/deficit computation, copy, stripes and Work days are not implemented |
+| Account menu cards and account selection | Named accounts, compact dashboard, phone detail sheet and wide detail panel | Multi-account navigation in use; grouping refinements follow prototype feedback |
+| Remaining/used percentage | Global Remaining/Used toggle with per-account and per-widget overrides (`e1bae92`, `490f15d`) | Widget bars follow the same fill direction |
+| Countdown/absolute reset | Menu & display page toggle; per-account override retained | — |
+| Visible usage items | Stable window-ID filters; detail retains all windows and hidden risk remains visible | Labels and defaults reviewed against prototype |
+| Provider accent colors | Per-account accent swatches applied to cards, details, tile and widgets (`5e2c1be`) | Fixed palette, not a free color picker |
+| Headline (percent) window | Per-account headline window with Auto fallback (`5e2c1be`) | Cached windows seed the picker |
+| Pace copy, bar indicator and Work days | Mac `UsagePace.weekly` port: stage, ETA, will-last and Work-day split shown in details (`c7f8969`) | Menu-bar stripe indicators have no mobile counterpart yet |
 | Reported balances and credits | Provider-reported money; native Codex credits/caps/reset inventory | Preserve units and unknown states; do not invent balances for unsupported sources |
 | Preferred currency | Provider currency is retained; no conversion | Needs a rate source, timestamps and offline policy before implementation |
-| Usage & Spend, ledger and heatmap | One quota-history chart; reported money where supported | A quota chart is not a spend ledger; desktop history sources need separate availability checks |
-| Reset notifications | Opt-in measured recovery alert (95% used to at most 80% used) | This threshold rule is not full Mac reset-receipt/confirmed-reset parity |
+| Usage & Spend, ledger and heatmap | One quota-history chart; reported money where supported; Spend page states unavailability explicitly | A quota chart is not a spend ledger; desktop history sources need separate availability checks |
+| Reset notifications | Independent depleted, low (20%), predictive-pace and measured recovery alerts, each with durable dedup (`96221c1`) | Recovery threshold rule is not full Mac reset-receipt parity |
 | Service incidents | Official status for supported Core sources, independently aged | Align presentation while retaining unknown/unavailable states |
-| Widgets and menu-bar glanceability | Account/overview widgets, Quick Settings tile, persistent notification | Review native Android equivalents; Mac menu-bar token editor has no direct mobile surface |
+| Widgets and menu-bar glanceability | Account/overview widgets, Quick Settings tile, persistent notification sharing the display chain (`490f15d`) | Mac menu-bar token editor has no direct mobile surface |
 | Provider connection settings | Validated drafts, reconnect/delete, Codex sign-in; registration-gated Copilot device flow | Desktop browser/Keychain discovery is not provided by Android encrypted storage |
+| App language | System per-app locale settings entry point (API 33+) (`55a239b`) | In-app language switcher not implemented; system picker is the platform path |
 | About and updates | Version, offline licenses and manually delivered APK | Homebrew controls are macOS-specific |
 
 Mac parity is evaluated per feature. SwiftUI presentation, desktop local files,

@@ -4,16 +4,30 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
-## [Unreleased]
+## 0.0.6-beta-native
+
+### Added
+
+- Mac-style settings directory (General, Accounts, Notifications, Menu & display,
+  Usage & Spend, Advanced, About) with phone drill-down and wide two-pane layout.
+- Global menu-bar display preferences (Remaining/Used fill, warning markers,
+  absolute reset, amounts) as defaults with per-account and per-widget overrides.
+- Per-account headline (percent) window and accent color, applied on cards,
+  details, tile and widgets; widgets follow the same display chain.
+- Mac `UsagePace.weekly` port with work-day awareness: pace stage, ETA and
+  will-last shown in details, with a weekly work-days picker.
+- Usage-warning notifications split like Mac — depleted, low (20% remaining),
+  predictive pace — each independently toggleable with durable per-window dedup,
+  alongside the existing confirmed-recovery alerts.
+- App Language entry opening the system per-app locale settings (API 33+).
 
 ### Changed
 
 - Align dashboard metric rows and card headers with Mac CodexBar: monochrome
   title/remaining percentage, reset alongside it, a 6dp provider-accent capsule,
-  and name/identity/plan hierarchy (`e114632`). New Release/UI acceptance is pending.
+  and name/identity/plan hierarchy (`e114632`).
 - Reconcile setup, architecture, contribution and test documents with delivered
-  `0.0.5-beta-native` behavior and the current source. Record Mac UI/UX alignment
-  as a design-first next phase, separate from engine and live-account acceptance.
+  behavior; record the Mac UI/UX prototype and per-feature mapping (`docs/ui.md`).
 
 ## 0.0.5-beta-native
 
