@@ -1,5 +1,20 @@
 # CodexBar Android Technical Specification
 
+## Current implementation and design status
+
+The delivered `0.0.5-beta-native` artifact contains the account, provider, snapshot,
+scheduling, widget, status, recovery, history and display features described here.
+`TEST.md` scopes the evidence to that artifact; implementation is not complete live
+or physical-device acceptance. Current source additionally changes the dashboard
+metric rows and card headers toward Mac CodexBar's design language (`e114632`).
+Those presentation changes still need a new Release artifact and runtime acceptance.
+
+Mac UI/UX alignment covers settings, features, display and interactions, not just
+card styling. [docs/ui.md](docs/ui.md) owns the implementation/target distinction.
+The Mac v0.73.0 design reference does not change the native v0.71.0 source pin.
+SwiftUI/AppKit presentation, desktop credential discovery and local usage/spend
+collection are not automatically exposed by the bundled CLI or Android adapters.
+
 ## Reported Codex inventory
 
 Native Codex quota preserves optional credit balance, workspace ownership, personal
@@ -394,8 +409,8 @@ cadence persistence probe; long-run device behavior remains an observation targe
   That is distinct from physical ARM64 hardware verification.
 - Automated Go API/UI checks use an invalid synthetic key. Real-account quota
   accuracy, long-running background behavior and OAuth renewal are not proven by them.
-- The native CLI currently prints `CodexBar` without a numeric version because its
-  version-file lookup expects a file next to the executable.
+- The Android version command reads the staged `VERSION` beside the resource bundle
+  and reports `CodexBar 0.71.0`; the numeric-version App-UID probe passed.
 - Claude refresh-token failures reported by the Android upstream are not resolved
   by this native integration.
 

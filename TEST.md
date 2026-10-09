@@ -1,5 +1,17 @@
 # CodexBar Android Test Plan
 
+## Evidence boundary for current source
+
+The last delivered/accepted daily artifact below was built before `e114632`, which
+changes metric-row and card-header presentation. Its hash and runtime results do
+not cover that subsequent UI change. A new optimized build and focused UI/runtime
+acceptance remain required; a later `nativeAcceptance` packaging attempt did not
+complete successfully. Documentation updates do not resolve that packaging gate.
+
+Counts in feature sections record their historical check runs. The latest retained
+JVM result set is **100 tests, zero failures/errors**, itemized below. Neither the
+Mac comparison mockup nor source compilation proves full Mac UI/UX parity.
+
 ## Production packaging and daily artifact
 
 `nativeRelease` is the daily build: dashboard launcher only, no diagnostic activity,
@@ -31,16 +43,18 @@ enrichment. Real-account inventory availability has not been independently verif
 
 97 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Fixtures cover
 stable metric IDs across labels/disappearance, hidden-risk retention, independent
-dashboard/widget/account choices, persistence, reconnect and deletion. Final Release
-interaction checks remain separate from these automated checks.
+dashboard/widget/account choices, persistence, reconnect and deletion. The delivered
+Release synthetic detail demo reached display controls; widget-host interaction and
+the subsequent Mac row/header changes still need acceptance.
 
 ## Quota history and pace
 
 95 JVM tests, Debug lint and Native Debug compilation pass. Pace fixtures cover a
 fixed reset cycle, moving resets, source changes, recovery, gaps, sparse/unknown data,
 duplicate/backwards/future measurements, over-quota data, exact 48-sample retention,
-restart/generation isolation, sibling deletion and 14-day expiry. Chart runtime and
-accessibility inspection remain part of final device acceptance.
+restart/generation isolation, sibling deletion and 14-day expiry. The delivered
+Release synthetic detail demo reached the chart, credits and display controls;
+TalkBack and physical-device accessibility remain unverified.
 
 ## Confirmed quota recovery
 
@@ -122,7 +136,8 @@ builds keep this button disabled and do not claim live OAuth/Copilot eligibility
 - User reported Codex and OpenCode Go working on the phone with `0.0.4-beta-native`.
   That version used Kotlin for Codex, so this is not evidence for the new native path
   or automatic token renewal. No real-account request was made by the test runner.
-- Native Codex App-UID, final Release and real renewal checks remain pending.
+- The packaged native runtime passed the general App-UID probes below. Successful
+  native Codex quota and token renewal with an authorized real account remain pending.
 
 ## 1. Verification scope
 
@@ -133,11 +148,12 @@ successful real-account quota retrieval are distinct gates.
 
 | Provider | Ordinary refresh path implemented | Synthetic checks | Android App-UID evidence | Owner-authorized live quota |
 | --- | --- | --- | --- | --- |
-| Claude / Codex / Gemini | Kotlin | HTTP fixtures | Full account acceptance pending | Pending |
-| OpenCode Go | Native API in native-engine builds | Parser, repository, account lifecycle | Invalid-key CLI and Settings rejection | Pending |
+| Claude / Gemini | Kotlin | HTTP fixtures | Full account acceptance pending | Pending |
+| Codex | Native OAuth on API 28+ native builds; Kotlin otherwise | Protocol, ownership, parser and HTTP fixtures | General CLI/missing-credential smoke; successful native quota pending | Owner reported Kotlin path in 0.0.4; native quota/renewal pending |
+| OpenCode Go | Native API in native-engine builds | Parser, repository, account lifecycle | Invalid-key CLI and Settings rejection | Owner reported working in 0.0.4; controlled provider comparison pending |
 | OpenRouter | Native API in native-engine builds | Budget/balance parser, ownership, cache | Invalid-key native and Settings rejection passed | Pending |
-| Copilot | Native API in native-engine builds | Premium/chat/plan-only parser and account isolation | Pending | Pending |
-| DeepSeek | Kotlin official balance API | Numeric/currency/unknown/zero and account-header HTTP fixtures | Pending | Pending |
+| Copilot | Native API in native-engine builds | Premium/chat/plan-only parser and account isolation | Invalid-token and Settings rejection passed | Pending; device flow also requires OAuth App registration |
+| DeepSeek | Kotlin official balance API | Numeric/currency/unknown/zero and account-header HTTP fixtures | Invalid-key and Settings rejection passed | Pending |
 
 Codex device-code login is implemented with synthetic protocol checks. Owner-authorized
 browser login, real quota retrieval and token renewal remain separate pending gates;
@@ -162,12 +178,12 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher runtime acceptance is recorded below; tile visual acceptance remains pending.
 
-The JVM suite currently contains **74 tests**:
+The latest retained JVM result set contains **100 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
 | Claude repository | 9 | Existing HTTP/credential behavior |
-| Codex repository | 11 | HTTP/credential behavior; request-local draft rotation, late-write cancellation, same-provider session isolation |
+| Codex repository | 13 | HTTP/credential behavior, renewal classification, draft rotation and native credential handoff |
 | Gemini repository | 6 | Existing HTTP/credential behavior |
 | OpenCode Go repository | 2 | Missing key avoids execution; rejected keys are retained |
 | Native process runner | 3 | Dual-pipe output bounds, timeout/reaping, cancellation/reaping |
@@ -178,8 +194,17 @@ The JVM suite currently contains **74 tests**:
 | Codex device-code auth | 7 | Pending/success/PKCE, denial/expiry/deadline, slow-down timing, cancellation, oversized responses and redirect rejection |
 | OpenRouter CLI parser | 4 | Balance-only versus capped budgets, zero/unknown, measurement age, malformed data, process failures and sanitized API errors |
 | Account storage | 9 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes, invalid identities and OpenRouter restart isolation |
-| Account coordinator | 6 | Failed draft isolation, serialized rotation, independent siblings, late deletion results, cancellation and reconnect |
+| Account coordinator | 7 | Failed draft isolation, serialized rotation, independent siblings, late deletion results, cancellation, reconnect and overlapping refresh |
 | Widget account cache | 4 | Legacy pins, deleted-owner isolation, generation snapshots, actual measurement age, invalid/absent data and money/budget round trips |
+| Native Codex | 3 | Parser, private auth files, ownership and cleanup |
+| Reported Codex credits | 3 | Unknown/zero balance, separate caps, inventory and malformed enrichment |
+| Copilot device auth | 3 | Registration gate, device polling, expiry and cancellation |
+| Official status | 2 | Source/indicator mapping, freshness and shared cache |
+| Quota recovery | 3 | Confirmed recovery, rejected observations and durable receipts |
+| Display options | 2 | Stable IDs, risk visibility and independent profiles |
+| Quota pace | 5 | Segmentation, retention, estimates and sparse/invalid measurements |
+| Quota snapshots | 2 | Freshness, generation and cache mapping |
+| Refresh worker | 1 | Terminal/transient retry classification |
 
 Account storage tests use an in-memory SharedPreferences double, including the
 memory-before-disk-failure behavior. They do not verify Android Keystore encryption
@@ -213,7 +238,7 @@ Prepare the pinned tools and private signing environment as documented in
 
 ```sh
 python3 native/build.py --tools "$SWIFT_ANDROID_TOOLS" --abi arm64-v8a --configuration release
-bash ./gradlew :app:assembleNativeRelease --max-workers=2
+bash ./gradlew :app:assembleNativeRelease :app:assembleNativeAcceptance --max-workers=2
 ```
 
 Artifact: `app/build/outputs/apk/nativeRelease/app-nativeRelease.apk`.
@@ -251,16 +276,27 @@ clearing shared logs or enabling `run-as` on the non-debuggable APK.
 
 The probes are:
 
-1. CLI launch/version command exits successfully.
+1. CLI launch/version command exits successfully and includes the packaged numeric version.
 2. Resource smoke initializes an actual bundled provider plugin and emits its success marker.
 3. Isolated provider configuration validates.
-4. Codex without credentials emits the expected provider-error JSON; exit 1 is intentional.
-5. The production Go client makes an HTTPS request with a fixed invalid key and
+4. Credential-free `--status-only` takes the status route rather than quota fetching.
+5. Codex without credentials emits the expected provider-error JSON; exit 1 is intentional.
+6. The fresh-install cadence probe verifies scheduling, Manual cancellation and startup reapply.
+7. With `--opencode-go`, the production Go client makes an HTTPS request with a fixed invalid key and
    maps its rejection to the expected authentication failure.
-6. With `--openrouter`, the production OpenRouter client rejects a fixed invalid key;
+8. With `--openrouter`, the production OpenRouter client rejects a fixed invalid key;
    its Settings draft stays masked and is not published after validation fails.
-7. With `--copilot`, the native Copilot source rejects a fixed invalid GitHub token.
-8. With `--deepseek`, the Kotlin balance API rejects a fixed invalid key.
+9. With `--copilot`, the native Copilot source rejects a fixed invalid GitHub token.
+10. With `--deepseek`, the Kotlin balance API rejects a fixed invalid key.
+
+Release commands select `.native.acceptance`. Run the daily artifact's separate
+launcher/sign-in/notices/no-diagnostics checks with `--product-only`, and synthetic
+phone/dark/200%-text/wide/detail/chart/credits/display checks with `--ui-demo`:
+
+```sh
+python3 native/test.py --abi arm64-v8a --configuration release --product-only
+python3 native/test.py --abi arm64-v8a --configuration release --ui-demo
+```
 
 Release UI checks also verify the dashboard launcher, Codex sign-in entry, offline
 MIT text and system display name. Notification/battery prompts are handled before
@@ -299,6 +335,7 @@ Latest functional verification: **2026-10-08**.
 | Added-provider runtime | Eight synthetic probes passed, including Go/OpenRouter/Copilot/DeepSeek rejection; all four masked draft/rejection/no-publication UI paths passed |
 | Product UI / original artwork | Dashboard launcher, Codex sign-in entry, offline MIT reader and system Codexbar label passed; screenshot review confirmed original artwork under the system mask |
 | Production acceptance (0.0.5-beta) | Six App-UID probes on the acceptance build (incl. numeric CLI version, status-only, manual-cadence persistence) and daily-APK product UI passed on the API 36 ARM64-bridge emulator |
+| Synthetic detail (0.0.5-beta) | Phone, dark, 200% text, wide, detail, chart, credits and display-controls harness assertions passed; not TalkBack or widget-host acceptance |
 | Owner live confirmation | Owner reported Codex and OpenCode Go quotas working on the phone (0.0.4-beta-native, Kotlin Codex path); native-path live renewal remains owner-authorized pending |
 | Test cleanup | Owned test installation removed before releasing the lock |
 

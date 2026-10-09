@@ -4,7 +4,12 @@
 
 Monitor seven AI services on Android. **Codex (ChatGPT), OpenCode Go, OpenRouter and GitHub Copilot use the native Swift engine** in native builds on API 28+. Claude, Gemini and DeepSeek use Kotlin API integrations; Codex also retains a Kotlin compatibility path on API 26/27. Balance-only services show reported money rather than invented quota windows.
 
-The native integration is currently an experimental build. Its automated acceptance covers synthetic credentials; see [TEST.md](TEST.md) for results and remaining real-account/device checks.
+The native integration is experimental. The last delivered daily APK is
+`0.0.5-beta-native`; current source also includes a subsequent Mac-inspired card-row
+and header change. That UI change is not covered by the delivered APK's acceptance.
+Automated checks use synthetic credentials. The owner reported Codex and OpenCode Go
+working in `0.0.4-beta-native`, which still used Kotlin for Codex; native Codex live
+renewal remains unverified. See [TEST.md](TEST.md) for artifact-specific evidence.
 
 <p align="center">
   <img src="docs/Screenshot_20260305_025201_CodexBar.jpg" width="320" alt="Dashboard" />
@@ -12,20 +17,39 @@ The native integration is currently an experimental build. Its automated accepta
   <img src="docs/Screenshot_20260305_025207_CodexBar.jpg" width="320" alt="Settings" />
 </p>
 
-These screenshots show the original Android UI. Current builds add multi-account setup and Codex sign-in; native-engine builds support seven providers. The launcher displays **Codexbar** with original upstream artwork.
+These screenshots show the original Android UI, not the current cards or proposed
+Mac-aligned UI/UX. Current builds add multi-account setup and Codex sign-in;
+native-engine builds support seven providers. The launcher displays **Codexbar**
+with original upstream artwork.
 
 ## Features
 
-- On-demand quota monitoring for Claude, Codex, Gemini, and OpenCode Go in native-engine builds
-- OpenRouter reported USD balance/spend and API-key budget, without inventing timed quota windows
-- OpenCode Go API-key configuration with 5-hour, weekly, and monthly windows when supplied by the provider
-- Animated gauge bars showing remaining usage percentage
-- Quick Settings tile for at-a-glance status
-- WorkManager-based background refresh
-- Persistent notification with per-service breakdown
-- Opt-in alerts after measured quota recovery, with durable duplicate suppression
-- Encrypted credential storage
-- Material 3 with Dynamic Color
+- Multiple named accounts per provider, validated before saving; reconnect and delete accounts independently
+- Codex browser/device-code sign-in; manual credentials for Claude, Gemini and Copilot; API keys for Go, OpenRouter and DeepSeek
+- Quota windows for Claude, Codex, Gemini, Go and Copilot when reported; monetary balance/budget for OpenRouter and DeepSeek
+- Remaining-first account cards, phone detail sheets and wide-screen detail panels
+- Shared last-good measurements, freshness and typed failures across dashboard, widgets, tile and persistent notification
+- Pinned-account and account-overview widgets with independent display profiles
+- Saved WorkManager refresh cadence, Manual mode and per-account transient retries
+- Official incident status for supported sources and opt-in confirmed quota-recovery alerts
+- Bounded quota history, one linear-estimate chart and read-only reported Codex credits/reset inventory
+- Encrypted credentials, generation-guarded account ownership and offline About/licenses
+- Jetpack Compose and Material 3 platform integration, with Mac CodexBar as the UI/UX reference
+
+## Design direction and maintenance
+
+Mac CodexBar is the reference for settings, features, terminology and information
+hierarchy. The next phase is design-first: review corresponding Mac and proposed
+mobile flows before implementing each feature. Current source aligns metric rows
+and card headers; full settings, pace and display parity is still planned.
+[docs/ui.md](docs/ui.md) separates implementation from design targets.
+
+The bundled engine is **CodexBar Core/CLI**, not OpenAI's coding-agent **Codex CLI**.
+Maintaining this app includes the pinned Core/CLI and Android patch, JSON-to-domain
+adapters, Android-owned sign-in/token renewal, Kotlin integrations, Compose/widgets/
+scheduling, and toolchain/packaging checks. A newer CLI alone does not supply every
+Mac UI feature, desktop credential source or local spend history. The engine remains
+pinned to **v0.71.0**; the **v0.73.0** Mac design reference is a separate choice.
 
 ## Builds and requirements
 
@@ -38,7 +62,9 @@ These screenshots show the original Android UI. Current builds add multi-account
 
 The app minimum is Android 8.0 / API 26; the native engine requires Android 9 / API 28.
 The daily package remains `com.codexbar.android.native`, preserving earlier native-build
-accounts and signing identity. Diagnostics use `com.codexbar.android.native.acceptance`.
+accounts and signing identity. Release diagnostics use
+`com.codexbar.android.native.acceptance`; `nativeDebug` shares the daily `.native`
+package and must only be installed on an isolated test runtime.
 
 For the native build, follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [native build guide](native/README.md).
 Deliver `nativeRelease`; use `nativeAcceptance` for synthetic runtime probes. Both reuse
@@ -194,8 +220,9 @@ Native toolchain setup, Release packaging and signing are documented in [native/
 ## Known limitations
 
 - Claude refresh-token renewal failures reported by the Android upstream are not fixed by this integration.
-- The refresh-interval setting currently persists a preference without rescheduling WorkManager. Background scheduling is best-effort, not a precise timer.
-- Physical ARM64, real-account quota accuracy, minimum-API and 16 KiB-page coverage remain acceptance targets; see [TEST.md](TEST.md).
+- Cadence changes reschedule WorkManager immediately; Manual cancels periodic work and automatic retries. Android background scheduling and OEM doze remain best-effort.
+- Copilot browser sign-in needs this project's registered OAuth App; distributed builds retain manual token entry.
+- Native-path live Codex renewal, provider-specific live accuracy, physical ARM64/minimum-API/16 KiB-page checks, widget-host interaction and TalkBack remain acceptance targets; see [TEST.md](TEST.md).
 
 ## Documentation
 
@@ -206,6 +233,7 @@ Native toolchain setup, Release packaging and signing are documented in [native/
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer setup and contribution workflow |
 | [CHANGELOG.md](CHANGELOG.md) | Changes maintained in this fork |
 | [native/README.md](native/README.md) | Pinned native toolchain, packaging and build commands |
+| [docs/ui.md](docs/ui.md) | Mac UI/UX reference, implemented presentation and design targets |
 
 ## Acknowledgments
 

@@ -12,13 +12,21 @@ OpenCode Go usage, start with [README.md](../README.md).
 - Official Swift 6.4.0 Ubuntu 24.04 host compiler and matching Android SDK.
 - Android NDK r30; the native CLI currently targets API 28 because upstream uses
   `posix_spawn`. The existing Android app still targets minimum API 26; the native
-  acceptance activity explicitly requires API 28. Final product compatibility
-  has not yet been decided. Child-process working-directory actions require API
-  34 and report `ENOTSUP` below that version; no process-global `chdir` workaround.
+  acceptance activity explicitly requires API 28. Codex uses the Kotlin compatibility
+  path on API 26/27; native-only providers require API 28+. Child-process
+  working-directory actions require API 34 and report `ENOTSUP` below that version;
+  no process-global `chdir` workaround.
 - SQLite 3.50.4 amalgamation, built statically with the NDK. Core already uses
   SQLite; Android does not expose its system copy as a public NDK library.
 - Source checkout: ignored `upstream-codexbar/`.
 - Build outputs: ignored `build/native/<abi>/`.
+
+This is CodexBar's quota engine, not OpenAI's Codex coding-agent executable. The
+v0.73.0 Mac UI/UX reference does not upgrade this pin. Updating the engine requires
+patch, JSON contract, credential-ownership and provider acceptance checks; desktop
+capabilities are not automatically available through Android's supported sources.
+Android stages `VERSION` beside the resource bundle so `--version` reports the
+numeric pinned version even though the executable lives in `nativeLibraryDir`.
 
 ### Standalone toolchain setup
 
@@ -83,7 +91,8 @@ bash ./gradlew :app:assembleNativeDebug -PnativeAbi=x86_64 --max-workers=2
 python3 native/test.py --abi x86_64
 ```
 
-`nativeDebug` uses `com.codexbar.android.native` and the existing release key. Its
+`nativeDebug` shares `com.codexbar.android.native` with the daily build and uses the
+existing release key; use a fresh isolated test installation. Its
 test activity runs fixed commands only and is absent from production variants.
 The runner is reused from the prior process proof and manages direct children;
 the production client restricts API-key providers to API and Codex to OAuth. `test.py` holds one shared

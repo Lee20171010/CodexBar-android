@@ -5,6 +5,7 @@
 - [README.md](README.md): usage and build-variant selection.
 - [SPEC.md](SPEC.md): architecture, provider ownership and behavior boundaries.
 - [TEST.md](TEST.md): runnable checks and evidence requirements.
+- [docs/ui.md](docs/ui.md): Mac UI/UX reference and implementation status.
 - [native/README.md](native/README.md): pinned Swift toolchain and native packaging.
 - [AGENTS.md](AGENTS.md): repository and automation working agreement.
 
@@ -42,6 +43,11 @@ The supported native build host is x86_64 Ubuntu 24.04 with Python 3.12+, Git,
 
 ## 4. Updating upstream or the toolchain
 
+The bundled executable is CodexBar Core/CLI, not OpenAI's Codex coding-agent CLI.
+The native source pin (v0.71.0) and Mac UI/UX reference (v0.73.0) are independent.
+Maintenance includes Android-owned OAuth renewal, Kotlin providers, result mapping,
+UI/widgets and scheduling as well as native source/toolchain updates.
+
 `native/build.py` checks the upstream revision before applying `native/android.patch`.
 The reference checkout is ignored. Editing it alone does not update this repository's
 deliverable; export intended changes into the tracked patch and check that it applies
@@ -72,7 +78,10 @@ ANDROID_KEY_PASSWORD
 
 Use the existing signing identity for updates. Do not print credentials or place
 them in tracked configuration. The standard `release` variant retains the upstream
-release workflow; the native test variants have a separate `.native` application ID.
+release workflow. `nativeRelease` and `nativeDebug` share `.native`;
+release-optimized `nativeAcceptance` uses `.native.acceptance`. Use the latter for
+isolated diagnostics alongside the daily app. Never install `nativeDebug` over an
+owner's daily app to obtain test access.
 
 Configure the ADB/session-lock wrappers described in [TEST.md](TEST.md). Hold one
 lock through installation, assertions and cleanup, and build before acquiring it.
@@ -94,11 +103,26 @@ Document changes at their proper boundary:
 | Test commands, results or remaining acceptance | `TEST.md` |
 | Developer setup or workflow | `CONTRIBUTING.md` / `native/README.md` |
 | Notable user/developer-facing change | `CHANGELOG.md` under `Unreleased` |
+| Mac UI/UX mapping or implementation status | `docs/ui.md` |
+
+For UI/UX work, first map the Mac setting, feature and interaction to its proposed
+mobile counterpart, with a source reference and data-availability boundary. Review
+the comparison design before implementation. Use Compose accessibility, touch,
+navigation and system-inset conventions for Android adaptation. A mockup does not
+prove implementation or CLI capability. Keep one independently testable feature per
+commit; run its focused checks before committing. Documentation reconciliation can
+be one commit when the files describe the same state change.
 
 Review staged content for credentials, private infrastructure details and generated
 artifacts. Use a public-safe commit identity, such as your verified GitHub noreply
 address. Follow the repository working agreement and maintainer instructions for
 commit structure and publication.
+
+Before publication, inspect each unpublished commit's full diff and message, including
+deleted text, fixtures and binary additions, rather than only the final tree. Retain
+required public license attributions. If sensitive content is found, follow the
+maintainer's history-rewrite authorization and verify remote reachability first;
+adding a later deletion does not remove it from history. Keep scan artifacts private.
 
 Passing checks is not approval to push or publish. Include scope, checks, limitations
 and any relevant issue/change link when requesting review. Contributions use the
