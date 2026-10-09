@@ -15,15 +15,15 @@ Mac comparison mockup nor source compilation proves full Mac UI/UX parity.
 ## Production packaging and daily artifact
 
 `nativeRelease` is the daily build: dashboard launcher only, no diagnostic activity,
-`.native` identity, versionCode 6 / `0.0.5-beta-native`, minSdk 26, ARM64-only. The
+`.native` identity, versionCode 7 / `0.0.6-beta-native`, minSdk 26, ARM64-only. The
 release-optimized diagnostics moved to a separate `nativeAcceptance` variant
 (`.native.acceptance`) that reuses the same ARM64 Release payload and adds the smoke
 activity, synthetic UI demo and the fresh-install cadence-persistence probe.
 
-Signed ARM64 `0.0.5-beta-native` daily APK: **35,763,607 bytes**, SHA-256:
+Signed ARM64 `0.0.6-beta-native` daily APK: **35,817,287 bytes**, SHA-256:
 
 ```text
-8b40cc0ba8095559a005a86e7d7dc3c972e6a1d4348eb0fa9b955553d6c1b9c1
+d1e0a029209f11bcf618cfa00b6df0b30231450cf349bf31110e6f6abb13f2b7
 ```
 
 Locked-runtime acceptance on that payload passed all six App-UID probes (version with
@@ -337,6 +337,7 @@ Latest functional verification: **2026-10-08**.
 | Product UI / original artwork | Dashboard launcher, Codex sign-in entry, offline MIT reader and system Codexbar label passed; screenshot review confirmed original artwork under the system mask |
 | Production acceptance (0.0.5-beta) | Six App-UID probes on the acceptance build (incl. numeric CLI version, status-only, manual-cadence persistence) and daily-APK product UI passed on the API 36 ARM64-bridge emulator |
 | Synthetic detail (0.0.5-beta) | Phone, dark, 200% text, wide, detail, chart, credits and display-controls harness assertions passed; not TalkBack or widget-host acceptance |
+| UI/UX slice smoke (0.0.6-beta) | Signed daily APK installed and launched on the API 36 ARM64-bridge emulator: dashboard empty state, settings directory (all seven pages listed) and provider page rendered with no runtime crashes; widget hosts, tiles and live account flows not re-exercised |
 | Owner live confirmation | Owner reported Codex and OpenCode Go quotas working on the phone (0.0.4-beta-native, Kotlin Codex path); native-path live renewal remains owner-authorized pending |
 | Test cleanup | Owned test installation removed before releasing the lock |
 
@@ -361,7 +362,7 @@ d7761ce5d78d4310e1d503203e0532fdfd9f1075425677afe2d15d387cd77b69
 
 This hash identifies the tested artifact; later documentation/history edits do not
 imply that a newly rebuilt APK will have identical bytes. Revalidate changed payloads.
-The current daily artifact is the 0.0.5-beta-native APK identified at the top of this
+The current daily artifact is the 0.0.6-beta-native APK identified at the top of this
 document.
 
 The upstream Swift `make check` attempt stopped because `plutil` was unavailable;

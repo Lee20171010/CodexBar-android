@@ -2,7 +2,7 @@
 
 ## Current implementation and design status
 
-The delivered `0.0.5-beta-native` artifact contains the account, provider, snapshot,
+The delivered `0.0.6-beta-native` artifact contains the account, provider, snapshot,
 scheduling, widget, status, recovery, history and display features described here.
 `TEST.md` scopes the evidence to that artifact; implementation is not complete live
 or physical-device acceptance. Current source additionally changes the dashboard

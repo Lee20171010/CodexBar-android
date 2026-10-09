@@ -5,8 +5,9 @@
 Monitor seven AI services on Android. **Codex (ChatGPT), OpenCode Go, OpenRouter and GitHub Copilot use the native Swift engine** in native builds on API 28+. Claude, Gemini and DeepSeek use Kotlin API integrations; Codex also retains a Kotlin compatibility path on API 26/27. Balance-only services show reported money rather than invented quota windows.
 
 The native integration is experimental. The last delivered daily APK is
-`0.0.5-beta-native`; current source also includes a subsequent Mac-inspired card-row
-and header change. That UI change is not covered by the delivered APK's acceptance.
+`0.0.6-beta-native`, which includes the Mac-inspired card rows plus the settings
+directory, shared display preferences, pace estimates and usage-warning
+notifications.
 Automated checks use synthetic credentials. The owner reported Codex and OpenCode Go
 working in `0.0.4-beta-native`, which still used Kotlin for Codex; native Codex live
 renewal remains unverified. See [TEST.md](TEST.md) for artifact-specific evidence.
