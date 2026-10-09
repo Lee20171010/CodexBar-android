@@ -9,7 +9,7 @@ acceptance remain required; a later `nativeAcceptance` packaging attempt did not
 complete successfully. Documentation updates do not resolve that packaging gate.
 
 Counts in feature sections record their historical check runs. The latest retained
-JVM result set is **100 tests, zero failures/errors**, itemized below. Neither the
+JVM result set is **110 tests, zero failures/errors**, itemized below. Neither the
 Mac comparison mockup nor source compilation proves full Mac UI/UX parity.
 
 ## Production packaging and daily artifact
@@ -178,7 +178,7 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher runtime acceptance is recorded below; tile visual acceptance remains pending.
 
-The latest retained JVM result set contains **100 tests**:
+The latest retained JVM result set contains **110 tests**:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -195,14 +195,15 @@ The latest retained JVM result set contains **100 tests**:
 | OpenRouter CLI parser | 4 | Balance-only versus capped budgets, zero/unknown, measurement age, malformed data, process failures and sanitized API errors |
 | Account storage | 9 | In-place/restart migration, same-provider isolation, rename/delete/reconnect, stale publication, concurrent token CAS, failed writes, invalid identities and OpenRouter restart isolation |
 | Account coordinator | 7 | Failed draft isolation, serialized rotation, independent siblings, late deletion results, cancellation, reconnect and overlapping refresh |
-| Widget account cache | 4 | Legacy pins, deleted-owner isolation, generation snapshots, actual measurement age, invalid/absent data and money/budget round trips |
+| Widget account cache | 5 | Legacy pins, deleted-owner isolation, generation snapshots, actual measurement age, invalid/absent data, money/budget round trips and the per-widget → connection → global display chain |
 | Native Codex | 3 | Parser, private auth files, ownership and cleanup |
 | Reported Codex credits | 3 | Unknown/zero balance, separate caps, inventory and malformed enrichment |
 | Copilot device auth | 3 | Registration gate, device polling, expiry and cancellation |
 | Official status | 2 | Source/indicator mapping, freshness and shared cache |
 | Quota recovery | 3 | Confirmed recovery, rejected observations and durable receipts |
-| Display options | 2 | Stable IDs, risk visibility and independent profiles |
-| Quota pace | 5 | Segmentation, retention, estimates and sparse/invalid measurements |
+| Quota alerts | 4 | Depleted/low fire-once and rearm, per-cycle pace dedup, disabled and stale-reading guards |
+| Display options | 6 | Stable IDs, risk visibility, independent profiles, global fallback, marker mirroring and round-trips |
+| Quota pace | 6 | Segmentation, retention, estimates, sparse/invalid measurements and Mac UsagePace.weekly linear/work-day expectations |
 | Quota snapshots | 2 | Freshness, generation and cache mapping |
 | Refresh worker | 1 | Terminal/transient retry classification |
 
