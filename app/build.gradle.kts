@@ -20,6 +20,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "false")
+        // Display-only engine version; keep in sync with the v0.71.0 pin in native/build.py.
+        buildConfigField("String", "CORE_CLI_VERSION", "\"0.71.0\"")
         val copilotClientId = providers.environmentVariable("COPILOT_OAUTH_CLIENT_ID").getOrElse("")
         require(copilotClientId.matches(Regex("[A-Za-z0-9._-]{0,128}"))) { "Invalid public Copilot OAuth client ID" }
         buildConfigField("String", "COPILOT_CLIENT_ID", "\"$copilotClientId\"")

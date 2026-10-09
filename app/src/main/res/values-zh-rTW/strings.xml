@@ -70,4 +70,22 @@
     <string name="reset_inventory">回報可用重設券：%1$d 張</string>
     <string name="reset_credit_item">%1$s · %2$s · 到期：%3$s</string>
     <string name="measured_at">量測：%1$s</string>
+    <string name="settings_general">一般</string>
+    <string name="settings_general_summary">更新頻率與背景更新</string>
+    <string name="settings_providers">服務與帳戶</string>
+    <string name="settings_providers_summary">新增、重新連線、更名或刪除帳戶</string>
+    <string name="settings_notifications">通知</string>
+    <string name="settings_notifications_summary">常駐狀態與恢復提醒</string>
+    <string name="settings_spend">用量與花費</string>
+    <string name="settings_spend_summary">每日花費帳本（資料來源待接入）</string>
+    <string name="settings_advanced">進階</string>
+    <string name="settings_advanced_summary">平台範圍說明</string>
+    <string name="settings_about">關於</string>
+    <string name="settings_about_summary">版本、來源與授權</string>
+    <string name="spend_unavailable_title">花費資料尚未可用</string>
+    <string name="spend_unavailable">此 Android 移植尚未接入花費帳本資料來源；不會將餘額或額度歷史換算為每日成本。</string>
+    <string name="advanced_platform_title">平台範圍</string>
+    <string name="advanced_platform_note">Mac 專屬功能——iCloud 同步、Hooks、外掛程式、Keychain／瀏覽器探索與選單列 token 編輯器——不在本 Android 移植範圍；此處加密儲存僅保護憑證。</string>
+    <string name="about_versions">應用程式 %1$s · 內嵌 Core/CLI %2$s</string>
+    <string name="about_source">GitHub 原始碼</string>
 </resources>

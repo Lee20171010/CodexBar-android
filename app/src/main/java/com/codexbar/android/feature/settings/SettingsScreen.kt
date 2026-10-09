@@ -1,9 +1,13 @@
 package com.codexbar.android.feature.settings
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,11 +46,13 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +71,15 @@ import com.codexbar.android.R
 import com.codexbar.android.core.network.codex.CodexDeviceAuth
 import com.codexbar.android.core.network.copilot.CopilotDeviceAuth
 
+private enum class SettingsPage(val titleRes: Int) {
+    GENERAL(R.string.settings_general),
+    ACCOUNTS(R.string.settings_providers),
+    NOTIFICATIONS(R.string.settings_notifications),
+    SPEND(R.string.settings_spend),
+    ADVANCED(R.string.settings_advanced),
+    ABOUT(R.string.settings_about)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -72,6 +87,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
     var showAbout by remember { mutableStateOf(false) }
     var renameAccount by remember { mutableStateOf<AccountConnection?>(null) }
     var renameText by remember { mutableStateOf("") }
@@ -80,85 +96,58 @@ fun SettingsScreen(
         onDispose { AiService.entries.forEach(viewModel::cancelDraft) }
     }
 
+    val current = page
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(current?.titleRes ?: R.string.settings)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    IconButton(onClick = { if (current == null) onNavigateBack() else page = null }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
+        BoxWithConstraints(
+            Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Notifications
-            NotificationsSection(
-                title = stringResource(R.string.notification_status_title),
-                description = stringResource(R.string.notification_status_description),
-                enabled = uiState.notificationsEnabled,
-                onToggle = { viewModel.setNotificationsEnabled(it) }
-            )
-            NotificationsSection(
-                title = stringResource(R.string.recovery_setting_title),
-                description = stringResource(R.string.recovery_setting_description),
-                enabled = uiState.recoveryAlertsEnabled,
-                onToggle = { viewModel.setRecoveryAlertsEnabled(it) }
-            )
-
-            Text("Accounts", style = MaterialTheme.typography.titleLarge)
-            uiState.connections.forEach { account ->
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(account.name, style = MaterialTheme.typography.titleMedium)
-                        Text(account.service.displayName, style = MaterialTheme.typography.bodySmall)
-                        Row {
-                            TextButton(onClick = { renameAccount = account; renameText = account.name }) { Text("Rename") }
-                            TextButton(onClick = { viewModel.beginReconnect(account) }) { Text("Reconnect") }
-                            TextButton(onClick = { deleteAccount = account }) { Text("Delete") }
-                        }
-                    }
+            // Wide screens restore the Mac sidebar + detail layout.
+            val wide = maxWidth >= 840.dp
+            if (wide) {
+                Row(Modifier.fillMaxSize()) {
+                    SettingsDirectory(
+                        selected = current ?: SettingsPage.GENERAL,
+                        onSelect = { page = it },
+                        modifier = Modifier.weight(0.38f).fillMaxHeight()
+                    )
+                    VerticalDivider(Modifier.fillMaxHeight())
+                    SettingsPageContent(
+                        page = current ?: SettingsPage.GENERAL,
+                        uiState = uiState,
+                        viewModel = viewModel,
+                        onAboutLicenses = { showAbout = true },
+                        onRename = { renameAccount = it; renameText = it.name },
+                        onDelete = { deleteAccount = it },
+                        modifier = Modifier.weight(0.62f).fillMaxHeight()
+                    )
                 }
-            }
-
-            AiService.entries.filter { !it.usesNativeApiKey || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
-                val state = uiState.serviceStates[service] ?: ServiceCredentialState()
-                if (state.connection == null) OutlinedButton(
-                    onClick = { viewModel.beginAdd(service) }, modifier = Modifier.fillMaxWidth()
-                ) { Text("Add ${service.displayName} account") }
-                else ServiceCredentialSection(
-                    service = service,
-                    state = state,
-                    onFieldChange = { field, value -> viewModel.updateField(service, field, value) },
-                    onValidate = { viewModel.validateCredential(service) },
-                    onSignIn = { viewModel.signIn(service) },
-                    onCancel = { viewModel.cancelDraft(service) }
+            } else if (current == null) {
+                SettingsDirectory(selected = null, onSelect = { page = it }, modifier = Modifier.fillMaxSize())
+            } else {
+                BackHandler { page = null }
+                SettingsPageContent(
+                    page = current,
+                    uiState = uiState,
+                    viewModel = viewModel,
+                    onAboutLicenses = { showAbout = true },
+                    onRename = { renameAccount = it; renameText = it.name },
+                    onDelete = { deleteAccount = it },
+                    modifier = Modifier.fillMaxSize()
                 )
             }
-
-            // Refresh interval
-            RefreshIntervalSection(
-                currentMinutes = uiState.refreshIntervalMinutes,
-                onIntervalChange = { viewModel.setRefreshInterval(it) }
-            )
-
-            // Danger zone
-            DangerZoneSection(
-                onDeleteAll = { viewModel.showDeleteConfirmDialog() }
-            )
-
-            TextButton(onClick = { showAbout = true }) {
-                Text(stringResource(R.string.about_licenses))
-            }
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 
@@ -198,6 +187,156 @@ fun SettingsScreen(
             onDismiss = { viewModel.dismissDeleteConfirmDialog() }
         )
     }
+}
+
+@Composable
+private fun SettingsDirectory(selected: SettingsPage?, onSelect: (SettingsPage) -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        SettingsPage.entries.forEach { entry ->
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onSelect(entry) }
+                    .padding(vertical = 12.dp, horizontal = 8.dp)
+            ) {
+                Text(stringResource(entry.titleRes), style = MaterialTheme.typography.titleMedium)
+                Text(
+                    stringResource(when (entry) {
+                        SettingsPage.GENERAL -> R.string.settings_general_summary
+                        SettingsPage.ACCOUNTS -> R.string.settings_providers_summary
+                        SettingsPage.NOTIFICATIONS -> R.string.settings_notifications_summary
+                        SettingsPage.SPEND -> R.string.settings_spend_summary
+                        SettingsPage.ADVANCED -> R.string.settings_advanced_summary
+                        SettingsPage.ABOUT -> R.string.settings_about_summary
+                    }),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsPageContent(
+    page: SettingsPage,
+    uiState: SettingsUiState,
+    viewModel: SettingsViewModel,
+    onAboutLicenses: () -> Unit,
+    onRename: (AccountConnection) -> Unit,
+    onDelete: (AccountConnection) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        when (page) {
+            SettingsPage.GENERAL -> RefreshIntervalSection(
+                currentMinutes = uiState.refreshIntervalMinutes,
+                onIntervalChange = { viewModel.setRefreshInterval(it) }
+            )
+            SettingsPage.ACCOUNTS -> AccountsPage(uiState, viewModel, onRename, onDelete)
+            SettingsPage.NOTIFICATIONS -> {
+                NotificationsSection(
+                    title = stringResource(R.string.notification_status_title),
+                    description = stringResource(R.string.notification_status_description),
+                    enabled = uiState.notificationsEnabled,
+                    onToggle = { viewModel.setNotificationsEnabled(it) }
+                )
+                NotificationsSection(
+                    title = stringResource(R.string.recovery_setting_title),
+                    description = stringResource(R.string.recovery_setting_description),
+                    enabled = uiState.recoveryAlertsEnabled,
+                    onToggle = { viewModel.setRecoveryAlertsEnabled(it) }
+                )
+            }
+            SettingsPage.SPEND -> Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.spend_unavailable_title), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.spend_unavailable),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            SettingsPage.ADVANCED -> Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.advanced_platform_title), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.advanced_platform_note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            SettingsPage.ABOUT -> {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
+                        Text(stringResource(R.string.unofficial_port), style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(R.string.about_versions, BuildConfig.VERSION_NAME, BuildConfig.CORE_CLI_VERSION),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                val uriHandler = LocalUriHandler.current
+                OutlinedButton(
+                    onClick = { uriHandler.openUri("https://github.com/Lee20171010/CodexBar-android") },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.about_source)) }
+                TextButton(onClick = onAboutLicenses) {
+                    Text(stringResource(R.string.about_licenses))
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+private fun AccountsPage(
+    uiState: SettingsUiState,
+    viewModel: SettingsViewModel,
+    onRename: (AccountConnection) -> Unit,
+    onDelete: (AccountConnection) -> Unit
+) {
+    uiState.connections.forEach { account ->
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(account.name, style = MaterialTheme.typography.titleMedium)
+                Text(account.service.displayName, style = MaterialTheme.typography.bodySmall)
+                Row {
+                    TextButton(onClick = { onRename(account) }) { Text("Rename") }
+                    TextButton(onClick = { viewModel.beginReconnect(account) }) { Text("Reconnect") }
+                    TextButton(onClick = { onDelete(account) }) { Text("Delete") }
+                }
+            }
+        }
+    }
+    AiService.entries.filter { !it.usesNativeApiKey || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
+        val state = uiState.serviceStates[service] ?: ServiceCredentialState()
+        if (state.connection == null) OutlinedButton(
+            onClick = { viewModel.beginAdd(service) }, modifier = Modifier.fillMaxWidth()
+        ) { Text("Add ${service.displayName} account") }
+        else ServiceCredentialSection(
+            service = service,
+            state = state,
+            onFieldChange = { field, value -> viewModel.updateField(service, field, value) },
+            onValidate = { viewModel.validateCredential(service) },
+            onSignIn = { viewModel.signIn(service) },
+            onCancel = { viewModel.cancelDraft(service) }
+        )
+    }
+    DangerZoneSection(onDeleteAll = { viewModel.showDeleteConfirmDialog() })
 }
 
 @Composable

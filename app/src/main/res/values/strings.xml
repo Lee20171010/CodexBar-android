@@ -72,4 +72,22 @@
     <string name="reset_inventory">Reported available reset credits: %1$d</string>
     <string name="reset_credit_item">%1$s · %2$s · expires: %3$s</string>
     <string name="measured_at">Measured: %1$s</string>
+    <string name="settings_general">General</string>
+    <string name="settings_general_summary">Refresh cadence and background updates</string>
+    <string name="settings_providers">Providers &amp; accounts</string>
+    <string name="settings_providers_summary">Add, reconnect, rename or delete accounts</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_summary">Persistent status and recovery alerts</string>
+    <string name="settings_spend">Usage &amp; Spend</string>
+    <string name="settings_spend_summary">Daily cost ledger (data source pending)</string>
+    <string name="settings_advanced">Advanced</string>
+    <string name="settings_advanced_summary">Platform boundaries</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_summary">Version, source and licenses</string>
+    <string name="spend_unavailable_title">Spend unavailable</string>
+    <string name="spend_unavailable">This Android port has no spend ledger data source yet. Balances and quota history are never converted into daily costs.</string>
+    <string name="advanced_platform_title">Platform boundaries</string>
+    <string name="advanced_platform_note">Mac-only features — iCloud Sync, Hooks, Plugins, Keychain/browser discovery and the menu-bar token editor — are outside this Android port. Encrypted storage here protects credentials only.</string>
+    <string name="about_versions">App %1$s · Bundled Core/CLI %2$s</string>
+    <string name="about_source">Source on GitHub</string>
 </resources>
