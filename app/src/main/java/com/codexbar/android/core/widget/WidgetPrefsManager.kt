@@ -47,10 +47,23 @@ class WidgetPrefsManager internal constructor(private val prefs: SharedPreferenc
         Json.decodeFromString<DisplayOptions>(prefs.getString(displayKey(connection, widgetId), null) ?: "{}")
     }.getOrDefault(DisplayOptions())
 
-    fun saveDisplayOptions(connection: AccountConnection, options: DisplayOptions, widgetId: Int? = null) {
+    /** Global defaults (Mac menu-bar equivalent); used until a connection gets its own override. */
+    fun globalDisplayOptions(): DisplayOptions = runCatching {
+        Json.decodeFromString<DisplayOptions>(prefs.getString("display_global", null) ?: "{}")
+    }.getOrDefault(DisplayOptions())
+
+    fun saveGlobalDisplayOptions(options: DisplayOptions) = saveDisplayOptionsEncoded("display_global", options)
+
+    fun effectiveDisplayOptions(connection: AccountConnection): DisplayOptions =
+        if (prefs.contains("display_${connection.id}")) displayOptions(connection) else globalDisplayOptions()
+
+    private fun saveDisplayOptionsEncoded(key: String, options: DisplayOptions) {
         require(options.hiddenWindows.size <= 100 && options.hiddenWindows.all { it.length <= 256 })
-        check(prefs.edit().putString(displayKey(connection, widgetId), Json.encodeToString(options)).commit())
+        check(prefs.edit().putString(key, Json.encodeToString(options)).commit())
     }
+
+    fun saveDisplayOptions(connection: AccountConnection, options: DisplayOptions, widgetId: Int? = null) =
+        saveDisplayOptionsEncoded(displayKey(connection, widgetId), options)
 
     private fun displayKey(connection: AccountConnection, widgetId: Int?) =
         if (widgetId == null) "display_${connection.id}" else "widget_${widgetId}_display_${connection.id}"

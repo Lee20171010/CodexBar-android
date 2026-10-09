@@ -75,6 +75,7 @@ private enum class SettingsPage(val titleRes: Int) {
     GENERAL(R.string.settings_general),
     ACCOUNTS(R.string.settings_providers),
     NOTIFICATIONS(R.string.settings_notifications),
+    MENU(R.string.settings_menu),
     SPEND(R.string.settings_spend),
     ADVANCED(R.string.settings_advanced),
     ABOUT(R.string.settings_about)
@@ -208,6 +209,7 @@ private fun SettingsDirectory(selected: SettingsPage?, onSelect: (SettingsPage) 
                         SettingsPage.GENERAL -> R.string.settings_general_summary
                         SettingsPage.ACCOUNTS -> R.string.settings_providers_summary
                         SettingsPage.NOTIFICATIONS -> R.string.settings_notifications_summary
+                        SettingsPage.MENU -> R.string.settings_menu_summary
                         SettingsPage.SPEND -> R.string.settings_spend_summary
                         SettingsPage.ADVANCED -> R.string.settings_advanced_summary
                         SettingsPage.ABOUT -> R.string.settings_about_summary
@@ -256,6 +258,10 @@ private fun SettingsPageContent(
                     onToggle = { viewModel.setRecoveryAlertsEnabled(it) }
                 )
             }
+            SettingsPage.MENU -> DisplayPrefsSection(
+                display = uiState.globalDisplay,
+                onChange = { viewModel.setGlobalDisplay(it) }
+            )
             SettingsPage.SPEND -> Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.spend_unavailable_title), style = MaterialTheme.typography.titleMedium)
@@ -567,6 +573,67 @@ private fun RefreshIntervalSection(
                 }
             }
         }
+    }
+}
+
+/**
+ * Global display defaults, the Mac menu-bar preferences equivalent.
+ * Per-connection overrides in the dashboard detail win over these.
+ */
+@Composable
+private fun DisplayPrefsSection(
+    display: com.codexbar.android.core.presentation.DisplayOptions,
+    onChange: (com.codexbar.android.core.presentation.DisplayOptions) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.display_fill_title), style = MaterialTheme.typography.titleMedium)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = !display.fillUsed,
+                    onClick = { onChange(display.copy(fillUsed = false)) },
+                    shape = SegmentedButtonDefaults.itemShape(0, 2)
+                ) { Text(stringResource(R.string.display_fill_remaining)) }
+                SegmentedButton(
+                    selected = display.fillUsed,
+                    onClick = { onChange(display.copy(fillUsed = true)) },
+                    shape = SegmentedButtonDefaults.itemShape(1, 2)
+                ) { Text(stringResource(R.string.display_fill_used)) }
+            }
+            PrefsSwitchRow(
+                checked = display.showMarkers,
+                title = stringResource(R.string.display_markers_title),
+                summary = stringResource(R.string.display_markers_summary),
+                onToggle = { onChange(display.copy(showMarkers = it)) }
+            )
+            PrefsSwitchRow(
+                checked = display.absoluteReset,
+                title = stringResource(R.string.display_reset_title),
+                summary = stringResource(R.string.display_reset_summary),
+                onToggle = { onChange(display.copy(absoluteReset = it)) }
+            )
+            PrefsSwitchRow(
+                checked = display.showAmounts,
+                title = stringResource(R.string.display_amounts_title),
+                summary = stringResource(R.string.display_amounts_summary),
+                onToggle = { onChange(display.copy(showAmounts = it)) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrefsSwitchRow(checked: Boolean, title: String, summary: String, onToggle: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onToggle)
     }
 }
 

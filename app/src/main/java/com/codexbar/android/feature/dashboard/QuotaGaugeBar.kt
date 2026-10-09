@@ -1,5 +1,6 @@
 package com.codexbar.android.feature.dashboard
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -62,7 +64,17 @@ fun QuotaGaugeBar(
                 .clip(RoundedCornerShape(3.dp))
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest)
         ) {
-            Box(Modifier.fillMaxHeight().fillMaxWidth(remaining.toFloat()).background(accent))
+            val fill = if (display.fillUsed) (utilization).toFloat().coerceIn(0f, 1f) else remaining.toFloat()
+            Box(Modifier.fillMaxHeight().fillMaxWidth(fill).background(accent))
+            val markers = display.markerFractions()
+            val gapColor = MaterialTheme.colorScheme.surfaceContainerHighest
+            if (markers.isNotEmpty()) Canvas(Modifier.matchParentSize()) {
+                // Mac punches the warning thresholds out of the bar; a gap-colored line is the touch equivalent.
+                markers.forEach { fraction ->
+                    val x = size.width * fraction
+                    drawLine(gapColor, Offset(x, 0f), Offset(x, size.height), strokeWidth = 2.dp.toPx())
+                }
+            }
         }
     }
 }

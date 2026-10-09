@@ -55,7 +55,7 @@ class DashboardViewModel @Inject constructor(
                         ?: ServiceCardData(connection, emptyList(), null, null)
                     card.copy(error = error, snapshot = snapshot,
                         officialStatus = statuses[connection.service] ?: com.codexbar.android.core.data.OfficialStatus(),
-                        history = widgets.history(connection), display = widgets.displayOptions(connection))
+                        history = widgets.history(connection), display = widgets.effectiveDisplayOptions(connection))
                 }
                 when {
                     cards.isNotEmpty() && cards.all { it.isLoading } -> DashboardUiState.Loading

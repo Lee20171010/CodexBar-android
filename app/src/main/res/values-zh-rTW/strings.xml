@@ -86,6 +86,17 @@
     <string name="spend_unavailable">此 Android 移植尚未接入花費帳本資料來源；不會將餘額或額度歷史換算為每日成本。</string>
     <string name="advanced_platform_title">平台範圍</string>
     <string name="advanced_platform_note">Mac 專屬功能——iCloud 同步、Hooks、外掛程式、Keychain／瀏覽器探索與選單列 token 編輯器——不在本 Android 移植範圍；此處加密儲存僅保護憑證。</string>
+    <string name="settings_menu">選單與顯示</string>
+    <string name="settings_menu_summary">長條填充、警告標記與重置格式</string>
+    <string name="display_fill_title">長條填充</string>
+    <string name="display_fill_remaining">剩餘</string>
+    <string name="display_fill_used">已用量</string>
+    <string name="display_markers_title">警告標記</string>
+    <string name="display_markers_summary">在剩餘 50% 與 20% 處顯示刻度</string>
+    <string name="display_reset_title">絕對重置時間</string>
+    <string name="display_reset_summary">顯示日期時間而非倒數</string>
+    <string name="display_amounts_title">顯示金額</string>
+    <string name="display_amounts_summary">在服務提供者有回報金額時顯示</string>
     <string name="about_versions">應用程式 %1$s · 內嵌 Core/CLI %2$s</string>
     <string name="about_source">GitHub 原始碼</string>
 </resources>

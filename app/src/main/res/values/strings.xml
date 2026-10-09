@@ -88,6 +88,17 @@
     <string name="spend_unavailable">This Android port has no spend ledger data source yet. Balances and quota history are never converted into daily costs.</string>
     <string name="advanced_platform_title">Platform boundaries</string>
     <string name="advanced_platform_note">Mac-only features — iCloud Sync, Hooks, Plugins, Keychain/browser discovery and the menu-bar token editor — are outside this Android port. Encrypted storage here protects credentials only.</string>
+    <string name="settings_menu">Menu &amp; display</string>
+    <string name="settings_menu_summary">Bar fill, warning markers and reset format</string>
+    <string name="display_fill_title">Bar fill</string>
+    <string name="display_fill_remaining">Remaining</string>
+    <string name="display_fill_used">Used</string>
+    <string name="display_markers_title">Warning markers</string>
+    <string name="display_markers_summary">Ticks at 50% and 20% remaining</string>
+    <string name="display_reset_title">Absolute reset times</string>
+    <string name="display_reset_summary">Show date and time instead of a countdown</string>
+    <string name="display_amounts_title">Show amounts</string>
+    <string name="display_amounts_summary">Display monetary amounts where a provider reports them</string>
     <string name="about_versions">App %1$s · Bundled Core/CLI %2$s</string>
     <string name="about_source">Source on GitHub</string>
 </resources>

@@ -11,6 +11,7 @@ data class SettingsUiState(
     val refreshIntervalMinutes: Long = 30L,
     val notificationsEnabled: Boolean = true,
     val recoveryAlertsEnabled: Boolean = false,
+    val globalDisplay: com.codexbar.android.core.presentation.DisplayOptions = com.codexbar.android.core.presentation.DisplayOptions(),
     val showDeleteConfirmDialog: Boolean = false
 )
 

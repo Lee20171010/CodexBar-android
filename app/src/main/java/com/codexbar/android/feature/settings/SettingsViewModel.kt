@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel @Inject constructor(
     private val accounts: AccountQuotaCoordinator,
     private val prefsManager: EncryptedPrefsManager,
+    private val widgets: com.codexbar.android.core.widget.WidgetPrefsManager,
     private val codexDeviceAuth: CodexDeviceAuth,
     private val copilotDeviceAuth: CopilotDeviceAuth,
     @ApplicationContext private val context: Context
@@ -39,7 +40,8 @@ class SettingsViewModel @Inject constructor(
         connections = prefsManager.loadConnections(),
         refreshIntervalMinutes = prefsManager.getRefreshInterval(),
         notificationsEnabled = prefsManager.isNotificationsEnabled(),
-        recoveryAlertsEnabled = prefsManager.isRecoveryAlertsEnabled()
+        recoveryAlertsEnabled = prefsManager.isRecoveryAlertsEnabled(),
+        globalDisplay = widgets.globalDisplayOptions()
     ))
     val uiState = _uiState.asStateFlow()
     private val validationJobs = mutableMapOf<AiService, Job>()
@@ -208,6 +210,11 @@ class SettingsViewModel @Inject constructor(
     fun setRecoveryAlertsEnabled(enabled: Boolean) {
         prefsManager.setRecoveryAlertsEnabled(enabled)
         _uiState.update { it.copy(recoveryAlertsEnabled = enabled) }
+    }
+
+    fun setGlobalDisplay(options: com.codexbar.android.core.presentation.DisplayOptions) {
+        widgets.saveGlobalDisplayOptions(options)
+        _uiState.update { it.copy(globalDisplay = options) }
     }
 
     fun showDeleteConfirmDialog() { _uiState.update { it.copy(showDeleteConfirmDialog = true) } }

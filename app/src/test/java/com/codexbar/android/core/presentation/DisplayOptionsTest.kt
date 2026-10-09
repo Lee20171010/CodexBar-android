@@ -39,4 +39,33 @@ class DisplayOptionsTest {
         assertEquals(DisplayOptions(), cache.displayOptions(account))
         assertEquals(DisplayOptions(), cache.displayOptions(account, 2))
     }
+
+    @Test fun `global defaults apply until a connection overrides them`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        val global = DisplayOptions(fillUsed = true, showMarkers = false)
+        cache.saveGlobalDisplayOptions(global)
+        assertEquals(global, WidgetPrefsManager(memory.prefs).globalDisplayOptions())
+        assertEquals(global, cache.effectiveDisplayOptions(account))
+        val own = DisplayOptions(absoluteReset = true)
+        cache.saveDisplayOptions(account, own)
+        assertEquals(own, cache.effectiveDisplayOptions(account))
+        assertEquals(global, cache.effectiveDisplayOptions(AccountConnection.create(AiService.CODEX)))
+        cache.deleteAccountCache(account.id)
+        assertEquals(global, cache.effectiveDisplayOptions(account))
+    }
+
+    @Test fun `legacy stored options decode with new display defaults`() {
+        // Options saved before fillUsed/showMarkers existed keep remaining-fill and markers.
+        val legacy = """{"hiddenWindows":["secondary"],"showAmounts":false,"absoluteReset":true}"""
+        val decoded = kotlinx.serialization.json.Json.decodeFromString<DisplayOptions>(legacy)
+        assertEquals(DisplayOptions(setOf("secondary"), showAmounts = false, absoluteReset = true), decoded)
+    }
+
+    @Test fun `warning markers mirror with the fill direction`() {
+        assertEquals(listOf(.5f, .2f), DisplayOptions().markerFractions())
+        assertEquals(listOf(.5f, .8f), DisplayOptions(fillUsed = true).markerFractions())
+        assertTrue(DisplayOptions(showMarkers = false).markerFractions().isEmpty())
+    }
 }
