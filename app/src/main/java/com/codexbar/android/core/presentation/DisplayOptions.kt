@@ -16,7 +16,8 @@ data class DisplayOptions(
     val fillUsed: Boolean = false,
     val showMarkers: Boolean = true,
     val accent: String? = null,
-    val headlineWindow: String? = null
+    val headlineWindow: String? = null,
+    val workDays: Int? = null
 ) {
     fun visible(quota: QuotaInfo) = quota.windows.filter { it.id !in hiddenWindows }
     fun hiddenRisk(quota: QuotaInfo) = quota.windows.any { it.id in hiddenWindows && it.utilization >= .85 }

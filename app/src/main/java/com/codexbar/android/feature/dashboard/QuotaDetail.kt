@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.balanceText
 import com.codexbar.android.core.domain.model.spendText
+import com.codexbar.android.core.presentation.PaceStage
 import com.codexbar.android.core.presentation.QuotaPace
 import com.codexbar.android.core.presentation.QuotaPresentation
 import java.time.Instant
@@ -33,6 +34,31 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
         OfficialStatusText(card.officialStatus, now)
         quota?.let {
             QuotaPace.principal(it)?.let { principal ->
+                QuotaPace.weeklyPace(principal, now, card.display.workDays)?.let { pace ->
+                    Text(stringResource(when (pace.stage) {
+                        PaceStage.ON_TRACK -> R.string.pace_on_track
+                        PaceStage.SLIGHTLY_AHEAD -> R.string.pace_slightly_ahead
+                        PaceStage.AHEAD -> R.string.pace_ahead
+                        PaceStage.FAR_AHEAD -> R.string.pace_far_ahead
+                        PaceStage.SLIGHTLY_BEHIND -> R.string.pace_slightly_behind
+                        PaceStage.BEHIND -> R.string.pace_behind
+                        PaceStage.FAR_BEHIND -> R.string.pace_far_behind
+                    }, kotlin.math.abs(pace.deltaPercent).toInt()))
+                    when {
+                        pace.willLastToReset -> Text(stringResource(R.string.pace_will_last),
+                            style = MaterialTheme.typography.labelSmall)
+                        pace.etaSeconds != null -> Text(stringResource(
+                            when {
+                                pace.etaSeconds >= 86400 -> R.string.pace_out_days
+                                pace.etaSeconds >= 3600 -> R.string.pace_out_hours
+                                else -> R.string.pace_out_minutes
+                            },
+                            (pace.etaSeconds / 86400).toInt(),
+                            (pace.etaSeconds / 3600 % 24).toInt(),
+                            (pace.etaSeconds / 60 % 60).toInt()
+                        ), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
                 QuotaPace.estimate(card.history[principal.id], now.epochSecond)?.let { estimate ->
                     Text(stringResource(R.string.pace_estimate), style = MaterialTheme.typography.labelSmall)
                     PaceChart(estimate)

@@ -102,6 +102,20 @@
     <string name="provider_headline_auto">自動（最高）</string>
     <string name="provider_accent_title">強調色</string>
     <string name="provider_accent_default">預設</string>
+    <string name="display_workdays_title">每週工作日</string>
+    <string name="display_workdays_summary">每週節奏假設僅在這些日子使用</string>
+    <string name="display_workdays_auto">全部</string>
+    <string name="pace_on_track">節奏：大致同步</string>
+    <string name="pace_slightly_ahead">節奏：略快（%1$d%%）</string>
+    <string name="pace_ahead">節奏：偏快（%1$d%%）</string>
+    <string name="pace_far_ahead">節奏：遠快（%1$d%%）</string>
+    <string name="pace_slightly_behind">節奏：略慢（%1$d%%）</string>
+    <string name="pace_behind">節奏：偏慢（%1$d%%）</string>
+    <string name="pace_far_behind">節奏：遠慢（%1$d%%）</string>
+    <string name="pace_will_last">應可撐到重置</string>
+    <string name="pace_out_days">預計 %1$d 天 %2$d 小時後用完</string>
+    <string name="pace_out_hours">預計 %1$d 小時 %2$d 分鐘後用完</string>
+    <string name="pace_out_minutes">預計 %1$d 分鐘後用完</string>
     <string name="about_versions">應用程式 %1$s · 內嵌 Core/CLI %2$s</string>
     <string name="about_source">GitHub 原始碼</string>
 </resources>

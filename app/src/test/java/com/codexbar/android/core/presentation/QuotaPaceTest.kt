@@ -80,4 +80,21 @@ class QuotaPaceTest {
             samples.dropLast(1) + PaceSample(now, -0.1)), now)?.runsOutAt)
         assertNull(QuotaPace.estimate(WindowHistory(now + 14400, 18000, samples), now - 1))
     }
+
+    @Test fun `weekly pace matches Mac linear and workday expectations`() {
+        val zone = java.time.ZoneOffset.UTC
+        val reset = java.time.Instant.parse("2026-10-12T00:00:00Z") // Monday
+        val now = java.time.Instant.parse("2026-10-07T12:00:00Z") // Wednesday noon
+        val window = UsageWindow("Weekly", 0.50, reset, "weekly", durationSeconds = 604800)
+        val linear = QuotaPace.weeklyPace(window, now, null, zone)
+        assertEquals(PaceStage.FAR_AHEAD, linear?.stage) // 50% used at 35.7% elapsed
+        assertEquals(216000L, linear?.etaSeconds)
+        val workday = QuotaPace.weeklyPace(window, now, 5, zone)
+        assertEquals(PaceStage.ON_TRACK, workday?.stage) // Mon+Tue+half Wed = 50% of a Mon-Fri week
+        assertEquals(50.0, workday?.expectedUsedPercent ?: 0.0, 0.01)
+        assertTrue(workday?.willLastToReset == true)
+        val fresh = UsageWindow("Weekly", 0.1, now.plusSeconds(604800), "weekly", durationSeconds = 604800)
+        assertNull(QuotaPace.weeklyPace(fresh, now, 5, zone)) // usage before any elapsed time is not a pace
+        assertNull(QuotaPace.weeklyPace(UsageWindow("No reset", 0.5, null, "x", durationSeconds = 604800), now, 5, zone))
+    }
 }

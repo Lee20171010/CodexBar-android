@@ -104,6 +104,20 @@
     <string name="provider_headline_auto">Auto (highest)</string>
     <string name="provider_accent_title">Accent color</string>
     <string name="provider_accent_default">Default</string>
+    <string name="display_workdays_title">Weekly work days</string>
+    <string name="display_workdays_summary">Weekly pace assumes usage on these days only</string>
+    <string name="display_workdays_auto">All</string>
+    <string name="pace_on_track">Pace: on track</string>
+    <string name="pace_slightly_ahead">Pace: slightly ahead (%1$d%%)</string>
+    <string name="pace_ahead">Pace: ahead (%1$d%%)</string>
+    <string name="pace_far_ahead">Pace: far ahead (%1$d%%)</string>
+    <string name="pace_slightly_behind">Pace: slightly behind (%1$d%%)</string>
+    <string name="pace_behind">Pace: behind (%1$d%%)</string>
+    <string name="pace_far_behind">Pace: far behind (%1$d%%)</string>
+    <string name="pace_will_last">Should last until reset</string>
+    <string name="pace_out_days">Est. out in %1$dd %2$dh</string>
+    <string name="pace_out_hours">Est. out in %1$dh %2$dm</string>
+    <string name="pace_out_minutes">Est. out in %1$dm</string>
     <string name="about_versions">App %1$s · Bundled Core/CLI %2$s</string>
     <string name="about_source">Source on GitHub</string>
 </resources>

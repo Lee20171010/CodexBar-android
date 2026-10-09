@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -683,6 +684,26 @@ private fun DisplayPrefsSection(
                 summary = stringResource(R.string.display_amounts_summary),
                 onToggle = { onChange(display.copy(showAmounts = it)) }
             )
+            Text(stringResource(R.string.display_workdays_title), style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.display_workdays_summary), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                FilterChip(
+                    selected = display.workDays == null,
+                    onClick = { onChange(display.copy(workDays = null)) },
+                    label = { Text(stringResource(R.string.display_workdays_auto)) }
+                )
+                (1..7).forEach { day ->
+                    FilterChip(
+                        selected = display.workDays == day,
+                        onClick = { onChange(display.copy(workDays = day)) },
+                        label = { Text(day.toString()) }
+                    )
+                }
+            }
         }
     }
 }
