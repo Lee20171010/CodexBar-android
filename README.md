@@ -228,6 +228,7 @@ Native toolchain setup, Release packaging and signing are documented in [native/
 
 | Document | Purpose |
 | --- | --- |
+| [HANDOFF.md](HANDOFF.md) | Next-agent implementation sequence, durable HTML prototype and acceptance criteria |
 | [SPEC.md](SPEC.md) | Architecture, data flow, ownership and behavior contracts |
 | [TEST.md](TEST.md) | Test commands, evidence and remaining acceptance |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Developer setup and contribution workflow |

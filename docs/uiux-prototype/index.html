@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CodexBar · Mac → Android UI/UX 对照</title>
+<link rel="stylesheet" href="review.css">
+</head>
+<body>
+<header class="review-head">
+  <div class="eyebrow">CODEXBAR / UI·UX REVIEW / 04</div>
+  <h1>同一套产品逻辑，两个原生界面。</h1>
+  <p>左侧 Mac 的设置与操作，对应右侧 Android 预期成品。先确认体验，再逐项实现。</p>
+  <div class="review-tools"><span class="pill">交互原型 · 所有数值均为演示</span><button id="theme">切换深色预览</button><button id="reset-demo">恢复演示初始值</button></div>
+</header>
+<main>
+  <nav id="topics" aria-label="对照场景"></nav>
+  <div class="scene-title"><div><span id="scene-number" class="eyebrow"></span><h2 id="scene-title"></h2></div><p id="scene-summary"></p></div>
+  <div class="comparison">
+    <section class="platform"><div class="platform-label"><strong>macOS CodexBar</strong><span>按源码复原 · 非运行截图</span></div><div id="mac"></div></section>
+    <section class="platform"><div class="platform-label"><strong>Android · 预期成品</strong><span>待确认设计 · 非当前 APK</span></div><div class="phone"><div class="phone-status"><span>09:41</span><span aria-label="示意网络与电量">5G · 100%</span></div><div id="mobile"></div><div class="gesture" aria-hidden="true"></div></div></section>
+  </div>
+  <section class="mapping"><h3>这一页如何对应</h3><p id="mapping"></p><div id="evidence"></div></section>
+  <section class="notice" aria-label="演示操作反馈"><strong>交互反馈</strong><p id="feedback" role="status" aria-live="polite">选择场景。两侧设置同步，便于比较；仅保存在此页面内存，不连接账号或服务。</p></section>
+  <details class="inventory"><summary>完整设置范围与实施顺序</summary>
+    <p>本页以本地 Mac upstream checkout <code>98d84b8a0695</code> 为可核查参考，直接链接对应源码。它比之前的 v0.73.0 设计参考新；新增的 Mac 范围单独列出，未自动纳入第一阶段。Android 引擎仍为 v0.71.0。</p>
+    <table><thead><tr><th>Mac 范围</th><th>Mobile 决策</th><th>实现层 / 顺序</th></tr></thead><tbody>
+      <tr><td>Menu card、账户切换、刷新、状态</td><td>保持信息层级；点击/返回替代桌面菜单开合</td><td>现有 Android 数据 + 展示对齐 / 1</td></tr>
+      <tr><td>General、Menu、Provider 设置</td><td>相同语义和分组；手机钻取，宽屏列表/详情</td><td>Android 偏好与呈现 / 2</td></tr>
+      <tr><td>Pace、Work days、warning markers</td><td>采用 Mac 计算和文案，不把现有线性估计当成同一功能</td><td>共享计算逻辑 + 数据完整性 / 3</td></tr>
+      <tr><td>Notifications</td><td>逐个实现 depleted / threshold / predictive / reset 证据规则</td><td>Android 后台、权限、回执 / 4</td></tr>
+      <tr><td>Widgets / Menu Bar</td><td>优先对齐已有 widget；菜单栏布局编辑器暂缓</td><td>Glance / Android 系统入口 / 5</td></tr>
+      <tr><td>Usage & Spend、currency</td><td>有真实数据来源再启用 ledger/heatmap/换算</td><td>Core 输出核查 + 历史/汇率来源 / 后续</td></tr>
+      <tr><td>iCloud Sync、Hooks、Plugins、Debug</td><td>Mac 当前确有这些页面；单列平台/架构边界</td><td>暂缓，不创造 Android 替代系统</td></tr>
+      <tr><td>Terminal、Keychain、Homebrew、Launch at login</td><td>保留 Mac 参考，手机不放无效的同名控件</td><td>macOS 专属</td></tr>
+    </tbody></table>
+    <p>标记说明：<b>已有基础</b>不代表完整 Mac 对齐；<b>待对齐</b>表示行为/设置仍要实现；<b>需数据</b>表示当前 CLI/适配器不能保证提供。</p>
+  </details>
+  <details class="inventory"><summary>Mac 原始素材与来源</summary>
+    <p>以下是之前收集的 Mac upstream 文档素材，作视觉参考；素材未锁定到本页源码 revision，不作为逐像素或当前状态的证明。上方左侧是明确标注的源码复原。</p>
+    <p><a href="https://github.com/steipete/CodexBar/tree/98d84b8a06957e193a9a8e58b40590736c94bf70/docs/screenshots" target="_blank" rel="noreferrer">查看 upstream Mac 截图素材 ↗</a>。本 handoff 保留完整交互原型，以 upstream 链接代替未经本轮隐私与视觉复核的截图副本。</p>
+  </details>
+</main>
+<footer>范围：Mac CodexBar 的功能、设置与交互。CLI 负责支持的取数/状态能力；界面、偏好、系统通知与后台生命周期仍由 Android 实现。没有真实登录、付款、同步或凭证输入。</footer>
+<script src="review.js"></script>
+</body></html>
