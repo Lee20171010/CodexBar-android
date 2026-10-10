@@ -137,6 +137,8 @@
     <string name="accent_graphite">Graphite</string>
     <string name="display_workdays_title">Weekly work days</string>
     <string name="display_workdays_summary">Weekly pace assumes usage on these days only</string>
+    <string name="display_pace_title">Show pace</string>
+    <string name="display_pace_summary">Shows pace status and run-out forecast in quota details; alerts are unaffected</string>
     <string name="display_workdays_auto">All</string>
     <string name="pace_on_track">Pace: on track</string>
     <string name="pace_slightly_ahead">Pace: slightly ahead (%1$d%%)</string>

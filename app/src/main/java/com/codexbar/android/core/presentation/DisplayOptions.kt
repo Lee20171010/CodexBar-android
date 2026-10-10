@@ -17,7 +17,9 @@ data class DisplayOptions(
     val showMarkers: Boolean = true,
     val accent: String? = null,
     val headlineWindow: String? = null,
-    val workDays: Int? = null
+    val workDays: Int? = null,
+    // Global-only control (Mac single `paceVisible` pref): account/widget overrides always inherit.
+    val showPace: Boolean = true
 ) {
     fun visible(quota: QuotaInfo) = quota.windows.filter { it.id !in hiddenWindows }
     fun hiddenRisk(quota: QuotaInfo) = quota.windows.any { it.id in hiddenWindows && it.utilization >= .85 }
@@ -54,7 +56,9 @@ data class DisplayOverride(
 ) {
     fun resolve(parent: DisplayOptions): DisplayOptions = if (v != 1) DisplayOptions(
         hiddenWindows ?: emptySet(), showAmounts ?: true, absoluteReset ?: false, fillUsed ?: false,
-        showMarkers ?: true, accent, headlineWindow, workDays
+        showMarkers ?: true, accent, headlineWindow, workDays,
+        // A legacy full profile predates showPace and must not pin a control no override UI can set.
+        showPace = parent.showPace
     ) else DisplayOptions(
         hiddenWindows = if ("hiddenWindows" in explicit) hiddenWindows ?: emptySet() else parent.hiddenWindows,
         showAmounts = if ("showAmounts" in explicit) showAmounts ?: true else parent.showAmounts,
@@ -63,7 +67,9 @@ data class DisplayOverride(
         showMarkers = if ("showMarkers" in explicit) showMarkers ?: true else parent.showMarkers,
         accent = if ("accent" in explicit) accent else parent.accent,
         headlineWindow = if ("headlineWindow" in explicit) headlineWindow else parent.headlineWindow,
-        workDays = if ("workDays" in explicit) workDays else parent.workDays
+        workDays = if ("workDays" in explicit) workDays else parent.workDays,
+        // Global-only control: never pinnable by an account or widget record, both chains inherit.
+        showPace = parent.showPace
     )
 
     /** Materializes the stored values without inheritance; matches the pre-inheritance raw decode. */

@@ -209,4 +209,28 @@ class DisplayOptionsTest {
             cache.saveDisplayOptions(account, DisplayOptions(), touched = setOf("headline"))
         }
     }
+
+    @Test fun `showPace defaults on and stays global-only`() {
+        assertTrue(DisplayOptions().showPace)
+        assertTrue(WidgetPrefsManager(MemoryPreferences().prefs).globalDisplayOptions().showPace)
+        val global = DisplayOptions(showPace = false)
+        // A legacy v0 full profile predates showPace and must not pin the new global control.
+        val legacy = DisplayOverride(v = 0, hiddenWindows = setOf("primary"), showAmounts = false,
+            absoluteReset = true, fillUsed = true, showMarkers = false, accent = "#ff0000",
+            headlineWindow = "primary", workDays = 5).resolve(global)
+        assertFalse(legacy.showPace)
+        assertEquals(setOf("primary"), legacy.hiddenWindows) // other legacy fields keep full-profile semantics
+        // A v1 record pinning every supported field still cannot freeze showPace.
+        assertFalse(DisplayOverride.pinning(DisplayOptions(), DisplayOverride.FIELDS).resolve(global).showPace)
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveGlobalDisplayOptions(global)
+        cache.saveDisplayOptions(account, DisplayOptions(absoluteReset = true), 1) // pins every FIELDS entry
+        assertFalse(cache.effectiveDisplayOptions(account).showPace)
+        assertFalse(cache.effectiveDisplayOptions(account, 1).showPace)
+        assertThrows(IllegalArgumentException::class.java) {
+            cache.saveDisplayOptions(account, DisplayOptions(), touched = setOf("showPace"))
+        }
+    }
 }

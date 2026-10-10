@@ -135,6 +135,8 @@
     <string name="accent_graphite">石墨灰</string>
     <string name="display_workdays_title">每週工作日</string>
     <string name="display_workdays_summary">每週節奏假設僅在這些日子使用</string>
+    <string name="display_pace_title">顯示節奏</string>
+    <string name="display_pace_summary">在額度詳情中顯示節奏狀態與用盡預估；不影響提醒</string>
     <string name="display_workdays_auto">全部</string>
     <string name="pace_on_track">節奏：大致同步</string>
     <string name="pace_slightly_ahead">節奏：略快（%1$d%%）</string>

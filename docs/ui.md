@@ -30,7 +30,7 @@ screenshots/runtime have not yet been verified. Source-backed changes must be
 labelled separately from visually accepted changes.
 
 Still open: account navigation/layout preferences,
-pace visibility and menu-bar stripe indicators, Mac's frozen-height live-update
+menu-bar stripe indicators, Mac's frozen-height live-update
 measurement, shared-surface visual behavior and the
 phone/dark/large-text/widget/accessibility acceptance matrix. Spend/FX and the
 explicit macOS-only integrations retain their separate data/platform gates.
@@ -63,7 +63,7 @@ not evidence that the CLI supplies their illustrated values or controls.
 | Visible usage items | Stable window-ID filters; detail retains all windows and hidden risk remains visible | Labels and defaults reviewed against prototype |
 | Provider accent colors | Per-account accent swatches applied to cards, details, tile and widgets (`5e2c1be`) | Fixed palette, not a free color picker |
 | Headline (percent) window | Per-account headline window with Auto fallback (`5e2c1be`) | Cached windows seed the picker |
-| Pace copy, bar indicator and Work days | Mac `UsagePace.weekly` port: stage, ETA, will-last and Work-day split shown in details (`c7f8969`) | Menu-bar stripe indicators have no mobile counterpart yet |
+| Pace copy, bar indicator and Work days | Mac `UsagePace.weekly` port: stage, ETA, will-last and Work-day split shown in details (`c7f8969`). Global **Show pace** switch (Mac `paceVisible`, `SettingsStore.swift:572` default ON, toggle `PreferencesMenuPane.swift:26-29`) gates the detail stage/ETA text only (`DisplayOptions.showPace`, `QuotaDetail.kt`); predictive alerts stay independent (`QuotaAlerts.kt:79` computes pace without consulting `showPace`; work-day settings still apply), matching Mac | Menu-bar stripe indicators have no mobile counterpart yet. Pace window selection is not Mac lane parity: Mac assigns pace per provider lane (`ProviderPaceCapability`, e.g. Codex excludes 7d/30d session windows, Gemini/DeepSeek/OpenRouter ship no pace), while Android picks the max-utilization nonsupplemental window (`QuotaPace.principal`) — separate follow-up with its own evidence and tests |
 | Reported balances and credits | Provider-reported money; native Codex credits/caps/reset inventory | Preserve units and unknown states; do not invent balances for unsupported sources |
 | Preferred currency | Provider currency is retained; no conversion | Needs a rate source, timestamps and offline policy before implementation |
 | Usage & Spend, ledger and heatmap | One quota-history chart; reported money where supported; Spend page states unavailability explicitly | A quota chart is not a spend ledger; desktop history sources need separate availability checks |

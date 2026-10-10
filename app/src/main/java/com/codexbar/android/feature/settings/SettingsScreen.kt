@@ -867,6 +867,12 @@ private fun DisplayPrefsSection(
                 summary = stringResource(R.string.display_amounts_summary),
                 onToggle = { onChange(display.copy(showAmounts = it)) }
             )
+            PrefsSwitchRow(
+                checked = display.showPace,
+                title = stringResource(R.string.display_pace_title),
+                summary = stringResource(R.string.display_pace_summary),
+                onToggle = { onChange(display.copy(showPace = it)) }
+            )
             Text(stringResource(R.string.display_workdays_title), style = MaterialTheme.typography.bodyLarge)
             Text(stringResource(R.string.display_workdays_summary), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

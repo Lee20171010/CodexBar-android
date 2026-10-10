@@ -35,7 +35,7 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
         card.officialStatus?.let { OfficialStatusText(it, now) }
         quota?.let {
             QuotaPace.principal(it)?.let { principal ->
-                QuotaPace.weeklyPace(principal, now, card.display.workDays)?.let { pace ->
+                if (card.display.showPace) QuotaPace.weeklyPace(principal, now, card.display.workDays)?.let { pace ->
                     Text(stringResource(when (pace.stage) {
                         PaceStage.ON_TRACK -> R.string.pace_on_track
                         PaceStage.SLIGHTLY_AHEAD -> R.string.pace_slightly_ahead
