@@ -99,6 +99,8 @@ class WidgetConfigurationActivity : ComponentActivity() {
                 }
                 val anyChecked = checkedState.values.any { it }
                 val displayOptions = remember { mutableStateMapOf<String, DisplayOptions>() }
+                val displayTouched = remember { mutableStateMapOf<String, MutableSet<String>>() }
+                val displayResets = remember { mutableStateMapOf<String, Boolean>() }
 
                 Scaffold(
                     topBar = {
@@ -143,8 +145,16 @@ class WidgetConfigurationActivity : ComponentActivity() {
                                 )
                                 if (checkedState[service.id] == true) DisplayControls(
                                     widgetPrefsManager.getCachedQuota(service)?.windows.orEmpty(),
-                                    displayOptions[service.id] ?: widgetPrefsManager.effectiveDisplayOptions(service, appWidgetId),
-                                    { displayOptions[service.id] = it })
+                                    displayOptions[service.id] ?: if (displayResets[service.id] == true)
+                                        widgetPrefsManager.effectiveDisplayOptions(service, null)
+                                    else widgetPrefsManager.effectiveDisplayOptions(service, appWidgetId),
+                                    { options, field ->
+                                        displayOptions[service.id] = options
+                                        displayTouched.getOrPut(service.id) { mutableSetOf() }.add(field)
+                                    },
+                                    // Deferred like every other edit: applied on Confirm, dropped on Cancel.
+                                    // The pending clear survives later edits; the draft previews the connection parent.
+                                    { displayOptions.remove(service.id); displayTouched.remove(service.id); displayResets[service.id] = true })
                             }
                         }
 
@@ -171,7 +181,10 @@ class WidgetConfigurationActivity : ComponentActivity() {
                             Button(
                                 onClick = {
                                     availableServices.filter { checkedState[it.id] == true }.forEach { account ->
-                                        displayOptions[account.id]?.let { widgetPrefsManager.saveDisplayOptions(account, it, appWidgetId) }
+                                        if (displayResets[account.id] == true) widgetPrefsManager.clearDisplayOptions(account, appWidgetId)
+                                        displayOptions[account.id]?.let {
+                                            widgetPrefsManager.saveDisplayOptions(account, it, appWidgetId, displayTouched[account.id].orEmpty())
+                                        }
                                     }
                                     confirmSelection(checkedState)
                                 },

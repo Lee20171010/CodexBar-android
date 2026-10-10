@@ -688,12 +688,13 @@ private fun LanguageSection() {
 
 /**
  * Per-connection display overrides on the provider page, mirroring the Mac
- * provider detail (headline/percent window + accent). State is local: the
- * value is read once per account and written through on every change.
+ * provider detail (headline/percent window + accent). State follows the shared
+ * display revision, so global or dashboard edits never leave stale values here.
  */
 @Composable
 private fun ProviderDisplaySection(account: AccountConnection, viewModel: SettingsViewModel) {
-    var display by remember(account.id) { mutableStateOf(viewModel.connectionDisplay(account)) }
+    val revision by viewModel.displayRevision.collectAsStateWithLifecycle()
+    val display = remember(account.id, revision) { viewModel.connectionDisplay(account) }
     val windows = viewModel.cachedWindows(account)
     HorizontalDivider(Modifier.padding(vertical = 12.dp))
     Text(stringResource(R.string.provider_display_title), style = MaterialTheme.typography.titleSmall)
@@ -702,13 +703,13 @@ private fun ProviderDisplaySection(account: AccountConnection, viewModel: Settin
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(
                 selected = display.headlineWindow == null,
-                onClick = { display = display.copy(headlineWindow = null); viewModel.setConnectionDisplay(account, display) },
+                onClick = { viewModel.setConnectionDisplay(account, display.copy(headlineWindow = null), "headlineWindow") },
                 label = { Text(stringResource(R.string.provider_headline_auto)) }
             )
             windows.forEach { window ->
                 FilterChip(
                     selected = display.headlineWindow == window.id,
-                    onClick = { display = display.copy(headlineWindow = window.id); viewModel.setConnectionDisplay(account, display) },
+                    onClick = { viewModel.setConnectionDisplay(account, display.copy(headlineWindow = window.id), "headlineWindow") },
                     label = { Text(window.label) }
                 )
             }
@@ -718,7 +719,7 @@ private fun ProviderDisplaySection(account: AccountConnection, viewModel: Settin
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         FilterChip(
             selected = display.accent == null,
-            onClick = { display = display.copy(accent = null); viewModel.setConnectionDisplay(account, display) },
+            onClick = { viewModel.setConnectionDisplay(account, display.copy(accent = null), "accent") },
             label = { Text(stringResource(R.string.provider_accent_default)) }
         )
         com.codexbar.android.feature.dashboard.ACCENT_COLORS.forEach { (key, color) ->
@@ -731,13 +732,11 @@ private fun ProviderDisplaySection(account: AccountConnection, viewModel: Settin
                         MaterialTheme.colorScheme.onSurface,
                         CircleShape
                     )
-                    .clickable {
-                        display = display.copy(accent = key)
-                        viewModel.setConnectionDisplay(account, display)
-                    }
+                    .clickable { viewModel.setConnectionDisplay(account, display.copy(accent = key), "accent") }
             )
         }
     }
+    TextButton(onClick = { viewModel.resetConnectionDisplay(account) }) { Text(stringResource(R.string.restore_defaults)) }
 }
 
 /**

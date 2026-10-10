@@ -37,12 +37,11 @@ class DashboardViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing = _isRefreshing.asStateFlow()
     private var refreshJob: Job? = null
-    private val displayRevision = MutableStateFlow(0)
 
     init {
         prefsManager.loadConnections()
         viewModelScope.launch {
-            combine(prefsManager.connections, accounts.quotas, officialStatus.statuses, displayRevision) { connections, quotas, statuses, _ ->
+            combine(prefsManager.connections, accounts.quotas, officialStatus.statuses, widgets.displayRevision) { connections, quotas, statuses, _ ->
                 val errors = mutableMapOf<AccountConnection, AppError>()
                 val cards = connections.map { connection ->
                     val result = quotas[connection.id]?.takeIf {
@@ -90,9 +89,15 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun setDisplay(connection: AccountConnection, options: com.codexbar.android.core.presentation.DisplayOptions) {
-        prefsManager.publishIfCurrent(connection) { widgets.saveDisplayOptions(connection, options) }
-        displayRevision.value++
+    fun setDisplay(connection: AccountConnection, options: com.codexbar.android.core.presentation.DisplayOptions, touched: String) {
+        prefsManager.publishIfCurrent(connection) { widgets.saveDisplayOptions(connection, options, touched = setOf(touched)) }
+        viewModelScope.launch { updateQuotaSurfaces(context) }
+    }
+
+    /** Restore defaults means inheriting again, not freezing the built-in defaults. */
+    fun clearDisplay(connection: AccountConnection) {
+        prefsManager.publishIfCurrent(connection) { widgets.clearDisplayOptions(connection) }
+        viewModelScope.launch { updateQuotaSurfaces(context) }
     }
 
     private fun mapToCardData(connection: AccountConnection, quota: QuotaInfo) = ServiceCardData(

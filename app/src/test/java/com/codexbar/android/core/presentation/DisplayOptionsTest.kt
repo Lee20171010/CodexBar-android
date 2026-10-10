@@ -77,4 +77,136 @@ class DisplayOptionsTest {
         assertEquals(listOf(.5f, .8f), DisplayOptions(fillUsed = true).markerFractions())
         assertTrue(DisplayOptions(showMarkers = false).markerFractions().isEmpty())
     }
+
+    @Test fun `global edits propagate through accent-only overrides`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveDisplayOptions(account, DisplayOptions(accent = "green"), touched = setOf("accent"))
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = true, workDays = 5))
+        val effective = cache.effectiveDisplayOptions(account)
+        assertEquals("green", effective.accent)
+        assertEquals(true, effective.fillUsed) // the accent edit must not freeze the global fill
+        assertEquals(5, effective.workDays)
+    }
+
+    @Test fun `explicit account and widget choices survive later global edits`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = false))
+        cache.saveDisplayOptions(account, DisplayOptions(fillUsed = true), touched = setOf("fillUsed"))
+        cache.saveDisplayOptions(account, DisplayOptions(fillUsed = true, showAmounts = false), 7, setOf("showAmounts"))
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = false, workDays = 5))
+        val effective = cache.effectiveDisplayOptions(account)
+        assertEquals(true, effective.fillUsed) // explicit account choice kept
+        assertEquals(5, effective.workDays) // untouched field follows the new global
+        val widget = cache.effectiveDisplayOptions(account, 7)
+        assertEquals(false, widget.showAmounts) // explicit at widget level
+        assertEquals(true, widget.fillUsed) // inherits the account choice
+        assertEquals(5, widget.workDays) // follows global through the chain
+    }
+
+    @Test fun `explicit choice equal to parent survives an unrelated edit`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        // fillUsed=true converges with the global value, then an accent edit must not demote it
+        // back to inheritance, or a later global false would leak through.
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = true))
+        cache.saveDisplayOptions(account, DisplayOptions(fillUsed = true), touched = setOf("fillUsed"))
+        cache.saveDisplayOptions(account, DisplayOptions(fillUsed = true, accent = "green"), touched = setOf("accent"))
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = false))
+        val effective = cache.effectiveDisplayOptions(account)
+        assertEquals(true, effective.fillUsed)
+        assertEquals("green", effective.accent)
+    }
+
+    @Test fun `choosing auto pins a null headline over the parent`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveGlobalDisplayOptions(DisplayOptions(headlineWindow = "weekly"))
+        cache.saveDisplayOptions(account, DisplayOptions(headlineWindow = null), touched = setOf("headlineWindow"))
+        cache.saveGlobalDisplayOptions(DisplayOptions(headlineWindow = "daily"))
+        assertNull(cache.effectiveDisplayOptions(account).headlineWindow)
+    }
+
+    @Test fun `reset restores the inheritance chain`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = true))
+        cache.saveDisplayOptions(account, DisplayOptions(fillUsed = false, accent = "red"), touched = setOf("fillUsed", "accent"))
+        assertEquals("red", cache.effectiveDisplayOptions(account).accent)
+        cache.clearDisplayOptions(account)
+        assertEquals(DisplayOptions(fillUsed = true), cache.effectiveDisplayOptions(account))
+        cache.saveDisplayOptions(account, DisplayOptions(showMarkers = false), 7, setOf("showMarkers"))
+        cache.clearDisplayOptions(account, 7)
+        assertEquals(cache.effectiveDisplayOptions(account), cache.effectiveDisplayOptions(account, 7))
+    }
+
+    @Test fun `legacy full-profile entries stay frozen until reset`() {
+        val memory = MemoryPreferences()
+        val account = AccountConnection.create(AiService.CODEX)
+        memory.prefs.edit().putString("display_${account.id}", """{"fillUsed":true}""").commit()
+        val cache = WidgetPrefsManager(memory.prefs)
+        cache.saveGlobalDisplayOptions(DisplayOptions(showAmounts = false))
+        val legacy = cache.effectiveDisplayOptions(account)
+        assertEquals(true, legacy.fillUsed)
+        assertEquals(true, legacy.showAmounts) // a legacy profile means defaults, not inheritance
+        cache.saveDisplayOptions(account, legacy.copy(accent = "green"), touched = setOf("accent"))
+        // Resaving a legacy profile pins every one of its fields, not just the edited one.
+        cache.saveGlobalDisplayOptions(DisplayOptions(showAmounts = false, absoluteReset = true))
+        val resaved = cache.effectiveDisplayOptions(account)
+        assertEquals(true, resaved.showAmounts)
+        assertEquals(false, resaved.absoluteReset) // frozen until an explicit reset
+        assertEquals("green", resaved.accent)
+        cache.clearDisplayOptions(account)
+        assertEquals(true, cache.effectiveDisplayOptions(account).absoluteReset) // reset now inherits
+    }
+
+    @Test fun `display edits emit a shared revision`() {
+        val cache = WidgetPrefsManager(MemoryPreferences().prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        val start = cache.displayRevision.value
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = true))
+        cache.saveDisplayOptions(account, DisplayOptions(accent = "green"))
+        cache.clearDisplayOptions(account)
+        assertEquals(start + 3, cache.displayRevision.value)
+    }
+
+    @Test fun `stale edit DTO cannot overwrite a pinned field`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveGlobalDisplayOptions(DisplayOptions(fillUsed = true))
+        cache.saveDisplayOptions(account, DisplayOptions(accent = "red"), touched = setOf("accent"))
+        // A stale DTO captured before the accent edit, now toggling only showAmounts.
+        cache.saveDisplayOptions(account, DisplayOptions(fillUsed = true, showAmounts = false), touched = setOf("showAmounts"))
+        val effective = cache.effectiveDisplayOptions(account)
+        assertEquals("red", effective.accent) // the stale null must not clear the pinned accent
+        assertEquals(false, effective.showAmounts)
+        assertEquals(true, effective.fillUsed)
+    }
+
+    @Test fun `widget reset then edit starts from the parent`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveDisplayOptions(account, DisplayOptions(showAmounts = false), 7, setOf("showAmounts"))
+        cache.clearDisplayOptions(account, 7) // Confirm applies the deferred reset first
+        cache.saveDisplayOptions(account, DisplayOptions(fillUsed = true), 7, setOf("fillUsed"))
+        val widget = cache.effectiveDisplayOptions(account, 7)
+        assertEquals(true, widget.showAmounts) // the pre-reset pin is gone; the draft came from the parent
+        assertEquals(true, widget.fillUsed)
+    }
+
+    @Test fun `unknown touched field is rejected`() {
+        val cache = WidgetPrefsManager(MemoryPreferences().prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        assertThrows(IllegalArgumentException::class.java) {
+            cache.saveDisplayOptions(account, DisplayOptions(), touched = setOf("headline"))
+        }
+    }
 }

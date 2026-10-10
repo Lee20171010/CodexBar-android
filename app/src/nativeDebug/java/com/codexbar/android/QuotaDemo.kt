@@ -46,10 +46,14 @@ internal fun QuotaDemo(dark: Boolean = false, large: Boolean = false, rich: Bool
                             Text("Synthetic demo", style = MaterialTheme.typography.titleLarge)
                             ServiceCard(card, { details = true }, Modifier.fillMaxWidth(), now)
                         }
-                         if (wide) QuotaDetail(card, now, {}, {}, Modifier.weight(1f), if (rich) { { display = it } } else null)
+                         if (wide) QuotaDetail(card, now, {}, {}, Modifier.weight(1f),
+                            onDisplayChange = if (rich) ({ options, _ -> display = options }) else null,
+                            onDisplayReset = if (rich) ({ display = DisplayOptions() }) else null)
                     }
                     if (details && !wide) ModalBottomSheet(onDismissRequest = { details = false }) {
-                         QuotaDetail(card, now, {}, {}, Modifier.fillMaxWidth(), if (rich) { { display = it } } else null)
+                         QuotaDetail(card, now, {}, {}, Modifier.fillMaxWidth(),
+                             onDisplayChange = if (rich) ({ options, _ -> display = options }) else null,
+                             onDisplayReset = if (rich) ({ display = DisplayOptions() }) else null)
                     }
                 }
             }

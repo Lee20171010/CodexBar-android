@@ -11,26 +11,26 @@ import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.presentation.DisplayOptions
 
 @Composable
-internal fun DisplayControls(windows: List<UsageWindow>, options: DisplayOptions, onChange: (DisplayOptions) -> Unit,
-    modifier: Modifier = Modifier) {
+internal fun DisplayControls(windows: List<UsageWindow>, options: DisplayOptions, onChange: (DisplayOptions, String) -> Unit,
+    onReset: () -> Unit, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(stringResource(R.string.display_options), style = MaterialTheme.typography.titleSmall)
         windows.forEach { window ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(window.id !in options.hiddenWindows, { visible ->
-                    onChange(options.copy(hiddenWindows = if (visible) options.hiddenWindows - window.id else options.hiddenWindows + window.id))
+                    onChange(options.copy(hiddenWindows = if (visible) options.hiddenWindows - window.id else options.hiddenWindows + window.id), "hiddenWindows")
                 })
                 Text(window.label, Modifier.weight(1f))
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(options.showAmounts, { onChange(options.copy(showAmounts = it)) })
+            Checkbox(options.showAmounts, { onChange(options.copy(showAmounts = it), "showAmounts") })
             Text(stringResource(R.string.display_amounts), Modifier.weight(1f))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(options.absoluteReset, { onChange(options.copy(absoluteReset = it)) })
+            Checkbox(options.absoluteReset, { onChange(options.copy(absoluteReset = it), "absoluteReset") })
             Text(stringResource(R.string.display_absolute_reset), Modifier.weight(1f))
         }
-        TextButton(onClick = { onChange(DisplayOptions()) }) { Text(stringResource(R.string.restore_defaults)) }
+        TextButton(onClick = onReset) { Text(stringResource(R.string.restore_defaults)) }
     }
 }

@@ -23,7 +23,8 @@ import java.time.format.FormatStyle
 @Composable
 internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> Unit, onSettings: () -> Unit,
     modifier: Modifier = Modifier,
-    onDisplayChange: ((com.codexbar.android.core.presentation.DisplayOptions) -> Unit)? = null) {
+    onDisplayChange: ((com.codexbar.android.core.presentation.DisplayOptions, String) -> Unit)? = null,
+    onDisplayReset: (() -> Unit)? = null) {
     val snapshot = card.snapshot.retained(now)
     val quota = snapshot.quota
     Column(modifier.verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -108,7 +109,8 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
                 }
             }
             Text(stringResource(R.string.measurement_source, it.source, measured), style = MaterialTheme.typography.labelSmall)
-            if (onDisplayChange != null) com.codexbar.android.feature.settings.DisplayControls(it.windows, card.display, onDisplayChange)
+            if (onDisplayChange != null && onDisplayReset != null) com.codexbar.android.feature.settings.DisplayControls(
+                it.windows, card.display, onDisplayChange, onDisplayReset)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(onClick = onRefresh) { Text(stringResource(R.string.refresh)) }

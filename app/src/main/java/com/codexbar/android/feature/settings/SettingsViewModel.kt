@@ -233,13 +233,24 @@ class SettingsViewModel @Inject constructor(
     fun setGlobalDisplay(options: com.codexbar.android.core.presentation.DisplayOptions) {
         widgets.saveGlobalDisplayOptions(options)
         _uiState.update { it.copy(globalDisplay = options) }
+        viewModelScope.launch { updateQuotaSurfaces(context) }
     }
+
+    /** Shared so external display edits refresh the provider section instead of stale remembered state. */
+    val displayRevision: kotlinx.coroutines.flow.StateFlow<Int> get() = widgets.displayRevision
 
     fun connectionDisplay(account: AccountConnection): com.codexbar.android.core.presentation.DisplayOptions =
         widgets.effectiveDisplayOptions(account)
 
-    fun setConnectionDisplay(account: AccountConnection, options: com.codexbar.android.core.presentation.DisplayOptions) {
-        widgets.saveDisplayOptions(account, options)
+    fun setConnectionDisplay(account: AccountConnection, options: com.codexbar.android.core.presentation.DisplayOptions, touched: String) {
+        widgets.saveDisplayOptions(account, options, touched = setOf(touched))
+        viewModelScope.launch { updateQuotaSurfaces(context) }
+    }
+
+    /** Reset to parent: the account inherits the global defaults again. */
+    fun resetConnectionDisplay(account: AccountConnection) {
+        widgets.clearDisplayOptions(account)
+        viewModelScope.launch { updateQuotaSurfaces(context) }
     }
 
     /** Window ids for the headline picker come from the last cached reading; empty until first refresh. */

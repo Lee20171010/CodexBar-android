@@ -33,3 +33,56 @@ data class DisplayOptions(
     fun markerFractions(): List<Float> =
         if (!showMarkers) emptyList() else listOf(.5f, .2f).map { if (fillUsed) 1f - it else it }
 }
+
+/**
+ * Stored display record. `v = 0` is a legacy full profile: missing fields mean DisplayOptions
+ * defaults, never inheritance. `v = 1` records per-field inheritance: fields named in `explicit`
+ * win, all others follow the parent (global for connections, the connection chain for widgets).
+ */
+@Serializable
+data class DisplayOverride(
+    val v: Int = 0,
+    val explicit: Set<String> = emptySet(),
+    val hiddenWindows: Set<String>? = null,
+    val showAmounts: Boolean? = null,
+    val absoluteReset: Boolean? = null,
+    val fillUsed: Boolean? = null,
+    val showMarkers: Boolean? = null,
+    val accent: String? = null,
+    val headlineWindow: String? = null,
+    val workDays: Int? = null
+) {
+    fun resolve(parent: DisplayOptions): DisplayOptions = if (v != 1) DisplayOptions(
+        hiddenWindows ?: emptySet(), showAmounts ?: true, absoluteReset ?: false, fillUsed ?: false,
+        showMarkers ?: true, accent, headlineWindow, workDays
+    ) else DisplayOptions(
+        hiddenWindows = if ("hiddenWindows" in explicit) hiddenWindows ?: emptySet() else parent.hiddenWindows,
+        showAmounts = if ("showAmounts" in explicit) showAmounts ?: true else parent.showAmounts,
+        absoluteReset = if ("absoluteReset" in explicit) absoluteReset ?: false else parent.absoluteReset,
+        fillUsed = if ("fillUsed" in explicit) fillUsed ?: false else parent.fillUsed,
+        showMarkers = if ("showMarkers" in explicit) showMarkers ?: true else parent.showMarkers,
+        accent = if ("accent" in explicit) accent else parent.accent,
+        headlineWindow = if ("headlineWindow" in explicit) headlineWindow else parent.headlineWindow,
+        workDays = if ("workDays" in explicit) workDays else parent.workDays
+    )
+
+    /** Materializes the stored values without inheritance; matches the pre-inheritance raw decode. */
+    fun stored(): DisplayOptions = DisplayOptions(
+        hiddenWindows ?: emptySet(), showAmounts ?: true, absoluteReset ?: false, fillUsed ?: false,
+        showMarkers ?: true, accent, headlineWindow, workDays
+    )
+
+    companion object {
+        val FIELDS = setOf("hiddenWindows", "showAmounts", "absoluteReset", "fillUsed", "showMarkers",
+            "accent", "headlineWindow", "workDays")
+
+        /** New stored record: fields named in `explicit` pin the values from options, the rest inherit. */
+        fun pinning(options: DisplayOptions, explicit: Set<String>) = DisplayOverride(
+            v = 1, explicit = explicit,
+            hiddenWindows = options.hiddenWindows, showAmounts = options.showAmounts,
+            absoluteReset = options.absoluteReset, fillUsed = options.fillUsed,
+            showMarkers = options.showMarkers, accent = options.accent,
+            headlineWindow = options.headlineWindow, workDays = options.workDays
+        )
+    }
+}

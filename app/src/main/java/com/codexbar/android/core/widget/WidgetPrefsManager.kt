@@ -12,6 +12,11 @@ import com.codexbar.android.core.presentation.QuotaSnapshot
 import com.codexbar.android.core.presentation.QuotaPace
 import com.codexbar.android.core.presentation.WindowHistory
 import com.codexbar.android.core.presentation.DisplayOptions
+import com.codexbar.android.core.presentation.DisplayOverride
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,32 +48,77 @@ class WidgetPrefsManager internal constructor(private val prefs: SharedPreferenc
         editor.apply()
     }
 
-    fun displayOptions(connection: AccountConnection, widgetId: Int? = null): DisplayOptions = runCatching {
-        Json.decodeFromString<DisplayOptions>(prefs.getString(displayKey(connection, widgetId), null) ?: "{}")
-    }.getOrDefault(DisplayOptions())
+    private val _displayRevision = MutableStateFlow(0)
+
+    /** Shared so a settings or detail edit reaches the retained dashboard, widgets and tile. */
+    val displayRevision: StateFlow<Int> = _displayRevision.asStateFlow()
+
+    fun displayOptions(connection: AccountConnection, widgetId: Int? = null): DisplayOptions =
+        decodeOverride(prefs.getString(displayKey(connection, widgetId), null)).stored()
 
     /** Global defaults (Mac menu-bar equivalent); used until a connection gets its own override. */
     fun globalDisplayOptions(): DisplayOptions = runCatching {
         Json.decodeFromString<DisplayOptions>(prefs.getString("display_global", null) ?: "{}")
     }.getOrDefault(DisplayOptions())
 
-    fun saveGlobalDisplayOptions(options: DisplayOptions) = saveDisplayOptionsEncoded("display_global", options)
-
-    fun effectiveDisplayOptions(connection: AccountConnection): DisplayOptions =
-        if (prefs.contains("display_${connection.id}")) displayOptions(connection) else globalDisplayOptions()
-
-    /** Widget scope: per-widget override first, then the connection/global chain. */
-    fun effectiveDisplayOptions(connection: AccountConnection, widgetId: Int?): DisplayOptions =
-        if (widgetId != null && prefs.contains(displayKey(connection, widgetId))) displayOptions(connection, widgetId)
-        else effectiveDisplayOptions(connection)
-
-    private fun saveDisplayOptionsEncoded(key: String, options: DisplayOptions) {
-        require(options.hiddenWindows.size <= 100 && options.hiddenWindows.all { it.length <= 256 })
-        check(prefs.edit().putString(key, Json.encodeToString(options)).commit())
+    fun saveGlobalDisplayOptions(options: DisplayOptions) {
+        requireDisplayOptions(options)
+        check(prefs.edit().putString("display_global", Json.encodeToString(options)).commit())
+        _displayRevision.update { it + 1 }
     }
 
-    fun saveDisplayOptions(connection: AccountConnection, options: DisplayOptions, widgetId: Int? = null) =
-        saveDisplayOptionsEncoded(displayKey(connection, widgetId), options)
+    fun effectiveDisplayOptions(connection: AccountConnection): DisplayOptions {
+        val global = globalDisplayOptions()
+        val raw = prefs.getString("display_${connection.id}", null) ?: return global
+        return decodeOverride(raw).resolve(global)
+    }
+
+    /** Widget scope: per-widget override first, then the connection/global chain. */
+    fun effectiveDisplayOptions(connection: AccountConnection, widgetId: Int?): DisplayOptions {
+        val parent = effectiveDisplayOptions(connection)
+        if (widgetId == null) return parent
+        val raw = prefs.getString(displayKey(connection, widgetId), null) ?: return parent
+        return decodeOverride(raw).resolve(parent)
+    }
+
+    private fun decodeOverride(encoded: String?): DisplayOverride = runCatching {
+        Json.decodeFromString<DisplayOverride>(encoded ?: "{}")
+    }.getOrDefault(DisplayOverride())
+
+    private fun requireDisplayOptions(options: DisplayOptions) {
+        require(options.hiddenWindows.size <= 100 && options.hiddenWindows.all { it.length <= 256 })
+    }
+
+    /**
+     * Saves per-field inheritance. `touched` names the fields an edit changed: they pin the new value,
+     * previously explicit choices are retained, everything else keeps inheriting. Null means a
+     * full-profile save pinning every field. A legacy full profile freezes all its fields on resave.
+     */
+    fun saveDisplayOptions(connection: AccountConnection, options: DisplayOptions, widgetId: Int? = null, touched: Set<String>? = null) {
+        requireDisplayOptions(options)
+        require(touched == null || DisplayOverride.FIELDS.containsAll(touched))
+        val key = displayKey(connection, widgetId)
+        val raw = prefs.getString(key, null)
+        val previous = decodeOverride(raw)
+        val explicit = when {
+            touched == null -> DisplayOverride.FIELDS
+            previous.v == 1 -> previous.explicit + touched
+            raw != null -> DisplayOverride.FIELDS
+            else -> touched
+        }
+        // A touched edit trusts only the touched fields; everything else comes from the latest
+        // effective profile, so a stale caller DTO cannot overwrite pinned values.
+        val values = if (touched == null) options
+        else DisplayOverride.pinning(options, touched).resolve(effectiveDisplayOptions(connection, widgetId))
+        check(prefs.edit().putString(key, Json.encodeToString(DisplayOverride.pinning(values, explicit))).commit())
+        _displayRevision.update { it + 1 }
+    }
+
+    /** Explicit reset-to-parent: a connection falls back to global, a widget to the connection chain. */
+    fun clearDisplayOptions(connection: AccountConnection, widgetId: Int? = null) {
+        check(prefs.edit().remove(displayKey(connection, widgetId)).commit())
+        _displayRevision.update { it + 1 }
+    }
 
     private fun displayKey(connection: AccountConnection, widgetId: Int?) =
         if (widgetId == null) "display_${connection.id}" else "widget_${widgetId}_display_${connection.id}"
