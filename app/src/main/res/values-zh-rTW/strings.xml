@@ -23,6 +23,7 @@
     <string name="general_refresh_manual">手動</string>
     <string name="general_language">應用程式語言</string>
     <string name="general_language_summary">在系統設定中選擇語言</string>
+    <string name="general_language_unavailable">此裝置無法使用語言設定。</string>
     <string name="official_status">官方服務狀態：%1$s</string>
     <string name="status_operational">正常運作</string>
     <string name="status_incident">已通報事故</string>
@@ -110,7 +111,7 @@
     <string name="display_fill_remaining">剩餘</string>
     <string name="display_fill_used">已用量</string>
     <string name="display_markers_title">警告標記</string>
-    <string name="display_markers_summary">在剩餘 50% 與 20% 處顯示刻度</string>
+    <string name="display_markers_summary" formatted="false">在剩餘 50% 與 20% 處顯示刻度</string>
     <string name="display_reset_title">絕對重置時間</string>
     <string name="display_reset_summary">顯示日期時間而非倒數</string>
     <string name="display_amounts_title">顯示金額</string>
@@ -120,6 +121,14 @@
     <string name="provider_headline_auto">自動（最高）</string>
     <string name="provider_accent_title">強調色</string>
     <string name="provider_accent_default">預設</string>
+    <string name="accent_blue">藍色</string>
+    <string name="accent_purple">紫色</string>
+    <string name="accent_pink">粉紅色</string>
+    <string name="accent_red">紅色</string>
+    <string name="accent_orange">橙色</string>
+    <string name="accent_yellow">黃色</string>
+    <string name="accent_green">綠色</string>
+    <string name="accent_graphite">石墨灰</string>
     <string name="display_workdays_title">每週工作日</string>
     <string name="display_workdays_summary">每週節奏假設僅在這些日子使用</string>
     <string name="display_workdays_auto">全部</string>

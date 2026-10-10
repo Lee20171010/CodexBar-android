@@ -1,6 +1,8 @@
 package com.codexbar.android.feature.dashboard
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.Color
+import com.codexbar.android.R
 
 /** Mac accent-color equivalents; keys are persisted in DisplayOptions.accent. */
 val ACCENT_COLORS = listOf(
@@ -15,3 +17,16 @@ val ACCENT_COLORS = listOf(
 )
 
 fun accentColor(key: String?): Color? = ACCENT_COLORS.firstOrNull { it.first == key }?.second
+
+/** Localized labels for the accent keys in [ACCENT_COLORS]; unknown keys fall back to graphite. */
+@StringRes
+fun accentLabelRes(key: String): Int = when (key) {
+    "blue" -> R.string.accent_blue
+    "purple" -> R.string.accent_purple
+    "pink" -> R.string.accent_pink
+    "red" -> R.string.accent_red
+    "orange" -> R.string.accent_orange
+    "yellow" -> R.string.accent_yellow
+    "green" -> R.string.accent_green
+    else -> R.string.accent_graphite
+}

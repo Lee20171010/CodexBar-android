@@ -8,6 +8,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -65,6 +67,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,6 +79,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -90,7 +95,6 @@ import com.codexbar.android.core.network.copilot.CopilotDeviceAuth
 
 private enum class SettingsPage(val titleRes: Int) {
     GENERAL(R.string.settings_general),
-    ACCOUNTS(R.string.settings_providers),
     NOTIFICATIONS(R.string.settings_notifications),
     MENU(R.string.settings_menu),
     SPEND(R.string.settings_spend),
@@ -106,6 +110,8 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var page by rememberSaveable { mutableStateOf<SettingsPage?>(null) }
+    // Mac sidebar: one destination per provider, mutually exclusive with app panes.
+    var provider by rememberSaveable { mutableStateOf<AiService?>(null) }
     var showAbout by remember { mutableStateOf(false) }
     var renameAccount by remember { mutableStateOf<AccountConnection?>(null) }
     var renameText by remember { mutableStateOf("") }
@@ -118,9 +124,12 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(current?.titleRes ?: R.string.settings)) },
+                title = { Text(provider?.displayName ?: stringResource(current?.titleRes ?: R.string.settings)) },
                 navigationIcon = {
-                    IconButton(onClick = { if (current == null) onNavigateBack() else page = null }) {
+                    IconButton(onClick = {
+                        if (current == null && provider == null) onNavigateBack()
+                        else { page = null; provider = null }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.back))
                     }
                 }
@@ -137,13 +146,16 @@ fun SettingsScreen(
             if (wide) {
                 Row(Modifier.fillMaxSize()) {
                     SettingsDirectory(
-                        selected = current ?: SettingsPage.GENERAL,
-                        onSelect = { page = it },
+                        selected = if (provider == null) current ?: SettingsPage.GENERAL else null,
+                        selectedProvider = provider,
+                        onSelect = { page = it; provider = null },
+                        onSelectProvider = { provider = it; page = null },
                         modifier = Modifier.weight(0.38f).fillMaxHeight()
                     )
                     VerticalDivider(Modifier.fillMaxHeight())
                     SettingsPageContent(
                         page = current ?: SettingsPage.GENERAL,
+                        provider = provider,
                         uiState = uiState,
                         viewModel = viewModel,
                         onAboutLicenses = { showAbout = true },
@@ -152,12 +164,17 @@ fun SettingsScreen(
                         modifier = Modifier.weight(0.62f).fillMaxHeight()
                     )
                 }
-            } else if (current == null) {
-                SettingsDirectory(selected = null, onSelect = { page = it }, modifier = Modifier.fillMaxSize())
+            } else if (current == null && provider == null) {
+                SettingsDirectory(
+                    selected = null, selectedProvider = null,
+                    onSelect = { page = it }, onSelectProvider = { provider = it },
+                    modifier = Modifier.fillMaxSize()
+                )
             } else {
-                BackHandler { page = null }
+                BackHandler { page = null; provider = null }
                 SettingsPageContent(
-                    page = current,
+                    page = current ?: SettingsPage.GENERAL,
+                    provider = provider,
                     uiState = uiState,
                     viewModel = viewModel,
                     onAboutLicenses = { showAbout = true },
@@ -208,7 +225,13 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsDirectory(selected: SettingsPage?, onSelect: (SettingsPage) -> Unit, modifier: Modifier = Modifier) {
+private fun SettingsDirectory(
+    selected: SettingsPage?,
+    selectedProvider: AiService?,
+    onSelect: (SettingsPage) -> Unit,
+    onSelectProvider: (AiService) -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -230,9 +253,29 @@ private fun SettingsDirectory(selected: SettingsPage?, onSelect: (SettingsPage) 
             Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerLow
             )) {
-                SettingsDirectoryRow(SettingsPage.ACCOUNTS, selected == SettingsPage.ACCOUNTS, onSelect)
+                AiService.entries.filter { !it.usesNativeApiKey || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
+                    SettingsProviderDirectoryRow(service, selectedProvider == service) { onSelectProvider(service) }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsProviderDirectoryRow(service: AiService, selected: Boolean, onSelect: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth()
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+            .selectable(selected = selected, role = Role.Tab, onClick = onSelect)
+            .heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(Icons.Default.Cloud, contentDescription = null,
+            tint = Color(service.brandColor), modifier = Modifier.size(24.dp))
+        Text(service.displayName, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Icon(Icons.Default.ChevronRight, contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }
 }
 
@@ -245,7 +288,6 @@ private fun SettingsDirectoryRow(entry: SettingsPage, selected: Boolean, onSelec
         SettingsPage.MENU -> Icons.Default.Menu to Color(0xFF007F86)
         SettingsPage.ADVANCED -> Icons.Default.Tune to Color(0xFF8944AB)
         SettingsPage.ABOUT -> Icons.Default.Info to Color(0xFF248A3D)
-        SettingsPage.ACCOUNTS -> Icons.Default.Cloud to Color(0xFF007AFF)
     }
     Row(
         Modifier.fillMaxWidth()
@@ -267,6 +309,7 @@ private fun SettingsDirectoryRow(entry: SettingsPage, selected: Boolean, onSelec
 @Composable
 private fun SettingsPageContent(
     page: SettingsPage,
+    provider: AiService?,
     uiState: SettingsUiState,
     viewModel: SettingsViewModel,
     onAboutLicenses: () -> Unit,
@@ -274,22 +317,25 @@ private fun SettingsPageContent(
     onDelete: (AccountConnection) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Route changes start at the top, like the Mac pane swap.
+    val scrollState = rememberScrollState()
+    LaunchedEffect(page, provider) { scrollState.scrollTo(0) }
     Column(
         modifier = modifier
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        when (page) {
-            SettingsPage.GENERAL -> {
+        when {
+            provider != null -> AccountsPage(provider, uiState, viewModel, onRename, onDelete)
+            page == SettingsPage.GENERAL -> {
                 RefreshIntervalSection(
                     currentMinutes = uiState.refreshIntervalMinutes,
                     onIntervalChange = { viewModel.setRefreshInterval(it) }
                 )
                 LanguageSection()
             }
-            SettingsPage.ACCOUNTS -> AccountsPage(uiState, viewModel, onRename, onDelete)
-            SettingsPage.NOTIFICATIONS -> {
+            page == SettingsPage.NOTIFICATIONS -> {
                 NotificationsSection(
                     title = stringResource(R.string.notification_status_title),
                     description = stringResource(R.string.notification_status_description),
@@ -321,11 +367,11 @@ private fun SettingsPageContent(
                     onToggle = { viewModel.setAlertPaceEnabled(it) }
                 )
             }
-            SettingsPage.MENU -> DisplayPrefsSection(
+            page == SettingsPage.MENU -> DisplayPrefsSection(
                 display = uiState.globalDisplay,
                 onChange = { viewModel.setGlobalDisplay(it) }
             )
-            SettingsPage.SPEND -> Card(Modifier.fillMaxWidth()) {
+            page == SettingsPage.SPEND -> Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.spend_unavailable_title), style = MaterialTheme.typography.titleMedium)
                     Text(
@@ -335,17 +381,21 @@ private fun SettingsPageContent(
                     )
                 }
             }
-            SettingsPage.ADVANCED -> Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.advanced_platform_title), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        stringResource(R.string.advanced_platform_note),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            page == SettingsPage.ADVANCED -> {
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(R.string.advanced_platform_title), style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            stringResource(R.string.advanced_platform_note),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
+                // Global credential wipe stays on Advanced, away from individual provider pages.
+                DangerZoneSection(onDeleteAll = { viewModel.showDeleteConfirmDialog() })
             }
-            SettingsPage.ABOUT -> {
+            page == SettingsPage.ABOUT -> {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
@@ -373,12 +423,13 @@ private fun SettingsPageContent(
 
 @Composable
 private fun AccountsPage(
+    service: AiService,
     uiState: SettingsUiState,
     viewModel: SettingsViewModel,
     onRename: (AccountConnection) -> Unit,
     onDelete: (AccountConnection) -> Unit
 ) {
-    uiState.connections.forEach { account ->
+    uiState.connections.filter { it.service == service }.forEach { account ->
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(account.name, style = MaterialTheme.typography.titleMedium)
@@ -392,21 +443,18 @@ private fun AccountsPage(
             }
         }
     }
-    AiService.entries.filter { !it.usesNativeApiKey || BuildConfig.NATIVE_CLI_ENABLED }.forEach { service ->
-        val state = uiState.serviceStates[service] ?: ServiceCredentialState()
-        if (state.connection == null) OutlinedButton(
-            onClick = { viewModel.beginAdd(service) }, modifier = Modifier.fillMaxWidth()
-        ) { Text("Add ${service.displayName} account") }
-        else ServiceCredentialSection(
-            service = service,
-            state = state,
-            onFieldChange = { field, value -> viewModel.updateField(service, field, value) },
-            onValidate = { viewModel.validateCredential(service) },
-            onSignIn = { viewModel.signIn(service) },
-            onCancel = { viewModel.cancelDraft(service) }
-        )
-    }
-    DangerZoneSection(onDeleteAll = { viewModel.showDeleteConfirmDialog() })
+    val state = uiState.serviceStates[service] ?: ServiceCredentialState()
+    if (state.connection == null) OutlinedButton(
+        onClick = { viewModel.beginAdd(service) }, modifier = Modifier.fillMaxWidth()
+    ) { Text("Add ${service.displayName} account") }
+    else ServiceCredentialSection(
+        service = service,
+        state = state,
+        onFieldChange = { field, value -> viewModel.updateField(service, field, value) },
+        onValidate = { viewModel.validateCredential(service) },
+        onSignIn = { viewModel.signIn(service) },
+        onCancel = { viewModel.cancelDraft(service) }
+    )
 }
 
 @Composable
@@ -653,35 +701,44 @@ private fun RefreshIntervalSection(
 private fun LanguageSection() {
     if (android.os.Build.VERSION.SDK_INT < 33) return
     val context = androidx.compose.ui.platform.LocalContext.current
+    var unavailable by remember { mutableStateOf(false) }
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable {
-                    runCatching {
-                        context.startActivity(
-                            android.content.Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS)
-                                .addCategory(android.content.Intent.CATEGORY_DEFAULT)
-                                .setData(android.net.Uri.parse("package:${context.packageName}"))
-                        )
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        runCatching {
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_APP_LOCALE_SETTINGS)
+                                    .addCategory(android.content.Intent.CATEGORY_DEFAULT)
+                                    .setData(android.net.Uri.parse("package:${context.packageName}"))
+                            )
+                        }.onFailure { unavailable = true }
                     }
+                    .padding(16.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.general_language), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        stringResource(R.string.general_language_summary),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                .padding(16.dp),
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.general_language), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stringResource(R.string.general_language_summary),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Icon(Icons.Default.ChevronRight, contentDescription = null)
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null)
+            if (unavailable) Text(
+                stringResource(R.string.general_language_unavailable),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp)
+            )
         }
     }
 }
@@ -691,6 +748,7 @@ private fun LanguageSection() {
  * provider detail (headline/percent window + accent). State follows the shared
  * display revision, so global or dashboard edits never leave stale values here.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProviderDisplaySection(account: AccountConnection, viewModel: SettingsViewModel) {
     val revision by viewModel.displayRevision.collectAsStateWithLifecycle()
@@ -700,7 +758,7 @@ private fun ProviderDisplaySection(account: AccountConnection, viewModel: Settin
     Text(stringResource(R.string.provider_display_title), style = MaterialTheme.typography.titleSmall)
     if (windows.isNotEmpty()) {
         Text(stringResource(R.string.provider_headline_title), style = MaterialTheme.typography.bodyMedium)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             FilterChip(
                 selected = display.headlineWindow == null,
                 onClick = { viewModel.setConnectionDisplay(account, display.copy(headlineWindow = null), "headlineWindow") },
@@ -716,24 +774,34 @@ private fun ProviderDisplaySection(account: AccountConnection, viewModel: Settin
         }
     }
     Text(stringResource(R.string.provider_accent_title), style = MaterialTheme.typography.bodyMedium)
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         FilterChip(
             selected = display.accent == null,
             onClick = { viewModel.setConnectionDisplay(account, display.copy(accent = null), "accent") },
             label = { Text(stringResource(R.string.provider_accent_default)) }
         )
         com.codexbar.android.feature.dashboard.ACCENT_COLORS.forEach { (key, color) ->
+            val label = stringResource(com.codexbar.android.feature.dashboard.accentLabelRes(key))
+            // 48dp selectable target with localized label; the 28dp swatch is decoration inside it.
             Box(
                 Modifier
-                    .size(28.dp)
-                    .background(color, CircleShape)
-                    .border(
-                        if (display.accent == key) 2.dp else 0.dp,
-                        MaterialTheme.colorScheme.onSurface,
-                        CircleShape
-                    )
-                    .clickable { viewModel.setConnectionDisplay(account, display.copy(accent = key), "accent") }
-            )
+                    .size(48.dp)
+                    .selectable(selected = display.accent == key, role = Role.RadioButton,
+                        onClick = { viewModel.setConnectionDisplay(account, display.copy(accent = key), "accent") })
+                    .semantics { contentDescription = label },
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .size(28.dp)
+                        .background(color, CircleShape)
+                        .border(
+                            if (display.accent == key) 2.dp else 0.dp,
+                            MaterialTheme.colorScheme.onSurface,
+                            CircleShape
+                        )
+                )
+            }
         }
     }
     TextButton(onClick = { viewModel.resetConnectionDisplay(account) }) { Text(stringResource(R.string.restore_defaults)) }

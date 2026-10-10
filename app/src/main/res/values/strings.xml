@@ -23,6 +23,7 @@
     <string name="general_refresh_manual">Manual</string>
     <string name="general_language">App Language</string>
     <string name="general_language_summary">Choose the language in system settings</string>
+    <string name="general_language_unavailable">Language settings are not available on this device.</string>
     <string name="official_status">Official service status: %1$s</string>
     <string name="status_operational">Operational</string>
     <string name="status_incident">Incident reported</string>
@@ -112,7 +113,7 @@
     <string name="display_fill_remaining">Remaining</string>
     <string name="display_fill_used">Used</string>
     <string name="display_markers_title">Warning markers</string>
-    <string name="display_markers_summary">Ticks at 50% and 20% remaining</string>
+    <string name="display_markers_summary" formatted="false">Ticks at 50% and 20% remaining</string>
     <string name="display_reset_title">Absolute reset times</string>
     <string name="display_reset_summary">Show date and time instead of a countdown</string>
     <string name="display_amounts_title">Show amounts</string>
@@ -122,6 +123,14 @@
     <string name="provider_headline_auto">Auto (highest)</string>
     <string name="provider_accent_title">Accent color</string>
     <string name="provider_accent_default">Default</string>
+    <string name="accent_blue">Blue</string>
+    <string name="accent_purple">Purple</string>
+    <string name="accent_pink">Pink</string>
+    <string name="accent_red">Red</string>
+    <string name="accent_orange">Orange</string>
+    <string name="accent_yellow">Yellow</string>
+    <string name="accent_green">Green</string>
+    <string name="accent_graphite">Graphite</string>
     <string name="display_workdays_title">Weekly work days</string>
     <string name="display_workdays_summary">Weekly pace assumes usage on these days only</string>
     <string name="display_workdays_auto">All</string>
