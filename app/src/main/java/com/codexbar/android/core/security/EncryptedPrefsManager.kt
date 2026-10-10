@@ -163,6 +163,12 @@ class EncryptedPrefsManager internal constructor(
         prefs.edit().putLong("refresh_interval_minutes", minutes).apply()
     }
 
+    fun getRefreshOnOpen(): Boolean = prefs.getBoolean("refresh_on_open", false)
+
+    fun setRefreshOnOpen(enabled: Boolean) {
+        prefs.edit().putBoolean("refresh_on_open", enabled).apply()
+    }
+
     fun isNotificationsEnabled(): Boolean {
         return prefs.getBoolean("notifications_enabled", true)
     }

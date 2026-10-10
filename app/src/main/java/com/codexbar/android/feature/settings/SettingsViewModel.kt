@@ -39,6 +39,7 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState(
         connections = prefsManager.loadConnections(),
         refreshIntervalMinutes = prefsManager.getRefreshInterval(),
+        refreshOnOpen = prefsManager.getRefreshOnOpen(),
         statusChecksEnabled = prefsManager.isStatusChecksEnabled(),
         notificationsEnabled = prefsManager.isNotificationsEnabled(),
         recoveryAlertsEnabled = prefsManager.isRecoveryAlertsEnabled(),
@@ -208,6 +209,11 @@ class SettingsViewModel @Inject constructor(
     fun setStatusChecksEnabled(enabled: Boolean) {
         prefsManager.setStatusChecksEnabled(enabled)
         _uiState.update { it.copy(statusChecksEnabled = enabled) }
+    }
+
+    fun setRefreshOnOpen(enabled: Boolean) {
+        prefsManager.setRefreshOnOpen(enabled)
+        _uiState.update { it.copy(refreshOnOpen = enabled) }
     }
 
     fun setNotificationsEnabled(enabled: Boolean) {

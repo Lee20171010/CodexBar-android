@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.codexbar.android.core.data.AccountQuotaCoordinator
 import com.codexbar.android.core.domain.model.AccountConnection
+import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
+import com.codexbar.android.core.presentation.Freshness
 import com.codexbar.android.core.security.EncryptedPrefsManager
 import com.codexbar.android.core.widget.WidgetPrefsManager
 import com.codexbar.android.core.widget.updateQuotaSurfaces
@@ -65,21 +67,51 @@ class DashboardViewModel @Inject constructor(
                 }
             }.collect { _uiState.value = it }
         }
-        refresh()
     }
+
+    private var openedOnce = false
 
     fun refresh(connection: AccountConnection? = null) {
         if (refreshJob?.isActive == true) return
         val connections = connection?.let(::listOf) ?: prefsManager.loadConnections()
+        refreshAll(connections, concurrent = true)
+    }
+
+    /**
+     * Mac refreshAllProvidersOnMenuOpen (default OFF, SettingsStore.swift:545): the first open always
+     * fetches; afterwards ON refreshes every eligible account concurrently, OFF only recovers accounts
+     * whose last attempt failed or that hold no quota, sequentially like Mac's MenuOpenRefreshPlan.
+     * Terminal-reconnect accounts are skipped on automatic paths as QuotaRefreshWorker.kt:38-41 does;
+     * manual refresh() still attempts them. Official status checks stay independent of quota eligibility.
+     */
+    fun onDashboardOpen() {
+        val firstOpen = !openedOnce
+        openedOnce = true
+        if (refreshJob?.isActive == true) return
+        val connections = prefsManager.loadConnections()
+        val eligible = connections.filterNot { accounts.snapshot(it).freshness() == Freshness.RECONNECT }
+        val refreshOnOpen = prefsManager.getRefreshOnOpen()
+        val targets = when {
+            firstOpen || refreshOnOpen -> eligible
+            else -> eligible.filter { accounts.snapshot(it).let { s -> s.failure != null || s.quota == null } }
+        }
+        refreshAll(targets, concurrent = firstOpen || refreshOnOpen,
+            statusServices = connections.map { it.service }.distinct())
+    }
+
+    private fun refreshAll(
+        connections: List<AccountConnection>,
+        concurrent: Boolean,
+        statusServices: List<AiService> = connections.map { it.service }.distinct()
+    ) {
         viewModelScope.launch {
-            connections.map { it.service }.distinct().forEach { officialStatus.refresh(it) }
+            statusServices.forEach { officialStatus.refresh(it) }
         }
         refreshJob = viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                connections.map { account ->
-                    async { accounts.refresh(account) }
-                }.awaitAll()
+                if (concurrent) connections.map { account -> async { accounts.refresh(account) } }.awaitAll()
+                else connections.forEach { account -> accounts.refresh(account) }
                 updateQuotaSurfaces(context)
             } catch (_: IOException) {
                 _uiState.value = DashboardUiState.Error(AppError.ParseError("Account storage unavailable. Restart the app."))

@@ -9,6 +9,7 @@ data class SettingsUiState(
         ServiceCredentialState()
     },
     val refreshIntervalMinutes: Long = 30L,
+    val refreshOnOpen: Boolean = false,
     val statusChecksEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val recoveryAlertsEnabled: Boolean = false,

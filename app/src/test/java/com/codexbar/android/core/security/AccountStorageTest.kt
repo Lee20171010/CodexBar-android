@@ -29,6 +29,17 @@ class AccountStorageTest {
         assertTrue(EncryptedPrefsManager(memory.prefs).isStatusChecksEnabled())
     }
 
+    @Test fun `refresh on open defaults off and persists across restart`() {
+        val memory = MemoryPreferences()
+        val store = EncryptedPrefsManager(memory.prefs)
+        assertFalse(store.getRefreshOnOpen())
+        store.setRefreshOnOpen(true)
+        assertTrue(store.getRefreshOnOpen())
+        assertTrue(EncryptedPrefsManager(memory.prefs).getRefreshOnOpen())
+        EncryptedPrefsManager(memory.prefs).setRefreshOnOpen(false)
+        assertFalse(EncryptedPrefsManager(memory.prefs).getRefreshOnOpen())
+    }
+
     @Test fun `API keys retain provider and sibling ownership across restart`() {
       for ((service, create) in listOf<Pair<AiService, (String) -> Credential>>(
           AiService.OPENROUTER to { Credential.OpenRouterCredential(it) },

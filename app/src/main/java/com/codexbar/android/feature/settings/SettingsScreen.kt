@@ -340,6 +340,13 @@ private fun SettingsPageContent(
                     gateOnNotificationPermission = false,
                     onToggle = { viewModel.setStatusChecksEnabled(it) }
                 )
+                ToggleSection(
+                    title = stringResource(R.string.refresh_on_open_title),
+                    description = stringResource(R.string.refresh_on_open_summary),
+                    enabled = uiState.refreshOnOpen,
+                    gateOnNotificationPermission = false,
+                    onToggle = { viewModel.setRefreshOnOpen(it) }
+                )
                 LanguageSection()
             }
             page == SettingsPage.NOTIFICATIONS -> {

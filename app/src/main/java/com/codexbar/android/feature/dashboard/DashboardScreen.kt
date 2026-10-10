@@ -17,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -33,6 +34,10 @@ fun DashboardScreen(onNavigateToSettings: () -> Unit, viewModel: DashboardViewMo
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     var now by remember { mutableStateOf(Instant.now()) }
     val owner = LocalLifecycleOwner.current
+    LifecycleResumeEffect(Unit) {
+        viewModel.onDashboardOpen()
+        onPauseOrDispose { }
+    }
     LaunchedEffect(owner) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (isActive) { now = Instant.now(); delay(60_000) }
