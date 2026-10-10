@@ -4,6 +4,32 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.7-beta-native
+
+### Changed
+
+- Settings follows the pinned native Mac sidebar hierarchy: app panes first,
+  then individual provider destinations; global credential deletion stays in
+  Advanced with confirmation.
+- Provider headline choices wrap on narrow screens; accent choices have localized
+  labels, selected semantics and 48dp touch targets.
+
+### Fixed
+
+- Display preferences propagate through the shared chain with per-field
+  inheritance and reset, so cards, details, widgets and tile agree.
+- Default weekly window duration matches the Mac baseline.
+- Used-style bars show the used value with a localized "used" label in gauge,
+  widget and summary, matching the flipped fill; warning notifications keep
+  remaining semantics.
+- Pace ETA strings format hours and minutes with the correct values in English
+  and Traditional Chinese.
+- Usage alerts use the account's effective work days for pace and accept
+  overquota readings: depletion fires once and the dedup receipt survives
+  malformed measurements instead of being erased.
+- Declared supported locales (English, Traditional Chinese) so per-app language
+  settings list both choices on API 33+.
+
 ## 0.0.6-beta-native
 
 ### Added
