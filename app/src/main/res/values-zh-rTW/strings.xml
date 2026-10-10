@@ -42,6 +42,7 @@
     <string name="account_settings">帳號設定</string>
     <string name="no_accounts">尚未設定帳號</string>
     <string name="percent_left">剩餘 %1$d%%</string>
+    <string name="percent_used">已使用 %1$d%%</string>
     <string name="reset_due">已到重設時間，請更新確認</string>
     <string name="reset_days">%1$d 天 %2$d 小時後重設</string>
     <string name="reset_hours">%1$d 小時 %2$d 分鐘後重設</string>
@@ -131,8 +132,8 @@
     <string name="pace_far_behind">節奏：遠慢（%1$d%%）</string>
     <string name="pace_will_last">應可撐到重置</string>
     <string name="pace_out_days">預計 %1$d 天 %2$d 小時後用完</string>
-    <string name="pace_out_hours">預計 %1$d 小時 %2$d 分鐘後用完</string>
-    <string name="pace_out_minutes">預計 %1$d 分鐘後用完</string>
+    <string name="pace_out_hours">預計 %2$d 小時 %3$d 分鐘後用完</string>
+    <string name="pace_out_minutes">預計 %3$d 分鐘後用完</string>
     <string name="about_versions">應用程式 %1$s · 內嵌 Core/CLI %2$s</string>
     <string name="about_source">GitHub 原始碼</string>
 </resources>

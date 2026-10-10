@@ -63,6 +63,10 @@ object QuotaPresentation {
         }
     }
     fun remainingPercent(utilization: Double): Int = ((1 - utilization).coerceIn(0.0, 1.0) * 100).roundToInt()
+    /** Mac usageBarsShowUsed parity: the displayed percent follows the fill semantics, not always remaining. */
+    fun displayPercent(utilization: Double, fillUsed: Boolean): Int =
+        if (fillUsed) (utilization.coerceIn(0.0, 1.0) * 100).roundToInt() else remainingPercent(utilization)
+    fun percentStringRes(fillUsed: Boolean): Int = if (fillUsed) R.string.percent_used else R.string.percent_left
     fun principal(quota: QuotaInfo): List<UsageWindow> = quota.windows.filterNot { it.supplemental }
     fun age(context: Context, at: Instant?, now: Instant = Instant.now()): String {
         if (at == null) return context.getString(R.string.not_measured)
@@ -85,7 +89,9 @@ object QuotaPresentation {
         val quota = snapshot.retained(now).quota ?: return status(context, snapshot, now)
         val window = principal(quota).find { it.id == display.headlineWindow }
             ?: principal(quota).maxByOrNull { it.utilization }
-        val value = window?.let { "${it.label} ${context.getString(R.string.percent_left, remainingPercent(it.utilization))}" }
+        val value = window?.let {
+            "${it.label} ${context.getString(percentStringRes(display.fillUsed), displayPercent(it.utilization, display.fillUsed))}"
+        }
             ?: quota.money?.balanceText() ?: context.getString(R.string.quota_unavailable)
         return "$value · ${status(context, snapshot, now)}"
     }

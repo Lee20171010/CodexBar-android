@@ -84,7 +84,8 @@ open class QuotaGlanceWidget(private val singleAccount: Boolean = false) : Glanc
             else listOfNotNull(headline)
         val accent = com.codexbar.android.feature.dashboard.accentColor(display.accent)
         windows.forEach { window ->
-            Label("${window.label} · ${context.getString(R.string.percent_left, QuotaPresentation.remainingPercent(window.utilization))}")
+            Label("${window.label} · ${context.getString(QuotaPresentation.percentStringRes(display.fillUsed),
+                QuotaPresentation.displayPercent(window.utilization, display.fillUsed))}")
             if (expanded) {
                 val fill = (if (display.fillUsed) window.utilization else 1 - window.utilization).toFloat()
                 LinearProgressIndicator(fill.coerceIn(0f, 1f), GlanceModifier.fillMaxWidth(),

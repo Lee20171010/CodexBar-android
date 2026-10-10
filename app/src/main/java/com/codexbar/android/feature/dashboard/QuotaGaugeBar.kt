@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.codexbar.android.R
 import com.codexbar.android.core.presentation.QuotaPresentation
 import java.time.Instant
 
@@ -45,7 +44,8 @@ fun QuotaGaugeBar(
         // Native MetricRowHeader uses a trailing reset line when the header cannot fit.
         FlowRow(horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
-                "${label.orEmpty()} ${stringResource(R.string.percent_left, QuotaPresentation.remainingPercent(utilization))}".trim(),
+                "${label.orEmpty()} ${stringResource(QuotaPresentation.percentStringRes(display.fillUsed),
+                    QuotaPresentation.displayPercent(utilization, display.fillUsed))}".trim(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2,
