@@ -44,7 +44,8 @@ object QuotaAlerts {
         previous: Map<String, AlertReading>,
         quota: QuotaInfo,
         now: Long,
-        settings: AlertSettings
+        settings: AlertSettings,
+        workDays: Int? = null
     ): Pair<Map<String, AlertReading>, List<Pair<UsageWindow, QuotaAlertKind>>> {
         val measured = quota.fetchedAt.epochSecond
         if (measured !in (now - 300)..now || quota.source == "legacy") return previous to emptyList()
@@ -53,8 +54,13 @@ object QuotaAlerts {
         quota.windows.filter { it.kind == UsageWindowKind.QUOTA && !it.supplemental }
             .distinctBy { it.id }.take(32).forEach { window ->
                 val used = window.utilization
-                if (!used.isFinite() || used < 0 || used > 1.0 || window.id.length > 128) return@forEach
                 val old = previous[window.id]
+                // Overquota is valid input; only non-finite or negative readings are malformed, and
+                // they must retain the prior receipt so dedup and rearm survive a bad fetch.
+                if (!used.isFinite() || used < 0 || window.id.length > 128) {
+                    if (old != null) next[window.id] = old
+                    return@forEach
+                }
                 if (old != null && measured <= old.at) { next[window.id] = old; return@forEach }
                 var lowNotified = old?.lowNotified ?: false
                 var depletedNotified = old?.depletedNotified ?: false
@@ -70,7 +76,7 @@ object QuotaAlerts {
                     alerts += window to QuotaAlertKind.LOW
                 }
                 if (settings.pace && window.resetsAt != null) {
-                    val pace = QuotaPace.weeklyPace(window, Instant.ofEpochSecond(measured))
+                    val pace = QuotaPace.weeklyPace(window, Instant.ofEpochSecond(measured), workDays)
                     val cycleStart = window.resetsAt.epochSecond -
                         (window.durationSeconds ?: 604800L)
                     if (pace != null && pace.deltaPercent > PACE_AHEAD &&

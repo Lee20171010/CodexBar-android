@@ -197,7 +197,8 @@ class EncryptedPrefsManager internal constructor(
 
     /** Persist receipts before notification: restart cannot repeat an already claimed alert. */
     @Synchronized
-    fun recordAlerts(connection: AccountConnection, quota: com.codexbar.android.core.domain.model.QuotaInfo):
+    fun recordAlerts(connection: AccountConnection, quota: com.codexbar.android.core.domain.model.QuotaInfo,
+        workDays: Int? = null):
         List<Pair<com.codexbar.android.core.domain.model.UsageWindow, com.codexbar.android.core.notification.QuotaAlertKind>> {
         if (!isCurrent(connection) || quota.service != connection.service) return emptyList()
         val settings = com.codexbar.android.core.notification.AlertSettings(
@@ -210,7 +211,7 @@ class EncryptedPrefsManager internal constructor(
                 prefs.getString(key, null) ?: "{}")
         }.getOrDefault(emptyMap())
         val (next, alerts) = com.codexbar.android.core.notification.QuotaAlerts
-            .observe(previous, quota, Instant.now().epochSecond, settings)
+            .observe(previous, quota, Instant.now().epochSecond, settings, workDays)
         commit(prefs.edit().putString(key, kotlinx.serialization.json.Json.encodeToString(next)))
         return alerts
     }

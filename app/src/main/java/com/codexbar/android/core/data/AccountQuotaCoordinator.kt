@@ -122,7 +122,8 @@ class AccountQuotaCoordinator @Inject constructor(
                 notifications.showResetNotification(connection, window.label,
                     com.codexbar.android.core.presentation.QuotaPresentation.remainingPercent(window.utilization))
             }
-            prefs.recordAlerts(connection, result.value).forEach { (window, kind) ->
+            val alertWorkDays = widgets.effectiveDisplayOptions(connection).workDays
+            prefs.recordAlerts(connection, result.value, alertWorkDays).forEach { (window, kind) ->
                 notifications.showUsageAlert(connection, kind, window.label,
                     com.codexbar.android.core.presentation.QuotaPresentation.remainingPercent(window.utilization))
             }
