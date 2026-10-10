@@ -6,6 +6,7 @@ import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
+import com.codexbar.android.core.domain.model.UsageWindowSlot
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.domain.repository.CredentialSession
 import kotlinx.coroutines.CancellationException
@@ -171,7 +172,9 @@ class CodexRepositoryImpl @Inject constructor(
         return UsageWindow(
             label = label,
             utilization = window.usedPercent / 100.0,
-            resetsAt = window.resetAt?.let { Instant.ofEpochSecond(it) }
+            resetsAt = window.resetAt?.let { Instant.ofEpochSecond(it) },
+            durationSeconds = window.limitWindowSeconds?.takeIf { it > 0 },
+            slot = UsageWindowSlot.entries.firstOrNull { it.name.equals(type, ignoreCase = true) }
         )
     }
 

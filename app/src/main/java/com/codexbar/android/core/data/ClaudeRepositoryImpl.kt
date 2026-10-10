@@ -7,6 +7,7 @@ import com.codexbar.android.core.domain.model.ExtraUsage
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
+import com.codexbar.android.core.domain.model.UsageWindowSlot
 import com.codexbar.android.core.domain.repository.QuotaRepository
 import com.codexbar.android.core.domain.repository.CredentialSession
 import kotlinx.coroutines.CancellationException
@@ -144,11 +145,16 @@ class ClaudeRepositoryImpl @Inject constructor(
 
     private fun mapToQuotaInfo(response: ClaudeDto.OAuthUsageResponse, tier: String? = null): QuotaInfo {
         val windows = buildList {
-            response.fiveHour?.let { add(mapWindow("5-Hour", it)) }
-            response.sevenDay?.let { add(mapWindow("7-Day", it)) }
-            response.sevenDayOauthApps?.let { add(mapWindow("OAuth Apps", it)) }
-            response.sevenDayOpus?.let { add(mapWindow("Opus", it)) }
-            response.sevenDaySonnet?.let { add(mapWindow("Sonnet", it)) }
+            // Slots mirror Mac ClaudeUsageFetcher.mapOAuthUsage: primary=five_hour, secondary=seven_day,
+            // opus slot = seven_day_sonnet ?? seven_day_opus; oauth apps is only a primary fallback candidate;
+            // iguana_necktie has no Mac counterpart, so its slot and duration stay unknown.
+            response.fiveHour?.let { add(mapWindow("5-Hour", it, slot = UsageWindowSlot.PRIMARY, durationSeconds = 18_000)) }
+            response.sevenDay?.let { add(mapWindow("7-Day", it, slot = UsageWindowSlot.SECONDARY, durationSeconds = 604_800)) }
+            response.sevenDayOauthApps?.let { add(mapWindow("OAuth Apps", it, durationSeconds = 604_800)) }
+            response.sevenDayOpus?.let { add(mapWindow("Opus", it,
+                slot = if (response.sevenDaySonnet == null) UsageWindowSlot.TERTIARY else null,
+                durationSeconds = 604_800)) }
+            response.sevenDaySonnet?.let { add(mapWindow("Sonnet", it, slot = UsageWindowSlot.TERTIARY, durationSeconds = 604_800)) }
             response.iguanaNecktie?.let { add(mapWindow("Extended", it)) }
         }
 
@@ -171,11 +177,18 @@ class ClaudeRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun mapWindow(label: String, window: ClaudeDto.OAuthUsageWindow): UsageWindow {
+    private fun mapWindow(
+        label: String,
+        window: ClaudeDto.OAuthUsageWindow,
+        slot: UsageWindowSlot? = null,
+        durationSeconds: Long? = null
+    ): UsageWindow {
         return UsageWindow(
             label = label,
             utilization = ((window.utilization ?: 0.0) / 100.0).coerceIn(0.0, 1.0),
-            resetsAt = window.resetsAt?.let { parseInstant(it) }
+            resetsAt = window.resetsAt?.let { parseInstant(it) },
+            slot = slot,
+            durationSeconds = durationSeconds
         )
     }
 

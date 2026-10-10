@@ -5,6 +5,7 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
+import com.codexbar.android.core.domain.model.UsageWindowSlot
 import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.core.domain.repository.CredentialSession
 import kotlinx.coroutines.CancellationException
@@ -20,6 +21,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.Assert.assertNull
 import kotlinx.coroutines.test.runTest
 import retrofit2.Retrofit
 
@@ -204,9 +206,26 @@ class CodexRepositoryImplTest {
         assertEquals(2, quotaInfo.windows.size)
         assertEquals("5-Hour", quotaInfo.windows[0].label)
         assertEquals(0.45, quotaInfo.windows[0].utilization, 0.001)
+        assertEquals(UsageWindowSlot.PRIMARY, quotaInfo.windows[0].slot)
+        assertEquals(18000L, quotaInfo.windows[0].durationSeconds)
         assertEquals("7-Day", quotaInfo.windows[1].label)
         assertEquals(0.20, quotaInfo.windows[1].utilization, 0.001)
+        assertEquals(UsageWindowSlot.SECONDARY, quotaInfo.windows[1].slot)
+        assertEquals(604800L, quotaInfo.windows[1].durationSeconds)
         assertEquals("Pro", quotaInfo.tier)
+    }
+
+    @Test
+    fun `fetchQuota keeps slot but drops non-positive window duration`() = runTest {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("""
+            {"rate_limit": {"primary_window": {"used_percent": 10, "reset_at": 1234567890,
+                "limit_window_seconds": 0}}}
+        """.trimIndent()))
+
+        val quotaInfo = (repository.fetchQuota() as Result.Success).value
+        assertEquals(1, quotaInfo.windows.size)
+        assertEquals(UsageWindowSlot.PRIMARY, quotaInfo.windows[0].slot)
+        assertNull(quotaInfo.windows[0].durationSeconds)
     }
 
     @Test

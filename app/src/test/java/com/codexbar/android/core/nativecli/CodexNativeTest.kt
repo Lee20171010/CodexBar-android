@@ -51,6 +51,8 @@ class CodexNativeTest {
         assertEquals(listOf("secondary", "extra:model-a"), quota.windows.map { it.id })
         assertEquals("7-Day", quota.windows.first().label)
         assertEquals(604800L, quota.windows.first().durationSeconds)
+        assertEquals(UsageWindowSlot.SECONDARY, quota.windows.first().slot)
+        assertNull(quota.windows.last().slot) // Supplemental pools carry no source slot.
         assertFalse(quota.windows.first().supplemental)
         assertTrue(quota.windows.last().supplemental)
         assertEquals(1.1, quota.windows.last().utilization, 0.0001)

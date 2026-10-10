@@ -47,11 +47,17 @@ data class UsageWindow(
     val id: String = label,
     val kind: UsageWindowKind = UsageWindowKind.QUOTA,
     val durationSeconds: Long? = null,
-    val supplemental: Boolean = false
+    val supplemental: Boolean = false,
+    /** Source slot from the provider payload (Mac primary/secondary/tertiary semantics); null means unknown. */
+    val slot: UsageWindowSlot? = null
 )
 
 @kotlinx.serialization.Serializable
 enum class UsageWindowKind { QUOTA, BUDGET }
+
+/** Mac source slot (ProviderDescriptor lane); distinct from pace algorithm kinds. */
+@kotlinx.serialization.Serializable
+enum class UsageWindowSlot { PRIMARY, SECONDARY, TERTIARY }
 
 @kotlinx.serialization.Serializable
 data class ExtraUsage(

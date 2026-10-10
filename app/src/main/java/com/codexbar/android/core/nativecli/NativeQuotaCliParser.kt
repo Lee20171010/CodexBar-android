@@ -5,6 +5,7 @@ import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageWindow
+import com.codexbar.android.core.domain.model.UsageWindowSlot
 import java.time.Instant
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
@@ -74,7 +75,8 @@ object NativeQuotaCliParser {
                         utilization = percent / 100.0,
                         resetsAt = window["resetsAt"]?.jsonPrimitive?.contentOrNull?.let(Instant::parse),
                         id = name,
-                        durationSeconds = minutes?.times(60)
+                        durationSeconds = minutes?.times(60),
+                        slot = UsageWindowSlot.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
                     )
                 }.toMutableList()
             if (service == AiService.CODEX) {

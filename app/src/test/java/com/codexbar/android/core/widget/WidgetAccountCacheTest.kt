@@ -25,6 +25,20 @@ class WidgetAccountCacheTest {
         assertNull(cache.getCachedQuota(account)?.money)
     }
 
+    @Test fun `window slot survives cache restart and old records without slot decode null`() {
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        val legacy = QuotaInfo(AiService.CODEX, listOf(UsageWindow("5-Hour", 0.5, null)), null, fetchedAt = measuredAt)
+        cache.cacheQuota(account, legacy)
+        val stored = memory.prefs.all.values.filterIsInstance<String>().single { it.contains("5-Hour") }
+        assertFalse(stored.contains("slot")) // Null defaults stay unencoded, matching old records byte-for-byte.
+        assertEquals(legacy, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
+        val slotted = legacy.copy(windows = listOf(legacy.windows.single().copy(slot = UsageWindowSlot.PRIMARY, durationSeconds = 18_000)))
+        cache.cacheQuota(account, slotted)
+        assertEquals(slotted, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
+    }
+
     @Test fun `widget display falls back from per-widget to connection then global`() {
         val memory = MemoryPreferences()
         val prefs = WidgetPrefsManager(memory.prefs)

@@ -4,6 +4,7 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
+import com.codexbar.android.core.domain.model.UsageWindowSlot
 import com.codexbar.android.core.network.claude.ClaudeApiService
 import com.codexbar.android.core.network.claude.ClaudeTokenRefreshService
 import com.codexbar.android.core.domain.model.AccountConnection
@@ -18,6 +19,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.Assert.assertNull
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaType
@@ -104,10 +106,32 @@ class ClaudeRepositoryImplTest {
         assertEquals(6, quotaInfo.windows.size)
         assertEquals("5-Hour", quotaInfo.windows[0].label)
         assertEquals(0.42, quotaInfo.windows[0].utilization, 0.001)
+        assertEquals(UsageWindowSlot.PRIMARY, quotaInfo.windows[0].slot)
+        assertEquals(18_000L, quotaInfo.windows[0].durationSeconds)
+        assertEquals(UsageWindowSlot.SECONDARY, quotaInfo.windows[1].slot)
+        assertEquals(604_800L, quotaInfo.windows[1].durationSeconds)
+        assertNull(quotaInfo.windows[2].slot) // OAuth Apps is only a Mac primary fallback candidate.
+        assertEquals(604_800L, quotaInfo.windows[2].durationSeconds)
+        assertNull(quotaInfo.windows[3].slot) // Sonnet present, so Mac puts Sonnet in the opus slot.
+        assertEquals(UsageWindowSlot.TERTIARY, quotaInfo.windows[4].slot)
+        assertNull(quotaInfo.windows[5].slot) // iguana_necktie has no Mac counterpart.
+        assertNull(quotaInfo.windows[5].durationSeconds)
         assertEquals("Extended", quotaInfo.windows[5].label)
         assertNotNull(quotaInfo.extraUsage)
         assertEquals(50.0, quotaInfo.extraUsage!!.monthlyLimit, 0.001)
         assertEquals(12.5, quotaInfo.extraUsage!!.usedCredits, 0.001)
+    }
+
+    @Test
+    fun `opus alone takes the tertiary slot mirroring Mac sonnet-then-opus fallback`() = runTest {
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody("""
+            { "seven_day_opus": { "utilization": 30 } }
+        """.trimIndent()))
+
+        val quotaInfo = (repository.fetchQuota() as Result.Success).value
+        assertEquals(1, quotaInfo.windows.size)
+        assertEquals(UsageWindowSlot.TERTIARY, quotaInfo.windows[0].slot)
+        assertEquals(604_800L, quotaInfo.windows[0].durationSeconds)
     }
 
     @Test
