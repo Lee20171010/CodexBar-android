@@ -2,22 +2,29 @@
 
 The design authority is macOS CodexBar's settings, features, information hierarchy
 and interactions, rendered with Compose and Android touch/accessibility conventions.
-The reference is [steipete/CodexBar v0.73.0](https://github.com/steipete/CodexBar/tree/1d313fe50a361fc0a12383da0cdc11a75f59daa5),
+The current reference is [steipete/CodexBar at 98d84b8](https://github.com/steipete/CodexBar/tree/98d84b8a06957e193a9a8e58b40590736c94bf70),
 including `docs/ui.md`, `MenuCardMetricRow.swift`, `UsageProgressBar.swift`,
 `MetricRowHeader` and `UsageMenuCardLayout.swift`. Android fork layouts are not the
 design authority. The native engine remains pinned independently to v0.71.0.
 
 ## Status and design workflow
 
-Implemented in `e114632`: dashboard title/percent row, reset placement, 6dp
-provider-accent bar and name/identity/plan header. The prototype slices are now
-implemented: settings directory (`47e4cfa`), global display preferences
-(`e1bae92`), headline window and accent (`5e2c1be`), localized General with the
-system language entry (`55a239b`), Mac pace with Work days (`c7f8969`), the
-usage-warning notification split (`96221c1`) and the shared widget display chain
-(`490f15d`). Device acceptance against the prototype on the delivered
-`0.0.6-beta-native` APK is the remaining gate; the rows below record deliberate
-boundaries, not unfinished parity promises.
+`0.0.6-beta-native` contains partial settings, display, pace, alerts and widget
+implementation. Native Mac alignment is incomplete. Review identified preference
+propagation/inheritance bugs, pace duration/formatting errors, alert inconsistencies,
+missing locale declaration and narrow-screen/accessibility gaps. Compilation and
+empty-screen smoke tests do not close those gaps.
+
+The existing HTML is a historical source reconstruction awaiting correction.
+Native `SettingsSidebarView`, grouped SwiftUI `Form` sections, `MetricRowHeader`
+and menu-card presentation are the implementation references. Matching-version Mac
+screenshots/runtime have not yet been verified. Source-backed changes must be
+labelled separately from visually accepted changes.
+
+Still open: account navigation/layout preferences, refresh-on-open/status controls,
+pace visibility/indicators, provider controls, shared-surface behavior and the
+phone/dark/large-text/widget/accessibility acceptance matrix. Spend/FX and the
+explicit macOS-only integrations retain their separate data/platform gates.
 
 Before the next UI/UX feature, review a side-by-side design: Mac on the left,
 expected mobile interaction on the right. Cover settings, navigation, account

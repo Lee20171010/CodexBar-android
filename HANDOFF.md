@@ -1,14 +1,16 @@
-# Handoff: implement the reviewed Mac-to-Android UI/UX prototype
+# Handoff: adapt native macOS CodexBar to Android
 
 Prepared 2026-10-10. Implementation baseline: `7c0abb5a40568fedb49b48437dac5a47ce5ae48c`,
 already pushed to `origin/main`. Recheck Git state before starting.
 
 ## Owner's requested outcome
 
-Continue implementing the Android app until its mobile screens and real interactions
-match the current HTML comparison prototype. This covers settings, features,
-navigation, display and UI/UX, not only card styling. Mac CodexBar is the product
-reference; do not substitute another Android fork's designs or add unrelated features.
+Implement Android from native macOS CodexBar's information hierarchy, settings,
+visual structure and interactions. Use the pinned SwiftUI/AppKit implementation
+for behavior and matching-version native screenshots/runtime for visual acceptance.
+Adapt touch targets, narrow layouts, navigation and Android system integration.
+HTML is a comparison medium, not the design authority. The existing reconstruction
+needs reconciliation against the native Mac before it can guide further UI work.
 Work incrementally, one tested feature per commit. Do not stop at another plan or
 mockup. Keep changes small and reuse existing Compose, Glance, account and native
 integration boundaries. Do not push or publish without renewed authorization.
@@ -19,10 +21,12 @@ affected Android components, preferences and tests.
 
 ## Authoritative artifacts
 
-- `docs/uiux-prototype/index.html`, `review.css`, `review.js`: durable copy of the
-  latest reviewed prototype. Open via a static server; no dependencies or build step.
-- `docs/ui.md`: existing design extraction. Its v0.73.0 reference predates the
-  current prototype's reference; do not silently conflate the two.
+- Native macOS source at `98d84b8a06957e193a9a8e58b40590736c94bf70`:
+  the current product and behavior reference. Matching-version native visual
+  evidence is still required for fidelity claims.
+- `docs/uiux-prototype/index.html`, `review.css`, `review.js`: historical comparison
+  reconstruction, pending native-Mac reconciliation; not an approved visual target.
+- `docs/ui.md`: source mapping and acceptance gaps at the current pinned reference.
 - `SPEC.md`: implemented data/ownership contracts; `TEST.md`: evidence and gaps.
 - `AGENTS.md`: working agreement; ignored `AGENTS.local.md`: operator configuration
   before signing or device work. Never copy private values into tracked files.
@@ -39,7 +43,7 @@ python3 -m http.server 8787 --bind 127.0.0.1 --directory docs/uiux-prototype
 ### What the reference proves
 
 The HTML left side is a **source-based reconstruction**, not an actual running Mac
-screenshot. The right side is the desired mobile design, not the delivered APK.
+screenshot. The right side is a historical mobile proposal requiring correction.
 Both use synthetic accounts, quota, credits and spend. Some controls only demonstrate
 selection; they do not implement their corresponding algorithms. Do not transplant
 demo data, the prototype's shared sample accounts or in-memory state into production.
@@ -48,9 +52,9 @@ The current prototype links Mac upstream source revision
 `98d84b8a06957e193a9a8e58b40590736c94bf70`. Earlier design documents referenced
 v0.73.0; this prototype used a newer available source checkout. The owner's installed
 Mac version is **not known**. Do not claim pixel-perfect or installed-version parity.
-Lock this source reference for implementation; exact Mac visual fidelity needs
-same-version screenshots/runtime evidence when available. Missing evidence should
-not block implementing the explicit right-hand mobile targets.
+Lock this source reference for implementation. Source-backed layout and behavior
+corrections can proceed; visual acceptance requires matching-version native evidence.
+Do not treat the right-hand HTML reconstruction as proof of Mac fidelity.
 
 The native engine remains CodexBar Core/CLI v0.71.0 at
 `cb5f0cbe88615a441272c6f9e44675bf594a3fa3`. It is not OpenAI's Codex coding-agent CLI.
@@ -78,11 +82,11 @@ spend collectors, Keychain and system integration are not automatically CLI JSON
 ## Implement in reviewable slices
 
 First inspect callers and current code, then maintain a concise mapping table in
-`docs/ui.md`: prototype scene/control → Mac file/symbol/revision → Android
+`docs/ui.md`: native Mac surface/control → Mac file/symbol/revision → Android
 file/component/preference → data dependency → implementation/test status.
 Use this concrete gap inventory rather than repeating broad exploratory research.
 
-| Slice | Prototype scenes and required outcome | Reuse / boundary |
+| Slice | Native Mac surfaces and required outcome | Reuse / boundary |
 | --- | --- | --- |
 | 1. Navigation and settings structure | Settings directory with General, Menu/display, Provider/accounts, Notifications, Usage & Spend, Advanced and About; phone drill-down/back and wide-screen adaptation | Existing settings ViewModel/navigation and account state; no new navigation framework |
 | 2. Overview and account flow | Identity/plan → quota/reset → freshness; account selection, refresh, offline last-good and reconnect-required states; full detail navigation | `ServiceCard`, `QuotaGaugeBar`, dashboard/detail and `QuotaSnapshot`; preserve all real windows and unknown states |
@@ -129,7 +133,7 @@ installation for diagnostics. Real quota/login/refresh requires explicit permiss
 Verify phone/light/dark/200% text/wide, empty/loading/stale/offline/auth error,
 account switching/reconnect/delete, detail scrolling, settings persistence/restart,
 widget pinning/resizing, notification permission/receipts and accessibility.
-Compare actual Android rendering/interactions against the prototype targets and
+Compare actual Android rendering/interactions against the pinned native Mac and
 document deliberate adaptations. Use available supported vision/browser tooling;
 obey the active harness's image-routing instructions rather than treating an old
 handoff's tool preference as authority. The owner requested avoiding the obsolete
@@ -143,7 +147,7 @@ prototype ambiguities against source and mobile constraints instead of copying b
 Finish by updating README/SPEC/TEST/CHANGELOG and the per-feature mapping, reporting
 commit SHAs, checks, actual artifact/hash, screenshot/interaction evidence, and
 remaining explicit platform/data gates. The requested end state is a working
-Android implementation of the actionable mobile design, not another HTML-only
+Android adaptation of the native Mac design, not another HTML-only
 handoff. Ask only for genuine account/platform/product decisions that block a slice;
 continue independent work meanwhile. Delivery/push/release needs current authorization.
 
