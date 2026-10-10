@@ -19,7 +19,7 @@ ADB = os.environ.get("ANDROID_TEST_ADB_WRAPPER", "")
 SESSION_WRAPPER = os.environ.get("ANDROID_TEST_SESSION_WRAPPER", "")
 
 
-def adb(*args, timeout=30, check=True):
+def adb(*args, timeout=60, check=True):
     result = subprocess.run([ADB, *args], capture_output=True, text=True, timeout=timeout)
     if check and result.returncode:
         raise RuntimeError(f"ADB {args} failed ({result.returncode}): {result.stderr.strip()} {result.stdout.strip()}")
@@ -60,6 +60,16 @@ def verify_api_settings(run_id, provider, display_name):
         x1, y1, x2, y2 = bounds(node)
         adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
 
+    def open_provider():
+        for _ in range(10):
+            providers = [n for n in snapshot().iter("node") if n.get("text") == display_name]
+            if providers:
+                tap(providers[0])
+                return
+            adb("shell", "input", "swipe", str(width // 2), str(height * 3 // 4),
+                str(width // 2), str(height // 3), "350")
+        raise RuntimeError(f"Missing provider settings row: {display_name}")
+
     try:
         adb("shell", "pm", "grant", PACKAGE, "android.permission.POST_NOTIFICATIONS", check=False)
         adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.MainActivity")
@@ -71,6 +81,8 @@ def verify_api_settings(run_id, provider, display_name):
         tap(settings)
         size = list(map(int, re.findall(r"\d+", adb("shell", "wm", "size").stdout)))[-2:]
         width, height = size
+        # Native-style settings routes through an individual provider row.
+        open_provider()
         for _ in range(8):
             tree = snapshot()
             add_buttons = [n for n in tree.iter("node") if n.get("text") == f"Add {display_name} account"]
@@ -97,10 +109,13 @@ def verify_api_settings(run_id, provider, display_name):
                         tap(next(n for n in tree.iter("node") if n.get("text") == "Cancel"))
                         # Failed validation remains an unpublished draft, including after reopening Settings.
                         adb("shell", "input", "keyevent", "4")
+                        adb("shell", "input", "keyevent", "4")
                         tree = snapshot()
                         tap(next(n for n in tree.iter("node") if n.get("content-desc") == "Settings"))
+                        open_provider()
                         tree = snapshot()
                         assert not any(n.get("text") in ("Reconnect", "Rename") for n in tree.iter("node")), "Rejected draft was saved"
+                        adb("shell", "input", "keyevent", "4")
                         adb("shell", "input", "keyevent", "4")
                         print(f"{display_name} settings: masked draft → provider validation → expected rejection → no saved account", flush=True)
                         return True
@@ -114,7 +129,7 @@ def verify_api_settings(run_id, provider, display_name):
 
 
 def verify_product_ui(run_id):
-    """Check dashboard entry, OAuth affordance and offline notices without signing in."""
+    """Check navigation, persisted settings, OAuth entry and offline notices without signing in."""
     remote = f"/data/local/tmp/codexbar-product-{run_id}"
 
     def snapshot():
@@ -135,6 +150,22 @@ def verify_product_ui(run_id):
                 str(width // 2), str(height // 3), "350")
         raise RuntimeError(f"Missing product UI: {text}")
 
+    def assert_selected(text):
+        assert any(
+            (n.get("checked") == "true" or n.get("selected") == "true") and
+            any(child.get("text") == text for child in n.iter("node"))
+            for n in snapshot().iter("node")
+        ), f"Setting did not survive process restart: {text}"
+
+    def reopen_settings():
+        adb("shell", "am", "force-stop", PACKAGE)
+        adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.MainActivity")
+        tree = snapshot()
+        if any(n.get("text") == "Background Token Refresh" for n in tree.iter("node")):
+            adb("shell", "input", "keyevent", "4")
+            tree = snapshot()
+        tap(next(n for n in tree.iter("node") if n.get("content-desc") == "Settings"))
+
     try:
         launcher = adb("shell", "cmd", "package", "resolve-activity", "--brief",
                        "-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER", PACKAGE).stdout
@@ -148,9 +179,26 @@ def verify_product_ui(run_id):
         assert any(n.get("text") == "Codexbar" for n in tree.iter("node")), "Display name mismatch"
         width, height = list(map(int, re.findall(r"\d+", adb("shell", "wm", "size").stdout)))[-2:]
         tap(next(n for n in tree.iter("node") if n.get("content-desc") == "Settings"))
+        tap(find("Menu & display"))
+        tap(find("Used"))
+        reopen_settings()
+        tap(find("Menu & display"))
+        assert_selected("Used")
+        tap(find("Remaining"))
+        adb("shell", "input", "keyevent", "4")
+        tap(find("General"))
+        tap(find("Manual"))
+        reopen_settings()
+        tap(find("General"))
+        assert_selected("Manual")
+        tap(find("15 min"))
+        adb("shell", "input", "keyevent", "4")
+        tap(find("Codex"))
         tap(find("Add Codex account"))
         find("Sign in with ChatGPT")
         tap(find("Cancel"))
+        adb("shell", "input", "keyevent", "4")
+        tap(find("About"))
         tap(find("About & licenses"))
         tree = snapshot()
         assert any("Unofficial Android port" in n.get("text", "") for n in tree.iter("node"))
@@ -167,7 +215,7 @@ def verify_product_ui(run_id):
         adb("shell", "screencap", "-p", remote + ".png")
         adb("pull", remote + ".png", str(ROOT / "build/native/product-app-info.png"))
         adb("shell", "input", "keyevent", "4")
-        print("Product UI: dashboard launcher, Codex sign-in entry and offline attribution passed", flush=True)
+        print("Product UI: dashboard, provider navigation, display/cadence persistence, Codex sign-in entry and offline attribution passed", flush=True)
         return True
     finally:
         adb("shell", "rm", "-f", remote + ".xml", remote + ".png", check=False)
