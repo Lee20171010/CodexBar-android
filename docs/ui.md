@@ -26,6 +26,17 @@ pace visibility/indicators, provider controls, shared-surface behavior and the
 phone/dark/large-text/widget/accessibility acceptance matrix. Spend/FX and the
 explicit macOS-only integrations retain their separate data/platform gates.
 
+### Native-source correction register
+
+The owner confirmed retaining `98d84b8a06957e193a9a8e58b40590736c94bf70`
+as the reference. These changes are source-backed; native Mac visual acceptance
+remains pending.
+
+| Native source at the pinned revision | Android correction | Remaining evidence / gap |
+| --- | --- | --- |
+| `Sources/CodexBar/PreferencesSidebar.swift`, `SettingsSidebarView`; `PreferencesComponents.swift`, `SettingsIconChip` | `SettingsScreen.kt`: compact icon rows, app panes before provider group, visible and accessible selected state; minimum 48dp touch rows | Providers still enter the existing account-management page; individual provider sidebar destinations remain open. Phone/wide visual acceptance pending |
+| `Sources/CodexBar/UsageMenuCardHeaderAndUsageSectionView.swift`, `MetricRowHeader` | `QuotaGaugeBar.kt`: title/reset can wrap into two rows, preserving trailing reset alignment | Large-text/narrow-screen runtime acceptance pending; Mac's frozen-height live-update measurement is not implemented |
+
 Before the next UI/UX feature, review a side-by-side design: Mac on the left,
 expected mobile interaction on the right. Cover settings, navigation, account
 actions, loading/error/unknown states and display preferences, not only appearance.
@@ -66,7 +77,7 @@ navigation, insets and background-execution rules.
 | Mac | Mobile internalization |
 | --- | --- |
 | Header line: `"\(title) \(percentLabel)"` one text, `.body`/`.medium`, monochrome | Same: `bodyMedium` + `FontWeight.Medium`, e.g. `Session 43% left`. Percent is NOT a separate colored number. |
-| Reset text right-aligned on the same line (`.footnote`, secondary, up to 2 lines); falls back to a second line when it doesn't fit | Right side of header row, `labelSmall`, `onSurfaceVariant`, up to 2 lines; separate-row fallback is not implemented and needs narrow/large-text review |
+| Reset text right-aligned on the same line (`.footnote`, secondary, up to 2 lines); falls back to a second line when it doesn't fit | `FlowRow` wraps the trailing reset onto its own line, `labelSmall`, `onSurfaceVariant`; narrow/large-text runtime acceptance pending |
 | `UsageProgressBar`: 6pt full-capsule bar, neutral track, fill = provider accent color | Same: 6dp, `RoundedCornerShape(3.dp)`, track `surfaceContainerHighest`, fill = provider `brandColor` |
 | Pace tip on the bar (punch + stripe: green reserve / red deficit) | Not yet plumbed per-bar; planned refinement |
 | Meta line below bar (`.footnote`, secondary, up to 2 lines): pace · detail joined with ` · ` | Same pattern for future pace/status meta |

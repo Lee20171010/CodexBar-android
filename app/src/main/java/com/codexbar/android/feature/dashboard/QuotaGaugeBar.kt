@@ -17,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.codexbar.android.R
 import com.codexbar.android.core.presentation.QuotaPresentation
@@ -27,6 +28,7 @@ import java.time.Instant
  * title+percent as one monochrome line, reset aligned right on the same line,
  * a 6dp capsule bar tinted with the provider accent, meta below in 12sp secondary.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun QuotaGaugeBar(
     utilization: Double,
@@ -40,22 +42,23 @@ fun QuotaGaugeBar(
     val remaining = (1 - utilization).coerceIn(0.0, 1.0)
     val resetText = display.reset(LocalContext.current, resetsAt, now)
     Column(modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        // Native MetricRowHeader uses a trailing reset line when the header cannot fit.
+        FlowRow(horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 "${label.orEmpty()} ${stringResource(R.string.percent_left, QuotaPresentation.remainingPercent(utilization))}".trim(),
-                Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             resetText?.let {
                 Text(
                     it,
-                    Modifier.padding(start = 8.dp),
+                    Modifier.weight(1f).padding(start = 8.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2
+                    maxLines = 2,
+                    textAlign = TextAlign.End
                 )
             }
         }
