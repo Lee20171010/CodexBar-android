@@ -89,7 +89,7 @@ object QuotaPace {
     fun weeklyPace(window: UsageWindow, now: Instant, workDays: Int? = null,
         zone: ZoneId = ZoneId.systemDefault()): UsagePace? {
         val resets = window.resetsAt ?: return null
-        val minutes = (window.durationSeconds ?: 10080L).floorDiv(60)
+        val minutes = (window.durationSeconds ?: 604800L).floorDiv(60) // Mac defaultWindowMinutes = 10080
         if (minutes <= 0) return null
         val duration = minutes * 60
         val timeUntilReset = Duration.between(now, resets).seconds

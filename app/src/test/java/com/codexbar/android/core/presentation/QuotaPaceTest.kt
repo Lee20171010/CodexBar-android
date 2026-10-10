@@ -97,4 +97,17 @@ class QuotaPaceTest {
         assertNull(QuotaPace.weeklyPace(fresh, now, 5, zone)) // usage before any elapsed time is not a pace
         assertNull(QuotaPace.weeklyPace(UsageWindow("No reset", 0.5, null, "x", durationSeconds = 604800), now, 5, zone))
     }
+
+    @Test fun `null duration falls back to one week matching explicit 604800s`() {
+        val zone = java.time.ZoneOffset.UTC
+        val reset = java.time.Instant.parse("2026-10-12T00:00:00Z") // Monday
+        val now = java.time.Instant.parse("2026-10-07T12:00:00Z") // Wednesday noon
+        val explicit = UsageWindow("Weekly", 0.50, reset, "weekly", durationSeconds = 604800)
+        val fallback = UsageWindow("Weekly", 0.50, reset, "weekly", durationSeconds = null)
+        assertEquals(QuotaPace.weeklyPace(explicit, now, null, zone), QuotaPace.weeklyPace(fallback, now, null, zone))
+        val wd = QuotaPace.weeklyPace(fallback, now, 5, zone)
+        assertEquals(QuotaPace.weeklyPace(explicit, now, 5, zone), wd)
+        assertEquals(50.0, wd?.expectedUsedPercent ?: 0.0, 0.01) // default duration still triggers workday split
+        assertEquals(PaceStage.ON_TRACK, wd?.stage)
+    }
 }
