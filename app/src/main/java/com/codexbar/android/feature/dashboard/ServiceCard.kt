@@ -56,7 +56,7 @@ fun ServiceCard(
             quota?.let {
                 cardData.display.visible(it).filterNot { it.supplemental }.forEach { window ->
                     QuotaGaugeBar(window.utilization, Modifier.fillMaxWidth(), window.label, window.resetsAt, now,
-                        cardData.display, accent)
+                        cardData.display, accent, compact = cardData.display.compactOverview)
                 }
                 if (cardData.display.hiddenRisk(it)) Text(stringResource(R.string.hidden_quota_risk), color = MaterialTheme.colorScheme.error)
                 if (it.windows.none { window -> !window.supplemental } && cardData.display.showAmounts) {

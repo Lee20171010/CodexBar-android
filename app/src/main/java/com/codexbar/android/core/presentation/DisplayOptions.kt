@@ -19,7 +19,11 @@ data class DisplayOptions(
     val headlineWindow: String? = null,
     val workDays: Int? = null,
     // Global-only control (Mac single `paceVisible` pref): account/widget overrides always inherit.
-    val showPace: Boolean = true
+    val showPace: Boolean = true,
+    // Mac mergedOverviewLayout (default .detailed, SettingsStore+Defaults.swift:835-837): compact
+    // metric rows keep title/percent/bar and drop reset/meta/detail annotations (MenuCardMetricRow.swift:28-48).
+    // Global-only like showPace: account/widget overrides always inherit.
+    val compactOverview: Boolean = false
 ) {
     fun visible(quota: QuotaInfo) = quota.windows.filter { it.id !in hiddenWindows }
     fun hiddenRisk(quota: QuotaInfo) = quota.windows.any { it.id in hiddenWindows && it.utilization >= .85 }
@@ -58,7 +62,8 @@ data class DisplayOverride(
         hiddenWindows ?: emptySet(), showAmounts ?: true, absoluteReset ?: false, fillUsed ?: false,
         showMarkers ?: true, accent, headlineWindow, workDays,
         // A legacy full profile predates showPace and must not pin a control no override UI can set.
-        showPace = parent.showPace
+        showPace = parent.showPace,
+        compactOverview = parent.compactOverview
     ) else DisplayOptions(
         hiddenWindows = if ("hiddenWindows" in explicit) hiddenWindows ?: emptySet() else parent.hiddenWindows,
         showAmounts = if ("showAmounts" in explicit) showAmounts ?: true else parent.showAmounts,
@@ -69,7 +74,8 @@ data class DisplayOverride(
         headlineWindow = if ("headlineWindow" in explicit) headlineWindow else parent.headlineWindow,
         workDays = if ("workDays" in explicit) workDays else parent.workDays,
         // Global-only control: never pinnable by an account or widget record, both chains inherit.
-        showPace = parent.showPace
+        showPace = parent.showPace,
+        compactOverview = parent.compactOverview
     )
 
     /** Materializes the stored values without inheritance; matches the pre-inheritance raw decode. */

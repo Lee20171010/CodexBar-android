@@ -138,6 +138,10 @@
     <string name="display_workdays_title">Weekly work days</string>
     <string name="display_workdays_summary">Weekly pace assumes usage on these days only</string>
     <string name="display_pace_title">Show pace</string>
+    <string name="overview_layout_title">Overview layout</string>
+    <string name="overview_layout_summary">Choose how much information the overview cards show.</string>
+    <string name="overview_layout_detailed">Detailed</string>
+    <string name="overview_layout_compact">Compact</string>
     <string name="display_pace_summary">Shows pace status and run-out forecast in quota details; alerts are unaffected</string>
     <string name="display_workdays_auto">All</string>
     <string name="pace_on_track">Pace: on track</string>

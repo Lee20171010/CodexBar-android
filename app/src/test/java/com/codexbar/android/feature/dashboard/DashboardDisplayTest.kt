@@ -61,6 +61,13 @@ class DashboardDisplayTest {
             widgets.clearDisplayOptions(account)
             runCurrent()
             assertEquals(DisplayOptions(fillUsed = true, workDays = 5), display())
+
+            widgets.saveGlobalDisplayOptions(DisplayOptions(compactOverview = true))
+            runCurrent()
+            assertEquals(true, display().compactOverview) // overview layout follows the shared revision, no quota re-emission
+            widgets.saveGlobalDisplayOptions(DisplayOptions())
+            runCurrent()
+            assertEquals(false, display().compactOverview)
         } finally {
             viewModel?.viewModelScope?.cancel()
             androidLog?.close()

@@ -61,6 +61,7 @@ class DisplayOptionsTest {
         val legacy = """{"hiddenWindows":["secondary"],"showAmounts":false,"absoluteReset":true}"""
         val decoded = kotlinx.serialization.json.Json.decodeFromString<DisplayOptions>(legacy)
         assertEquals(DisplayOptions(setOf("secondary"), showAmounts = false, absoluteReset = true), decoded)
+        assertFalse(decoded.compactOverview) // records saved before the overview layout stay detailed
     }
 
     @Test fun `per-connection accent and headline window round-trip`() {
@@ -231,6 +232,36 @@ class DisplayOptionsTest {
         assertFalse(cache.effectiveDisplayOptions(account, 1).showPace)
         assertThrows(IllegalArgumentException::class.java) {
             cache.saveDisplayOptions(account, DisplayOptions(), touched = setOf("showPace"))
+        }
+    }
+
+    @Test fun `overview layout defaults to detailed and stays global-only`() {
+        assertFalse(DisplayOptions().compactOverview) // Mac mergedOverviewLayout default .detailed
+        assertFalse(WidgetPrefsManager(MemoryPreferences().prefs).globalDisplayOptions().compactOverview)
+        val global = DisplayOptions(compactOverview = true)
+        // A legacy v0 full profile predates the overview layout and must not pin the new global control.
+        val legacy = DisplayOverride(v = 0, hiddenWindows = setOf("primary"), showAmounts = false,
+            absoluteReset = true, fillUsed = true, showMarkers = false, accent = "#ff0000",
+            headlineWindow = "primary", workDays = 5).resolve(global)
+        assertTrue(legacy.compactOverview)
+        // A v1 record pinning every supported field still cannot freeze the overview layout.
+        assertTrue(DisplayOverride.pinning(DisplayOptions(), DisplayOverride.FIELDS).resolve(global).compactOverview)
+        val memory = MemoryPreferences()
+        val cache = WidgetPrefsManager(memory.prefs)
+        val account = AccountConnection.create(AiService.CODEX)
+        cache.saveGlobalDisplayOptions(global)
+        assertTrue(WidgetPrefsManager(memory.prefs).globalDisplayOptions().compactOverview)
+        assertTrue(cache.effectiveDisplayOptions(account).compactOverview)
+        cache.saveDisplayOptions(account, DisplayOptions(accent = "green", compactOverview = false), touched = setOf("accent"))
+        cache.saveDisplayOptions(account, DisplayOptions(compactOverview = false), 1, setOf("showAmounts"))
+        assertTrue(cache.effectiveDisplayOptions(account).compactOverview) // accent pin does not freeze layout
+        assertTrue(cache.effectiveDisplayOptions(account, 1).compactOverview)
+        // Live revert: both chains follow the global immediately (dashboard revision already covers refresh).
+        cache.saveGlobalDisplayOptions(DisplayOptions())
+        assertFalse(cache.effectiveDisplayOptions(account).compactOverview)
+        assertFalse(cache.effectiveDisplayOptions(account, 1).compactOverview)
+        assertThrows(IllegalArgumentException::class.java) {
+            cache.saveDisplayOptions(account, DisplayOptions(), touched = setOf("compactOverview"))
         }
     }
 }

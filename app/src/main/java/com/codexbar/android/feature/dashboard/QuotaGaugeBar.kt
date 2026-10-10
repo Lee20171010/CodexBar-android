@@ -36,10 +36,12 @@ fun QuotaGaugeBar(
     resetsAt: Instant? = null,
     now: Instant = Instant.now(),
     display: com.codexbar.android.core.presentation.DisplayOptions = com.codexbar.android.core.presentation.DisplayOptions(),
-    accent: Color = MaterialTheme.colorScheme.primary
+    accent: Color = MaterialTheme.colorScheme.primary,
+    // Mac MetricRow compactMetrics: caller decides (overview cards only); the bar never consults the global pref.
+    compact: Boolean = false
 ) {
     val remaining = (1 - utilization).coerceIn(0.0, 1.0)
-    val resetText = display.reset(LocalContext.current, resetsAt, now)
+    val resetText = if (compact) null else display.reset(LocalContext.current, resetsAt, now)
     Column(modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         // Native MetricRowHeader uses a trailing reset line when the header cannot fit.
         FlowRow(horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.spacedBy(2.dp)) {

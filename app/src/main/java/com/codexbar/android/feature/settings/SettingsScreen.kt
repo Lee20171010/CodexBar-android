@@ -873,6 +873,22 @@ private fun DisplayPrefsSection(
                 summary = stringResource(R.string.display_pace_summary),
                 onToggle = { onChange(display.copy(showPace = it)) }
             )
+            // Mac mergedOverviewLayout picker (default Detailed).
+            Text(stringResource(R.string.overview_layout_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.overview_layout_summary), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = !display.compactOverview,
+                    onClick = { onChange(display.copy(compactOverview = false)) },
+                    shape = SegmentedButtonDefaults.itemShape(0, 2)
+                ) { Text(stringResource(R.string.overview_layout_detailed)) }
+                SegmentedButton(
+                    selected = display.compactOverview,
+                    onClick = { onChange(display.copy(compactOverview = true)) },
+                    shape = SegmentedButtonDefaults.itemShape(1, 2)
+                ) { Text(stringResource(R.string.overview_layout_compact)) }
+            }
             Text(stringResource(R.string.display_workdays_title), style = MaterialTheme.typography.bodyLarge)
             Text(stringResource(R.string.display_workdays_summary), style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
