@@ -2,12 +2,20 @@
 
 ## Current implementation and design status
 
-The delivered `0.0.6-beta-native` artifact contains the account, provider, snapshot,
-scheduling, widget, status, recovery, history and display features described here.
-`TEST.md` scopes the evidence to that artifact; implementation is not complete live
-or physical-device acceptance. Current source additionally changes the dashboard
-metric rows and card headers toward Mac CodexBar's design language (`e114632`).
-Those presentation changes still need a new Release artifact and runtime acceptance.
+The signed `0.0.7-beta-native` trial artifact contains the account, provider, snapshot,
+scheduling, widget, status, recovery, history and display features described here,
+including the Mac-aligned metric rows and card headers (`e114632`). `TEST.md` scopes
+the evidence to that artifact; implementation is not complete live or physical-device
+acceptance. This trial (versionCode 8) includes
+source-backed review fixes: display preferences propagate with explicit per-field
+inheritance and live updates (`a4dc917`, `b7f7dad`), Used-style percentage labels and
+pace ETA units (`8297d87`), a seconds-based default weekly pace duration
+(`ffb975a`), work-day-aware usage alerts that retain overquota receipts (`2536445`),
+native Mac sidebar grouping with individual provider panes (`8f9256a`, `3338b8e`),
+and a declared `en`/`zh-TW` locale list (`1216f0f`). JVM/lint/native compilation,
+signed Release builds and isolated `nativeAcceptance` runtime/UI checks pass.
+The exact daily APK was not installed over the existing app; full visual,
+widget-host and physical-device acceptance remain open.
 
 Mac UI/UX alignment covers settings, features, display and interactions, not just
 card styling. [docs/ui.md](docs/ui.md) owns the implementation/target distinction.
@@ -31,10 +39,17 @@ Account overview preferences use stable window IDs, show-amounts and absolute-re
 switches. Detail retains every quota window. Hidden windows still participate in
 pace, recovery and risk; near-exhausted hidden metrics show a warning. Each widget
 stores its own per-account profile, independent of dashboard choices. Restore
-Defaults clears only that profile. Disappearing metrics retain their hidden ID;
+Defaults clears only that profile. Individual fields inherit independently along the
+widget → account → global chain, an explicit override replacing only that field, and
+saved changes propagate live to dashboard, detail, widget and settings surfaces
+(`a4dc917`, `b7f7dad`). Disappearing metrics retain their hidden ID;
 renaming/localizing labels does not change selection. Account deletion clears its
 profiles; widget deletion clears only that widget's profile. These preferences never
 alter credentials, ownership, fetch sources or scheduling.
+
+Legacy full-profile settings remain explicit overrides to preserve existing choices.
+Use Restore defaults on that account or widget to resume inheritance, then change
+only the fields that should stay pinned.
 
 ## Quota history and pace
 

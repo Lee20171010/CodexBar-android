@@ -71,11 +71,18 @@ spend collectors, Keychain and system integration are not automatically CLI JSON
   estimate chart, official status, recovery receipts and two widget families exist.
 - `e114632` implemented dashboard title/percent rows, reset placement, 6dp bars
   and identity/plan headers. This is partial alignment, not the complete prototype.
-- Last delivered artifact: `0.0.5-beta-native`, predating those row/header changes.
-  Read `TEST.md` for exact hash and acceptance scope. A later acceptance packaging
-  attempt failed; investigate the concrete failure when building, do not assume fixed.
-- Latest pre-push checks passed: 100 JVM tests, Debug lint, NativeDebug Kotlin
-  compilation, 24 notice checks and three Python tool/runtime-config tests.
+- Current signed trial: `0.0.7-beta-native` (versionCode 8; hashes and acceptance
+  scope in `TEST.md`), with the review fixes
+  (`ffb975a`, `a4dc917`, `8297d87`, `2536445`, `1216f0f`, `3338b8e`, `b7f7dad`);
+  both Release and Native Acceptance builds pass. The old acceptance packaging
+  failure is no longer an open build gate.
+- Latest recorded host gate (2026-10-10): 128 JVM tests across 26 suites, Debug
+  lint, NativeDebug Kotlin compilation, 24 notice checks and three Python
+  tool/runtime-config tests pass. Isolated non-debuggable `nativeAcceptance`
+  passed ten probes, four provider rejection flows, preference restart persistence,
+  sign-in entry, offline notices and the synthetic quota UI matrix. The installed
+  daily `.native` app was preserved; this is not runtime proof of the exact daily
+  APK or physical ARM64 hardware.
 - Real native Codex renewal, full widget-host/TalkBack/physical-device acceptance
   remain unproven. Earlier owner confirmation of Codex/Go on 0.0.4 used Kotlin Codex.
 
@@ -100,6 +107,13 @@ Use this concrete gap inventory rather than repeating broad exploratory research
 | 10. Spend/data-gated features | Match the target hierarchy when verified data exists; otherwise explicit unavailable state | Do not fabricate daily cost from balances or reuse quota history as a spend ledger; no invented FX conversion |
 
 Ordering may change for real dependencies, but finish each slice before expanding.
+Status update (2026-10-10): slice 1 provider panes and sidebar grouping landed
+(`8f9256a`, `3338b8e`); slice 3 preference propagation/per-field inheritance landed
+(`a4dc917`, `b7f7dad`); slice 6 pace duration and work-day fixes landed (`ffb975a`);
+slice 7 alert work-day awareness and overquota receipt retention landed (`2536445`).
+Host checks and the isolated synthetic runtime/UI matrix pass. Screenshot-based
+Mac comparison, widget-host, TalkBack and physical-device acceptance remain open;
+slices 5, 9 and 10 retain their remaining scope, with Spend/FX still data-gated.
 Controls offered as active in the app must work and persist appropriately. Prototype
 labels such as “planned” belong in implementation tracking, not as inert production
 toggles. Data-gated screens can truthfully show unavailable with an explanation;

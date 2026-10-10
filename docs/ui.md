@@ -10,10 +10,18 @@ design authority. The native engine remains pinned independently to v0.71.0.
 ## Status and design workflow
 
 `0.0.6-beta-native` contains partial settings, display, pace, alerts and widget
-implementation. Native Mac alignment is incomplete. Review identified preference
-propagation/inheritance bugs, pace duration/formatting errors, alert inconsistencies,
-missing locale declaration and narrow-screen/accessibility gaps. Compilation and
-empty-screen smoke tests do not close those gaps.
+implementation. Native Mac alignment is incomplete. The following implementation
+defects are now fixed in source and host-verified (128 JVM tests, Debug lint,
+NativeDebug compilation, 2026-10-10): preference propagation/per-field inheritance
+(`a4dc917`, `b7f7dad`), Used percentage labels and pace ETA units (`8297d87`),
+seconds-based default weekly duration (`ffb975a`), work-day-aware alerts with
+retained overquota receipts (`2536445`), declared `en`/`zh-TW` locales (`1216f0f`),
+native Mac sidebar grouping with individual provider panes and accessible wrapping
+accents (`8f9256a`, `3338b8e`), and Mac-style reset-text wrapping (`33f3f8a`).
+The signed 0.0.7 trial passed isolated native/repository probes, provider navigation,
+preference restart persistence and synthetic phone/dark/200%-text/wide quota UI
+assertions. This does not close screenshot-based Mac comparison, widget-host,
+TalkBack or physical-device gates. See `TEST.md` for artifact-specific evidence.
 
 The existing HTML is a historical source reconstruction awaiting correction.
 Native `SettingsSidebarView`, grouped SwiftUI `Form` sections, `MetricRowHeader`
@@ -22,7 +30,8 @@ screenshots/runtime have not yet been verified. Source-backed changes must be
 labelled separately from visually accepted changes.
 
 Still open: account navigation/layout preferences, refresh-on-open/status controls,
-pace visibility/indicators, provider controls, shared-surface behavior and the
+pace visibility and menu-bar stripe indicators, Mac's frozen-height live-update
+measurement, shared-surface visual behavior and the
 phone/dark/large-text/widget/accessibility acceptance matrix. Spend/FX and the
 explicit macOS-only integrations retain their separate data/platform gates.
 
@@ -34,8 +43,8 @@ remains pending.
 
 | Native source at the pinned revision | Android correction | Remaining evidence / gap |
 | --- | --- | --- |
-| `Sources/CodexBar/PreferencesSidebar.swift`, `SettingsSidebarView`; `PreferencesComponents.swift`, `SettingsIconChip` | `SettingsScreen.kt`: compact icon rows, app panes before provider group, visible and accessible selected state; minimum 48dp touch rows | Providers still enter the existing account-management page; individual provider sidebar destinations remain open. Phone/wide visual acceptance pending |
-| `Sources/CodexBar/UsageMenuCardHeaderAndUsageSectionView.swift`, `MetricRowHeader` | `QuotaGaugeBar.kt`: title/reset can wrap into two rows, preserving trailing reset alignment | Large-text/narrow-screen runtime acceptance pending; Mac's frozen-height live-update measurement is not implemented |
+| `Sources/CodexBar/PreferencesSidebar.swift`, `SettingsSidebarView`; `PreferencesComponents.swift`, `SettingsIconChip` | `SettingsScreen.kt`: compact icon rows, app panes before provider group, visible and accessible selected state; minimum 48dp touch rows; individual provider sidebar panes landed (`8f9256a`, `3338b8e`) | Phone/wide visual acceptance pending |
+| `Sources/CodexBar/UsageMenuCardHeaderAndUsageSectionView.swift`, `MetricRowHeader` | `QuotaGaugeBar.kt`: title/reset can wrap into two rows, preserving trailing reset alignment (`33f3f8a`) | Large-text/narrow-screen runtime acceptance pending; Mac's frozen-height live-update measurement is not implemented |
 
 Before the next UI/UX feature, review a side-by-side design: Mac on the left,
 expected mobile interaction on the right. Cover settings, navigation, account
@@ -62,7 +71,7 @@ not evidence that the CLI supplies their illustrated values or controls.
 | Service incidents | Official status for supported Core sources, independently aged | Align presentation while retaining unknown/unavailable states |
 | Widgets and menu-bar glanceability | Account/overview widgets, Quick Settings tile, persistent notification sharing the display chain (`490f15d`) | Mac menu-bar token editor has no direct mobile surface |
 | Provider connection settings | Validated drafts, reconnect/delete, Codex sign-in; registration-gated Copilot device flow | Desktop browser/Keychain discovery is not provided by Android encrypted storage |
-| App language | System per-app locale settings entry point (API 33+) (`55a239b`) | In-app language switcher not implemented; system picker is the platform path |
+| App language | System per-app locale settings entry point (API 33+) (`55a239b`); declared `en`/`zh-TW` locale list makes both appear in the system picker (`1216f0f`) | In-app language switcher not implemented; system picker is the platform path |
 | About and updates | Version, offline licenses and manually delivered APK | Homebrew controls are macOS-specific |
 
 Mac parity is evaluated per feature. SwiftUI presentation, desktop local files,
@@ -119,7 +128,9 @@ navigation, insets and background-execution rules.
 
 ## Copy
 
-- Percent: `43% left` (default remaining semantics); never a bare number.
+- Percent: `43% left` (default remaining semantics); never a bare number. Used style
+  shows `35% used` with the flipped fill (`8297d87`); warning notifications keep
+  remaining semantics.
 - Reset: countdown `Resets in 6d 17h` by default; absolute date/time is a
   display option. Missing reset keeps label + percent and shows no invented time.
 - Pace (when plumbed): `On pace` / `X% in deficit` / `X% in reserve`, plus

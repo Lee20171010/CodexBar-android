@@ -4,10 +4,12 @@
 
 Monitor seven AI services on Android. **Codex (ChatGPT), OpenCode Go, OpenRouter and GitHub Copilot use the native Swift engine** in native builds on API 28+. Claude, Gemini and DeepSeek use Kotlin API integrations; Codex also retains a Kotlin compatibility path on API 26/27. Balance-only services show reported money rather than invented quota windows.
 
-The native integration is experimental. The last delivered daily APK is
-`0.0.6-beta-native`, which includes the Mac-inspired card rows plus the settings
-directory, shared display preferences, pace estimates and usage-warning
-notifications.
+The native integration is experimental. The current signed trial APK is
+`0.0.7-beta-native`, with individual provider settings, live per-field display
+preferences, corrected pace/alerts and declared app languages. Host checks and
+automated runtime/UI checks on the isolated `nativeAcceptance` package passed.
+The daily APK's signature and packaging were checked; it was not installed over
+the existing daily app during acceptance. See [TEST.md](TEST.md) for both hashes.
 Automated checks use synthetic credentials. The owner reported Codex and OpenCode Go
 working in `0.0.4-beta-native`, which still used Kotlin for Codex; native Codex live
 renewal remains unverified. See [TEST.md](TEST.md) for artifact-specific evidence.
@@ -35,14 +37,17 @@ with original upstream artwork.
 - Official incident status for supported sources and opt-in confirmed quota-recovery alerts
 - Bounded quota history, one linear-estimate chart and read-only reported Codex credits/reset inventory
 - Encrypted credentials, generation-guarded account ownership and offline About/licenses
+- System per-app language (English / Traditional Chinese) on API 33+; declared locales appear in Android language settings
 - Jetpack Compose and Material 3 platform integration, with Mac CodexBar as the UI/UX reference
 
 ## Design direction and maintenance
 
 Mac CodexBar is the reference for settings, features, terminology and information
 hierarchy. The next phase is design-first: review corresponding Mac and proposed
-mobile flows before implementing each feature. Current source aligns metric rows
-and card headers; full settings, pace and display parity is still planned.
+mobile flows before implementing each feature. Current source aligns metric rows,
+card headers, settings sidebar grouping and individual provider panes with the
+native Mac reference. The display, pace and alert review fixes are in the signed
+trial; full visual, widget-host and physical-device acceptance remains open.
 [docs/ui.md](docs/ui.md) separates implementation from design targets.
 
 The bundled engine is **CodexBar Core/CLI**, not OpenAI's coding-agent **Codex CLI**.

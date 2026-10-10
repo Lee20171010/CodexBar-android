@@ -2,35 +2,68 @@
 
 ## Evidence boundary for current source
 
-The last delivered/accepted daily artifact below was built before `e114632`, which
-changes metric-row and card-header presentation. Its hash and runtime results do
-not cover that subsequent UI change. A new optimized build and focused UI/runtime
-acceptance remain required; a later `nativeAcceptance` packaging attempt did not
-complete successfully. Documentation updates do not resolve that packaging gate.
+The signed `0.0.7-beta-native` trial (versionCode 8, application source `07f6272`)
+contains the display/pace/alert/locale fixes and individual provider settings.
+Both Release variants built successfully. Runtime checks used the separate,
+release-optimized, non-debuggable `nativeAcceptance` package on the shared API 36
+emulator's ARM64 native bridge. The existing daily `.native` app was preserved;
+the test-owned package was removed after the run. This is not runtime proof of
+the exact daily APK, physical ARM64 hardware, live OAuth renewal, or full visual
+Mac parity. The daily APK passed signature, manifest, ABI and notice checks.
 
 Counts in feature sections record their historical check runs. The latest retained
-JVM result set is **110 tests, zero failures/errors**, itemized below. Neither the
-Mac comparison mockup nor source compilation proves full Mac UI/UX parity.
+JVM result set is **128 tests across 26 suites, zero failures/errors/skips**
+(2026-10-10, source through `b7f7dad`), with Debug lint and NativeDebug Kotlin
+compilation passing; itemized below. Neither the Mac comparison mockup nor source
+compilation proves full Mac UI/UX parity.
 
 ## Production packaging and daily artifact
 
 `nativeRelease` is the daily build: dashboard launcher only, no diagnostic activity,
-`.native` identity, versionCode 7 / `0.0.6-beta-native`, minSdk 26, ARM64-only. The
-release-optimized diagnostics moved to a separate `nativeAcceptance` variant
+`.native` identity, versionCode 8 / `0.0.7-beta-native`, minSdk 26, ARM64-only.
+Release-optimized diagnostics use the separate `nativeAcceptance` variant
 (`.native.acceptance`) that reuses the same ARM64 Release payload and adds the smoke
 activity, synthetic UI demo and the fresh-install cadence-persistence probe.
 
-Signed ARM64 `0.0.6-beta-native` daily APK: **35,817,287 bytes**, SHA-256:
+Signed ARM64 `0.0.7-beta-native` daily APK: **35,839,584 bytes**, SHA-256:
+
+```text
+5233271cb906beae613ddc5b8e3a3cc8ad20c7675ebcd5b2a9c0ef122b28feca
+```
+
+Signed acceptance APK: **35,847,480 bytes**, SHA-256:
+
+```text
+923b67485ab35e9005e16e70e94d53ee494b0a4c6e13291aa704a61d4cf545e0
+```
+
+Both are non-debuggable, ARM64-only, and launch the dashboard. Only acceptance
+contains the diagnostic activity. All four packaged native libraries are
+byte-identical between variants. The daily signature matches the previous
+0.0.6 delivery; all 25 license assets (24 notices plus provenance) match source.
+
+The locked acceptance run passed ten native/repository probes, four provider
+settings rejection flows, Used/Manual preference persistence across process
+restart, Codex sign-in entry and offline attribution. Synthetic quota UI assertions
+passed for phone, dark, 200% text, wide, detail, chart, credits and display controls.
+These are automated text/state assertions, not a completed screenshot, TalkBack
+or launcher widget-host review. No real account credentials were used.
+
+The first run passed its probes but exceeded the former 30-second remote ADB
+deadline while removing a test XML file. With a bounded 60-second command timeout,
+the complete rerun passed and cleaned up its package. The machine-local report is
+`build/native/device-report-arm64-v8a-release.json` (not a tracked artifact).
+
+Historical `0.0.6-beta-native` daily APK: **35,817,287 bytes**, SHA-256:
 
 ```text
 d1e0a029209f11bcf618cfa00b6df0b30231450cf349bf31110e6f6abb13f2b7
 ```
 
-Locked-runtime acceptance on that payload passed all six App-UID probes (version with
-numeric CLI version from the packaged resource directory, resource smoke, config
-validate, credential-free status-only, expected missing-credential error, manual-cadence
-persistence) plus product UI on the daily APK itself (launcher, sign-in entry, offline
-attribution; smoke activity confirmed absent from the manifest).
+The recorded smoke for that daily APK covered the empty dashboard, settings
+directory and provider page. Earlier native probes and diagnostic UI runs belong
+to their recorded artifacts; they are not evidence that all six probes or sign-in,
+attribution and cadence interactions ran on this exact 0.0.6 daily APK.
 
 ## Reported credits
 
@@ -178,7 +211,9 @@ through an explicit, immutable PendingIntent. The legacy overload remains guarde
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher runtime acceptance is recorded below; tile visual acceptance remains pending.
 
-The latest retained JVM result set contains **110 tests**:
+The latest retained JVM result set contains **128 tests across 26 suites**
+(2026-10-10, source through `b7f7dad`; authoritative per-suite counts from
+`app/build/test-results/testDebugUnitTest`):
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -201,9 +236,11 @@ The latest retained JVM result set contains **110 tests**:
 | Copilot device auth | 3 | Registration gate, device polling, expiry and cancellation |
 | Official status | 2 | Source/indicator mapping, freshness and shared cache |
 | Quota recovery | 3 | Confirmed recovery, rejected observations and durable receipts |
-| Quota alerts | 4 | Depleted/low fire-once and rearm, per-cycle pace dedup, disabled and stale-reading guards |
-| Display options | 6 | Stable IDs, risk visibility, independent profiles, global fallback, marker mirroring and round-trips |
-| Quota pace | 6 | Segmentation, retention, estimates, sparse/invalid measurements and Mac UsagePace.weekly linear/work-day expectations |
+| Quota alerts | 6 | Depleted/low fire-once and rearm, per-cycle pace dedup, disabled and stale-reading guards, effective-work-day pace and overquota receipt retention (`2536445`) |
+| Display options | 16 | Stable IDs, risk visibility, independent profiles, global fallback, marker mirroring and round-trips, plus explicit per-field inheritance/merge across the widget → account → global chain (`a4dc917`) |
+| Quota pace | 7 | Segmentation, retention, estimates, sparse/invalid measurements, Mac UsagePace.weekly linear/work-day expectations and the seconds-based default weekly duration (`ffb975a`) |
+| Quota presentation | 4 | Used/Remaining percent mapping and clamping; en/zh-TW pace ETA and percent string-resource formatting (`8297d87`) |
+| Dashboard display | 1 | Saved display-preference updates reach the retained dashboard (`b7f7dad`) |
 | Quota snapshots | 2 | Freshness, generation and cache mapping |
 | Refresh worker | 1 | Terminal/transient retry classification |
 
@@ -321,10 +358,14 @@ or rejected-key result does not prove successful quota retrieval.
 
 ## 5. Recorded evidence
 
-Latest functional verification: **2026-10-08**.
+Latest isolated device/runtime and host verification: **2026-10-10**. Earlier
+rows retain their historical scope; the new acceptance run is identified below.
 
 | Gate | Recorded result |
 | --- | --- |
+| 0.0.7 host gate | 128/128 JVM tests (26 suites), Debug lint, NativeDebug Kotlin compilation, three Python tool/runtime-config tests and 24 notice checks passed |
+| 0.0.7 signed builds | Native Release and Native Acceptance R8 builds passed; signature, ABI, non-debuggable manifest and diagnostic isolation checked |
+| 0.0.7 isolated acceptance | Ten probes, four rejected-draft provider flows, display/cadence restart persistence, sign-in entry, licenses and synthetic UI matrix passed on the API 36 ARM64 bridge; daily app preserved |
 | JVM suite | 100/100 passed; Debug/Native Release/Native Acceptance lint and native compilation passed |
 | Toolchain integrity check | Passed; three official cached archive hashes matched |
 | Full Android Core/CLI compilation | x86_64 and ARM64 passed |
@@ -362,7 +403,7 @@ d7761ce5d78d4310e1d503203e0532fdfd9f1075425677afe2d15d387cd77b69
 
 This hash identifies the tested artifact; later documentation/history edits do not
 imply that a newly rebuilt APK will have identical bytes. Revalidate changed payloads.
-The current daily artifact is the 0.0.6-beta-native APK identified at the top of this
+The current daily artifact is the 0.0.7-beta-native APK identified at the top of this
 document.
 
 The upstream Swift `make check` attempt stopped because `plutil` was unavailable;
