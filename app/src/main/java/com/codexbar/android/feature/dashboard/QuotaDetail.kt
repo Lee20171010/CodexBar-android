@@ -32,7 +32,7 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
         Text(listOfNotNull(card.service.displayName, quota?.tier).joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
         Text(QuotaPresentation.status(LocalContext.current, snapshot, now), style = MaterialTheme.typography.labelMedium)
         card.error?.let { Text(errorText(it), color = MaterialTheme.colorScheme.error) }
-        OfficialStatusText(card.officialStatus, now)
+        card.officialStatus?.let { OfficialStatusText(it, now) }
         quota?.let {
             QuotaPace.principal(it)?.let { principal ->
                 QuotaPace.weeklyPace(principal, now, card.display.workDays)?.let { pace ->

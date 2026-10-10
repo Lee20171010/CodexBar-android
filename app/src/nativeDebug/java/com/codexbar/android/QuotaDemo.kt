@@ -32,6 +32,8 @@ internal fun QuotaDemo(dark: Boolean = false, large: Boolean = false, rich: Bool
     var display by remember { mutableStateOf(DisplayOptions()) }
     val card = ServiceCardData(account, emptyList(), null, quota.tier,
         snapshot = QuotaSnapshot(quota, now, QuotaFailure.NETWORK), display = display,
+        officialStatus = if (rich) com.codexbar.android.core.data.OfficialStatus(indicator = "minor",
+            description = "Elevated errors (synthetic demo)", source = "https://status.openai.com/", checkedAt = now.epochSecond) else null,
         history = if (rich) mapOf("primary" to WindowHistory(now.plusSeconds(7200).epochSecond, 18000,
             listOf(PaceSample(now.minusSeconds(3600).epochSecond, .8), PaceSample(now.minusSeconds(1800).epochSecond, .6),
                 PaceSample(now.epochSecond, .43)), "synthetic-demo")) else emptyMap())

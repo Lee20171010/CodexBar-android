@@ -24,6 +24,8 @@
     <string name="general_language">App Language</string>
     <string name="general_language_summary">Choose the language in system settings</string>
     <string name="general_language_unavailable">Language settings are not available on this device.</string>
+    <string name="status_checks_setting">Check provider status</string>
+    <string name="status_checks_setting_summary">Polls official OpenAI, Claude and GitHub status pages and shows incidents on cards and details. Turning this off hides status and stops polling; usage refresh is unaffected.</string>
     <string name="official_status">Official service status: %1$s</string>
     <string name="status_operational">Operational</string>
     <string name="status_incident">Incident reported</string>

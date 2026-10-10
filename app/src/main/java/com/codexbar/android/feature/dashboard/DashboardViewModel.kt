@@ -41,7 +41,7 @@ class DashboardViewModel @Inject constructor(
     init {
         prefsManager.loadConnections()
         viewModelScope.launch {
-            combine(prefsManager.connections, accounts.quotas, officialStatus.statuses, widgets.displayRevision) { connections, quotas, statuses, _ ->
+            combine(prefsManager.connections, accounts.quotas, officialStatus.statuses, widgets.displayRevision, prefsManager.statusChecksEnabled) { connections, quotas, statuses, _, statusChecks ->
                 val errors = mutableMapOf<AccountConnection, AppError>()
                 val cards = connections.map { connection ->
                     val result = quotas[connection.id]?.takeIf {
@@ -53,7 +53,7 @@ class DashboardViewModel @Inject constructor(
                     val card = snapshot.quota?.let { mapToCardData(connection, it) }
                         ?: ServiceCardData(connection, emptyList(), null, null)
                     card.copy(error = error, snapshot = snapshot,
-                        officialStatus = statuses[connection.service] ?: com.codexbar.android.core.data.OfficialStatus(),
+                        officialStatus = if (statusChecks) statuses[connection.service] ?: com.codexbar.android.core.data.OfficialStatus() else null,
                         history = widgets.history(connection), display = widgets.effectiveDisplayOptions(connection))
                 }
                 when {

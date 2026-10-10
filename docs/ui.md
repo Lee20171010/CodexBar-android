@@ -29,7 +29,7 @@ and menu-card presentation are the implementation references. Matching-version M
 screenshots/runtime have not yet been verified. Source-backed changes must be
 labelled separately from visually accepted changes.
 
-Still open: account navigation/layout preferences, refresh-on-open/status controls,
+Still open: account navigation/layout preferences, refresh-on-open control,
 pace visibility and menu-bar stripe indicators, Mac's frozen-height live-update
 measurement, shared-surface visual behavior and the
 phone/dark/large-text/widget/accessibility acceptance matrix. Spend/FX and the
@@ -68,7 +68,7 @@ not evidence that the CLI supplies their illustrated values or controls.
 | Preferred currency | Provider currency is retained; no conversion | Needs a rate source, timestamps and offline policy before implementation |
 | Usage & Spend, ledger and heatmap | One quota-history chart; reported money where supported; Spend page states unavailability explicitly | A quota chart is not a spend ledger; desktop history sources need separate availability checks |
 | Reset notifications | Independent depleted, low (20%), predictive-pace and measured recovery alerts, each with durable dedup (`96221c1`) | Recovery threshold rule is not full Mac reset-receipt parity |
-| Service incidents | Official status for supported Core sources, independently aged | Align presentation while retaining unknown/unavailable states |
+| Service incidents | Mac `statusChecksEnabled` (General "Check provider status", default ON, `SettingsStore.swift:739`): OFF hides status via accessors, blocks fetch and in-flight publication, retains last-good cache; failed fetch preserves last-good (`UsageStore+ProviderStatus.swift:6,24,35`). Android: General toggle `status_checks_enabled` (default ON) gates `OfficialStatusRepository.refresh` and dashboard display; failure preserves last-good with original `checkedAt` | Source-level implementation pending device acceptance; unknown/unavailable states retained |
 | Widgets and menu-bar glanceability | Account/overview widgets, Quick Settings tile, persistent notification sharing the display chain (`490f15d`) | Mac menu-bar token editor has no direct mobile surface |
 | Provider connection settings | Validated drafts, reconnect/delete, Codex sign-in; registration-gated Copilot device flow | Desktop browser/Keychain discovery is not provided by Android encrypted storage |
 | App language | System per-app locale settings entry point (API 33+) (`55a239b`); declared `en`/`zh-TW` locale list makes both appear in the system picker (`1216f0f`) | In-app language switcher not implemented; system picker is the platform path |

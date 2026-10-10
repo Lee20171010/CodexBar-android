@@ -333,34 +333,41 @@ private fun SettingsPageContent(
                     currentMinutes = uiState.refreshIntervalMinutes,
                     onIntervalChange = { viewModel.setRefreshInterval(it) }
                 )
+                ToggleSection(
+                    title = stringResource(R.string.status_checks_setting),
+                    description = stringResource(R.string.status_checks_setting_summary),
+                    enabled = uiState.statusChecksEnabled,
+                    gateOnNotificationPermission = false,
+                    onToggle = { viewModel.setStatusChecksEnabled(it) }
+                )
                 LanguageSection()
             }
             page == SettingsPage.NOTIFICATIONS -> {
-                NotificationsSection(
+                ToggleSection(
                     title = stringResource(R.string.notification_status_title),
                     description = stringResource(R.string.notification_status_description),
                     enabled = uiState.notificationsEnabled,
                     onToggle = { viewModel.setNotificationsEnabled(it) }
                 )
-                NotificationsSection(
+                ToggleSection(
                     title = stringResource(R.string.recovery_setting_title),
                     description = stringResource(R.string.recovery_setting_description),
                     enabled = uiState.recoveryAlertsEnabled,
                     onToggle = { viewModel.setRecoveryAlertsEnabled(it) }
                 )
-                NotificationsSection(
+                ToggleSection(
                     title = stringResource(R.string.alert_depleted_setting),
                     description = stringResource(R.string.alert_depleted_setting_summary),
                     enabled = uiState.alertDepletedEnabled,
                     onToggle = { viewModel.setAlertDepletedEnabled(it) }
                 )
-                NotificationsSection(
+                ToggleSection(
                     title = stringResource(R.string.alert_low_setting),
                     description = stringResource(R.string.alert_low_setting_summary),
                     enabled = uiState.alertLowEnabled,
                     onToggle = { viewModel.setAlertLowEnabled(it) }
                 )
-                NotificationsSection(
+                ToggleSection(
                     title = stringResource(R.string.alert_pace_setting),
                     description = stringResource(R.string.alert_pace_setting_summary),
                     enabled = uiState.alertPaceEnabled,
@@ -889,10 +896,11 @@ private fun PrefsSwitchRow(checked: Boolean, title: String, summary: String, onT
 }
 
 @Composable
-private fun NotificationsSection(
+private fun ToggleSection(
     title: String,
     description: String,
     enabled: Boolean,
+    gateOnNotificationPermission: Boolean = true,
     onToggle: (Boolean) -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -924,7 +932,7 @@ private fun NotificationsSection(
             Switch(
                 checked = enabled,
                 onCheckedChange = { checked ->
-                    if (checked && android.os.Build.VERSION.SDK_INT >= 33 &&
+                    if (gateOnNotificationPermission && checked && android.os.Build.VERSION.SDK_INT >= 33 &&
                         androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) !=
                         android.content.pm.PackageManager.PERMISSION_GRANTED) permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     else onToggle(checked)

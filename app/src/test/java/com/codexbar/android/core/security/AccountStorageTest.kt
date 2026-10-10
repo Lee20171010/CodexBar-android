@@ -14,6 +14,21 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class AccountStorageTest {
+    @Test fun `status checks default on and persist with the observable preference`() {
+        val memory = MemoryPreferences()
+        val store = EncryptedPrefsManager(memory.prefs)
+        assertTrue(store.isStatusChecksEnabled())
+        assertTrue(store.statusChecksEnabled.value)
+        store.setStatusChecksEnabled(false)
+        assertFalse(store.isStatusChecksEnabled())
+        assertFalse(store.statusChecksEnabled.value)
+        val restarted = EncryptedPrefsManager(memory.prefs)
+        assertFalse(restarted.statusChecksEnabled.value)
+        restarted.setStatusChecksEnabled(true)
+        assertTrue(restarted.statusChecksEnabled.value)
+        assertTrue(EncryptedPrefsManager(memory.prefs).isStatusChecksEnabled())
+    }
+
     @Test fun `API keys retain provider and sibling ownership across restart`() {
       for ((service, create) in listOf<Pair<AiService, (String) -> Credential>>(
           AiService.OPENROUTER to { Credential.OpenRouterCredential(it) },

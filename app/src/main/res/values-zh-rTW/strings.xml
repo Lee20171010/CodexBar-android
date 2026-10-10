@@ -24,6 +24,8 @@
     <string name="general_language">應用程式語言</string>
     <string name="general_language_summary">在系統設定中選擇語言</string>
     <string name="general_language_unavailable">此裝置無法使用語言設定。</string>
+    <string name="status_checks_setting">檢查服務狀態</string>
+    <string name="status_checks_setting_summary">輪詢 OpenAI、Claude 與 GitHub 官方狀態頁面，並在卡片與詳情中顯示服務異常。關閉後會隱藏狀態並停止輪詢；額度更新不受影響。</string>
     <string name="official_status">官方服務狀態：%1$s</string>
     <string name="status_operational">正常運作</string>
     <string name="status_incident">已通報事故</string>

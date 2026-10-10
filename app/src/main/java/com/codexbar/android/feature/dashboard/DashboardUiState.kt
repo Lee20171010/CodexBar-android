@@ -33,7 +33,7 @@ data class ServiceCardData(
     val error: AppError? = null,
     val money: ReportedMoney? = null,
     val snapshot: QuotaSnapshot = QuotaSnapshot(),
-    val officialStatus: com.codexbar.android.core.data.OfficialStatus = com.codexbar.android.core.data.OfficialStatus(),
+    val officialStatus: com.codexbar.android.core.data.OfficialStatus? = null,
     val history: Map<String, WindowHistory> = emptyMap(),
     val display: com.codexbar.android.core.presentation.DisplayOptions = com.codexbar.android.core.presentation.DisplayOptions()
 ) {

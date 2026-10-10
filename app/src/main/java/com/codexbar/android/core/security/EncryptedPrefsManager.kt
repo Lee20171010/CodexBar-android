@@ -167,6 +167,16 @@ class EncryptedPrefsManager internal constructor(
         return prefs.getBoolean("notifications_enabled", true)
     }
 
+    private val statusChecksState = MutableStateFlow(prefs.getBoolean("status_checks_enabled", true))
+    val statusChecksEnabled = statusChecksState.asStateFlow()
+
+    fun isStatusChecksEnabled(): Boolean = statusChecksState.value
+
+    fun setStatusChecksEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("status_checks_enabled", enabled).apply()
+        statusChecksState.value = enabled
+    }
+
     fun setNotificationsEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("notifications_enabled", enabled).apply()
     }

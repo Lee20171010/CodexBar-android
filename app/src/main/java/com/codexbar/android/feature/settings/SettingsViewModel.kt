@@ -39,6 +39,7 @@ class SettingsViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(SettingsUiState(
         connections = prefsManager.loadConnections(),
         refreshIntervalMinutes = prefsManager.getRefreshInterval(),
+        statusChecksEnabled = prefsManager.isStatusChecksEnabled(),
         notificationsEnabled = prefsManager.isNotificationsEnabled(),
         recoveryAlertsEnabled = prefsManager.isRecoveryAlertsEnabled(),
         alertDepletedEnabled = prefsManager.isAlertDepletedEnabled(),
@@ -202,6 +203,11 @@ class SettingsViewModel @Inject constructor(
         prefsManager.setRefreshInterval(minutes)
         com.codexbar.android.core.workmanager.WorkManagerInitializer.schedulePeriodicRefresh(context, minutes)
         _uiState.update { it.copy(refreshIntervalMinutes = minutes) }
+    }
+
+    fun setStatusChecksEnabled(enabled: Boolean) {
+        prefsManager.setStatusChecksEnabled(enabled)
+        _uiState.update { it.copy(statusChecksEnabled = enabled) }
     }
 
     fun setNotificationsEnabled(enabled: Boolean) {
