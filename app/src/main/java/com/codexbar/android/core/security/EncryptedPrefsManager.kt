@@ -207,8 +207,26 @@ class EncryptedPrefsManager internal constructor(
 
     fun isAlertPaceEnabled(): Boolean = prefs.getBoolean("alert_pace_enabled", false)
 
+    /** Mac parity: disabling clears pace receipts immediately, so OFF→ON rearms without a refresh. */
+    @Synchronized
     fun setAlertPaceEnabled(enabled: Boolean) {
-        prefs.edit().putBoolean("alert_pace_enabled", enabled).apply()
+        val edit = prefs.edit().putBoolean("alert_pace_enabled", enabled)
+        if (!enabled) {
+            for (key in prefs.all.keys.filter { it.endsWith("_alerts_v1") }) {
+                val json = prefs.getString(key, null) ?: continue
+                val previous = runCatching {
+                    kotlinx.serialization.json.Json.decodeFromString<Map<String, com.codexbar.android.core.notification.AlertReading>>(json)
+                }.getOrNull() ?: continue
+                val next = previous.mapValues { (_, reading) ->
+                    if (reading.paceNotifiedAt > 0 || reading.paceCycleResetsAt > 0 ||
+                        reading.paceCycleDuration != null
+                    ) reading.copy(paceNotifiedAt = 0, paceCycleResetsAt = 0, paceCycleDuration = null)
+                    else reading
+                }
+                if (next != previous) edit.putString(key, kotlinx.serialization.json.Json.encodeToString(next))
+            }
+        }
+        commit(edit)
     }
 
     /** Persist receipts before notification: restart cannot repeat an already claimed alert. */

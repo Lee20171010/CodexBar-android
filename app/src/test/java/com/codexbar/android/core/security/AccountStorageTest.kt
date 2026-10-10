@@ -29,6 +29,44 @@ class AccountStorageTest {
         assertTrue(EncryptedPrefsManager(memory.prefs).isStatusChecksEnabled())
     }
 
+    @Test fun `pace receipts persist across restart and rearm when pace is toggled off and on`() {
+        val memory = MemoryPreferences()
+        val store = EncryptedPrefsManager(memory.prefs)
+        val connection = AccountConnection.create(AiService.CODEX)
+        assertTrue(store.saveValidatedConnection(connection,
+            Credential.CodexCredential("synthetic-access", "synthetic-refresh")))
+        store.setAlertPaceEnabled(true)
+        store.setAlertLowEnabled(true)
+        val base = Instant.now()
+        fun quota(at: Instant) = com.codexbar.android.core.domain.model.QuotaInfo(
+            AiService.CODEX,
+            listOf(com.codexbar.android.core.domain.model.UsageWindow("Weekly", 0.85,
+                at.plusSeconds(302400), durationSeconds = 604800,
+                slot = com.codexbar.android.core.domain.model.UsageWindowSlot.SECONDARY)),
+            null, fetchedAt = at)
+        val fired = store.recordAlerts(connection, quota(base.minusSeconds(60)))
+        assertTrue(fired.any { it.second == com.codexbar.android.core.notification.QuotaAlertKind.PACE })
+        assertTrue(fired.any { it.second == com.codexbar.android.core.notification.QuotaAlertKind.LOW })
+        // Restart: receipts reload, the same cycle stays suppressed on a newer reading.
+        val restarted = EncryptedPrefsManager(memory.prefs)
+        assertEquals(emptyList<Any>(), restarted.recordAlerts(connection, quota(base.minusSeconds(30))))
+        // Disabling clears pace receipts immediately while the low receipt survives.
+        store.setAlertPaceEnabled(false)
+        val cleared = kotlinx.serialization.json.Json.decodeFromString<Map<String,
+            com.codexbar.android.core.notification.AlertReading>>(
+            memory.values["${connection.id}_alerts_v1"] as String)
+        val receipt = cleared.getValue("Weekly")
+        assertEquals(0L, receipt.paceNotifiedAt)
+        assertEquals(0L, receipt.paceCycleResetsAt)
+        assertEquals(null, receipt.paceCycleDuration)
+        assertTrue(receipt.lowNotified)
+        // OFF→ON without any refresh rearms pace; the retained low receipt does not refire.
+        store.setAlertPaceEnabled(true)
+        val rearmed = store.recordAlerts(connection, quota(base))
+        assertEquals(listOf(com.codexbar.android.core.notification.QuotaAlertKind.PACE),
+            rearmed.map { it.second })
+    }
+
     @Test fun `refresh on open defaults off and persists across restart`() {
         val memory = MemoryPreferences()
         val store = EncryptedPrefsManager(memory.prefs)
