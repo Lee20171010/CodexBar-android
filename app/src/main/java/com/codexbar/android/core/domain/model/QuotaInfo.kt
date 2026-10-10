@@ -14,8 +14,14 @@ data class QuotaInfo(
     val money: ReportedMoney? = null,
     val source: String = "kotlin-api",
     val credits: ReportedCredits? = null,
-    val resetInventory: ResetInventory? = null
+    val resetInventory: ResetInventory? = null,
+    /** Mac UsageDataConfidence: how the payload was derived; null on records that predate the field. */
+    val dataConfidence: UsageDataConfidence? = null
 )
+
+/** Mac UsageDataConfidence raw values exact/estimated/percentOnly/unknown. */
+@kotlinx.serialization.Serializable
+enum class UsageDataConfidence { EXACT, ESTIMATED, PERCENT_ONLY, UNKNOWN }
 
 @kotlinx.serialization.Serializable
 data class ReportedCredits(val balance: Double?, val workspace: Boolean, val cap: CreditCap?, val fetchedAt: Instant)

@@ -141,6 +141,7 @@
     <string name="display_pace_summary">Shows pace status and run-out forecast in quota details; alerts are unaffected</string>
     <string name="display_workdays_auto">All</string>
     <string name="pace_on_track">Pace: on track</string>
+    <string name="pace_window">%1$s · %2$s</string>
     <string name="pace_slightly_ahead">Pace: slightly ahead (%1$d%%)</string>
     <string name="pace_ahead">Pace: ahead (%1$d%%)</string>
     <string name="pace_far_ahead">Pace: far ahead (%1$d%%)</string>

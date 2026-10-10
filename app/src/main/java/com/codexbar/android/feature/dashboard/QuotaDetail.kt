@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.balanceText
 import com.codexbar.android.core.domain.model.spendText
+import com.codexbar.android.core.presentation.PacePolicy
 import com.codexbar.android.core.presentation.PaceStage
 import com.codexbar.android.core.presentation.QuotaPace
 import com.codexbar.android.core.presentation.QuotaPresentation
@@ -34,9 +35,9 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
         card.error?.let { Text(errorText(it), color = MaterialTheme.colorScheme.error) }
         card.officialStatus?.let { OfficialStatusText(it, now) }
         quota?.let {
-            QuotaPace.principal(it)?.let { principal ->
-                if (card.display.showPace) QuotaPace.weeklyPace(principal, now, card.display.workDays)?.let { pace ->
-                    Text(stringResource(when (pace.stage) {
+            if (card.display.showPace) card.display.visible(it).forEach { window ->
+                PacePolicy.pace(it, window, now, card.display.workDays)?.let { pace ->
+                    Text(stringResource(R.string.pace_window, window.label, stringResource(when (pace.stage) {
                         PaceStage.ON_TRACK -> R.string.pace_on_track
                         PaceStage.SLIGHTLY_AHEAD -> R.string.pace_slightly_ahead
                         PaceStage.AHEAD -> R.string.pace_ahead
@@ -44,7 +45,7 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
                         PaceStage.SLIGHTLY_BEHIND -> R.string.pace_slightly_behind
                         PaceStage.BEHIND -> R.string.pace_behind
                         PaceStage.FAR_BEHIND -> R.string.pace_far_behind
-                    }, kotlin.math.abs(pace.deltaPercent).toInt()))
+                    }, kotlin.math.abs(pace.deltaPercent).toInt())))
                     when {
                         pace.willLastToReset -> Text(stringResource(R.string.pace_will_last),
                             style = MaterialTheme.typography.labelSmall)
@@ -60,6 +61,8 @@ internal fun QuotaDetail(card: ServiceCardData, now: Instant, onRefresh: () -> U
                         ), style = MaterialTheme.typography.labelSmall)
                     }
                 }
+            }
+            QuotaPace.principal(it)?.let { principal ->
                 QuotaPace.estimate(card.history[principal.id], now.epochSecond)?.let { estimate ->
                     Text(stringResource(R.string.pace_estimate), style = MaterialTheme.typography.labelSmall)
                     PaceChart(estimate)

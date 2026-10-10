@@ -63,6 +63,13 @@ class CodexNativeTest {
         assertTrue(parse(success, 139) is Result.Failure)
     }
 
+    @Test fun `data confidence decodes from the CLI payload and defaults to unknown`() {
+        val estimated = parse(success.replace("\"loginMethod\":\"Pro\"",
+            "\"loginMethod\":\"Pro\",\"dataConfidence\":\"estimated\""))
+        assertEquals(UsageDataConfidence.ESTIMATED, (estimated as Result.Success).value.dataConfidence)
+        assertEquals(UsageDataConfidence.UNKNOWN, (parse(success) as Result.Success).value.dataConfidence)
+    }
+
     @Test fun `native failures retain auth versus outage without leaking messages`() {
         for ((message, type) in listOf("Codex OAuth token expired or invalid" to AppError.AuthError::class.java,
             "Codex API error 429" to AppError.RateLimited::class.java,

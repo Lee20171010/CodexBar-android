@@ -37,6 +37,10 @@ class WidgetAccountCacheTest {
         val slotted = legacy.copy(windows = listOf(legacy.windows.single().copy(slot = UsageWindowSlot.PRIMARY, durationSeconds = 18_000)))
         cache.cacheQuota(account, slotted)
         assertEquals(slotted, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
+        assertFalse(stored.contains("dataConfidence")) // Records predating the field decode it as null.
+        val confident = slotted.copy(dataConfidence = UsageDataConfidence.ESTIMATED)
+        cache.cacheQuota(account, confident)
+        assertEquals(confident, WidgetPrefsManager(memory.prefs).getCachedQuota(account))
     }
 
     @Test fun `widget display falls back from per-widget to connection then global`() {

@@ -4,6 +4,7 @@ import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
+import com.codexbar.android.core.domain.model.UsageDataConfidence
 import com.codexbar.android.core.domain.model.UsageWindow
 import com.codexbar.android.core.domain.model.UsageWindowSlot
 import java.time.Instant
@@ -110,7 +111,13 @@ object NativeQuotaCliParser {
                 fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content),
                 source = if (service == AiService.CODEX) "native-oauth" else "native-api",
                 credits = if (service == AiService.CODEX) CodexReportedCredits.balance(envelope["credits"]) else null,
-                resetInventory = if (service == AiService.CODEX) CodexReportedCredits.inventory(usage["codexResetCredits"]) else null
+                resetInventory = if (service == AiService.CODEX) CodexReportedCredits.inventory(usage["codexResetCredits"]) else null,
+                dataConfidence = when (usage["dataConfidence"]?.jsonPrimitive?.contentOrNull) {
+                    "exact" -> UsageDataConfidence.EXACT
+                    "estimated" -> UsageDataConfidence.ESTIMATED
+                    "percentOnly" -> UsageDataConfidence.PERCENT_ONLY
+                    else -> UsageDataConfidence.UNKNOWN
+                }
             ))
         } catch (_: Exception) {
             Result.Failure(AppError.ParseError("Unexpected ${service.displayName} response from the native CLI."))
