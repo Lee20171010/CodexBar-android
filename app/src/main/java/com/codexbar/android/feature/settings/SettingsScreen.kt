@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -31,6 +33,12 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -67,6 +75,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -202,31 +211,56 @@ fun SettingsScreen(
 private fun SettingsDirectory(selected: SettingsPage?, onSelect: (SettingsPage) -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        SettingsPage.entries.forEach { entry ->
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { onSelect(entry) }
-                    .padding(vertical = 12.dp, horizontal = 8.dp)
-            ) {
-                Text(stringResource(entry.titleRes), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    stringResource(when (entry) {
-                        SettingsPage.GENERAL -> R.string.settings_general_summary
-                        SettingsPage.ACCOUNTS -> R.string.settings_providers_summary
-                        SettingsPage.NOTIFICATIONS -> R.string.settings_notifications_summary
-                        SettingsPage.MENU -> R.string.settings_menu_summary
-                        SettingsPage.SPEND -> R.string.settings_spend_summary
-                        SettingsPage.ADVANCED -> R.string.settings_advanced_summary
-                        SettingsPage.ABOUT -> R.string.settings_about_summary
-                    }),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        // Native SettingsSidebarView orders app panes before provider settings.
+        Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+        )) {
+            listOf(SettingsPage.GENERAL, SettingsPage.SPEND, SettingsPage.NOTIFICATIONS,
+                SettingsPage.MENU, SettingsPage.ADVANCED, SettingsPage.ABOUT).forEach { entry ->
+                SettingsDirectoryRow(entry, selected == entry, onSelect)
             }
         }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(stringResource(R.string.settings_providers),
+                modifier = Modifier.padding(horizontal = 12.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            )) {
+                SettingsDirectoryRow(SettingsPage.ACCOUNTS, selected == SettingsPage.ACCOUNTS, onSelect)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsDirectoryRow(entry: SettingsPage, selected: Boolean, onSelect: (SettingsPage) -> Unit) {
+    val (icon, tint) = when (entry) {
+        SettingsPage.GENERAL -> Icons.Default.Settings to Color(0xFF8E8E93)
+        SettingsPage.SPEND -> Icons.Default.BarChart to Color(0xFF248A3D)
+        SettingsPage.NOTIFICATIONS -> Icons.Default.Notifications to Color(0xFFD70015)
+        SettingsPage.MENU -> Icons.Default.Menu to Color(0xFF007F86)
+        SettingsPage.ADVANCED -> Icons.Default.Tune to Color(0xFF8944AB)
+        SettingsPage.ABOUT -> Icons.Default.Info to Color(0xFF248A3D)
+        SettingsPage.ACCOUNTS -> Icons.Default.Cloud to Color(0xFF007AFF)
+    }
+    Row(
+        Modifier.fillMaxWidth()
+            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+            .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(entry) })
+            .heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Box(Modifier.size(24.dp).background(tint, RoundedCornerShape(5.dp)), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+        }
+        Text(stringResource(entry.titleRes), Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+        Icon(Icons.Default.ChevronRight, contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }
 }
 
