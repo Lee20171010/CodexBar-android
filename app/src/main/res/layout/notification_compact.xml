@@ -18,7 +18,7 @@
             android:layout_width="64dp"
             android:layout_height="wrap_content"
             android:textSize="11sp"
-            android:textColor="@android:color/primary_text_light" />
+            android:textAppearance="@style/TextAppearance.Compat.Notification" />
 
         <ProgressBar
             android:id="@+id/progress_bar_1"
@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:textSize="10sp"
             android:gravity="end"
-            android:textColor="@android:color/primary_text_light" />
+            android:textAppearance="@style/TextAppearance.Compat.Notification" />
     </LinearLayout>
 
     <!-- Service 2 -->
@@ -52,7 +52,7 @@
             android:layout_width="64dp"
             android:layout_height="wrap_content"
             android:textSize="11sp"
-            android:textColor="@android:color/primary_text_light" />
+            android:textAppearance="@style/TextAppearance.Compat.Notification" />
 
         <ProgressBar
             android:id="@+id/progress_bar_2"
@@ -70,7 +70,7 @@
             android:layout_height="wrap_content"
             android:textSize="10sp"
             android:gravity="end"
-            android:textColor="@android:color/primary_text_light" />
+            android:textAppearance="@style/TextAppearance.Compat.Notification" />
     </LinearLayout>
 
     <!-- Service 3 -->
@@ -86,7 +86,7 @@
             android:layout_width="64dp"
             android:layout_height="wrap_content"
             android:textSize="11sp"
-            android:textColor="@android:color/primary_text_light" />
+            android:textAppearance="@style/TextAppearance.Compat.Notification" />
 
         <ProgressBar
             android:id="@+id/progress_bar_3"
@@ -104,7 +104,7 @@
             android:layout_height="wrap_content"
             android:textSize="10sp"
             android:gravity="end"
-            android:textColor="@android:color/primary_text_light" />
+            android:textAppearance="@style/TextAppearance.Compat.Notification" />
     </LinearLayout>
 
     <!-- Update time -->
@@ -113,7 +113,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="9sp"
-        android:textColor="@android:color/secondary_text_light"
+        android:textAppearance="@style/TextAppearance.Compat.Notification.Info"
         android:gravity="end" />
 
 </LinearLayout>
