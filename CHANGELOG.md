@@ -4,6 +4,14 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.10-beta-native
+
+### Fixed
+
+- The persistent quota status notification now uses the system collapsed
+  title/text and an expanded inbox summary covering every account, replacing
+  the custom layout that OEM shades clipped or dropped.
+
 ## 0.0.9-beta-native
 
 ### Fixed
