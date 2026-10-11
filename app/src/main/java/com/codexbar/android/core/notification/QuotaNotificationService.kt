@@ -5,14 +5,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.codexbar.android.R
-import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AccountConnection
-import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.presentation.QuotaSnapshot
 import com.codexbar.android.core.presentation.QuotaPresentation
 import com.codexbar.android.core.workmanager.QuotaRefreshWorker
@@ -78,38 +75,7 @@ class QuotaNotificationService @Inject constructor(
             return
         }
         if (!manager.areNotificationsEnabled()) return
-        val remoteViews = RemoteViews(context.packageName, R.layout.notification_compact)
-
-        // Populate service data
-        quotas.forEachIndexed { index, (connection, snapshot) ->
-            if (index >= 3) return@forEachIndexed // Max 3 services
-
-            val maxUtilization = snapshot.quota?.let(QuotaPresentation::principal)?.maxOfOrNull { it.utilization }
-            val progress = maxUtilization?.let(QuotaPresentation::remainingPercent) ?: 0
-            val value = QuotaPresentation.summary(context, snapshot)
-            val barId = listOf(R.id.progress_bar_1, R.id.progress_bar_2, R.id.progress_bar_3)[index]
-            remoteViews.setViewVisibility(barId, if (maxUtilization == null) android.view.View.GONE else android.view.View.VISIBLE)
-
-            when (index) {
-                0 -> {
-                    remoteViews.setTextViewText(R.id.service_name_1, connection.name)
-                    remoteViews.setProgressBar(R.id.progress_bar_1, 100, progress, false)
-                    remoteViews.setTextViewText(R.id.progress_text_1, value)
-                }
-                1 -> {
-                    remoteViews.setTextViewText(R.id.service_name_2, connection.name)
-                    remoteViews.setProgressBar(R.id.progress_bar_2, 100, progress, false)
-                    remoteViews.setTextViewText(R.id.progress_text_2, value)
-                }
-                2 -> {
-                    remoteViews.setTextViewText(R.id.service_name_3, connection.name)
-                    remoteViews.setProgressBar(R.id.progress_bar_3, 100, progress, false)
-                    remoteViews.setTextViewText(R.id.progress_text_3, value)
-                }
-            }
-        }
-
-        remoteViews.setTextViewText(R.id.update_time, QuotaPresentation.age(context, quotas.mapNotNull { it.second.quota?.fetchedAt }.minOrNull()))
+        val lines = quotaSummaryLines(context, quotas)
 
         // Refresh action
         val refreshIntent = Intent(context, RefreshReceiver::class.java).apply {
@@ -131,14 +97,20 @@ class QuotaNotificationService @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Standard system templates instead of a custom RemoteViews: OEM shades clip and
+        // re-theme custom views (collapsed second row lost, expanded content dropped).
+        val style = NotificationCompat.InboxStyle()
+        lines.forEach { style.addLine(it) }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setSmallIcon(R.drawable.ic_quota)
-            .setCustomContentView(remoteViews)
+            .setContentTitle(context.getString(R.string.notification_status_title))
+            .setContentText(lines.first())
+            .setStyle(style)
             .setContentIntent(dashboardPendingIntent)
             .setOngoing(true)
             .setSilent(true)
-            .addAction(R.drawable.ic_refresh, "Refresh", refreshPendingIntent)
+            .addAction(R.drawable.ic_refresh, context.getString(R.string.refresh), refreshPendingIntent)
             .build()
 
         manager.notify(NOTIFICATION_ID, notification)
@@ -212,4 +184,13 @@ class QuotaNotificationService @Inject constructor(
             else -> "${elapsed.toHours()}h ago"
         }
     }
+}
+
+// One line per connection: "Name · 5-Hour 65% left · just now". The collapsed
+// notification shows the first line; the expanded InboxStyle shows every line.
+internal fun quotaSummaryLines(
+    context: Context,
+    quotas: List<Pair<AccountConnection, QuotaSnapshot>>
+): List<String> = quotas.map { (connection, snapshot) ->
+    "${connection.name} · ${QuotaPresentation.summary(context, snapshot)}"
 }
