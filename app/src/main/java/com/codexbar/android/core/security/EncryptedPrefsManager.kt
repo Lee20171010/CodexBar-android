@@ -308,9 +308,10 @@ class EncryptedPrefsManager internal constructor(
             kotlinx.serialization.json.Json.decodeFromString<Map<String, com.codexbar.android.core.notification.RecoveryReading>>(
                 prefs.getString(key, null) ?: "{}")
         }.getOrDefault(emptyMap())
-        val (next, recovered) = com.codexbar.android.core.notification.QuotaRecovery.observe(previous, quota, Instant.now().epochSecond)
+        val enabled = isRecoveryAlertsEnabled()
+        val (next, recovered) = com.codexbar.android.core.notification.QuotaRecovery.observe(previous, quota, Instant.now().epochSecond, enabled)
         commit(prefs.edit().putString(key, kotlinx.serialization.json.Json.encodeToString(next)))
-        return if (isRecoveryAlertsEnabled()) recovered else emptyList()
+        return recovered
     }
 
     @Synchronized
