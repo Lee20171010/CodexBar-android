@@ -47,6 +47,8 @@ class DashboardDisplayTest {
             `when`(accounts.snapshot(account)).thenReturn(QuotaSnapshot())
             `when`(status.statuses).thenReturn(MutableStateFlow(emptyMap<AiService, OfficialStatus>()))
             `when`(prefs.statusChecksEnabled).thenReturn(MutableStateFlow(true))
+            `when`(prefs.multiAccountSegmented).thenReturn(MutableStateFlow(false))
+            `when`(prefs.displayedConnections).thenReturn(MutableStateFlow(emptyMap()))
             val retained = DashboardViewModel(accounts, prefs, status, widgets, mock(Context::class.java))
             viewModel = retained
             runCurrent()
@@ -96,6 +98,8 @@ class DashboardDisplayTest {
             `when`(accounts.snapshot(account)).thenReturn(QuotaSnapshot())
             `when`(status.statuses).thenReturn(statuses)
             `when`(prefs.statusChecksEnabled).thenReturn(statusChecks)
+            `when`(prefs.multiAccountSegmented).thenReturn(MutableStateFlow(false))
+            `when`(prefs.displayedConnections).thenReturn(MutableStateFlow(emptyMap()))
             val retained = DashboardViewModel(accounts, prefs, status, widgets, mock(Context::class.java))
             viewModel = retained
             runCurrent()

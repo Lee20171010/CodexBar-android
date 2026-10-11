@@ -1,7 +1,9 @@
 package com.codexbar.android.feature.dashboard
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -48,7 +50,22 @@ fun DashboardScreen(onNavigateToSettings: () -> Unit, viewModel: DashboardViewMo
         is DashboardUiState.PartialSuccess -> current.cards
         else -> emptyList()
     }
-    val selected = cards.find { it.connection.id == selectedId }
+    val segmented = when (val current = state) {
+        is DashboardUiState.Success -> current.segmented
+        is DashboardUiState.PartialSuccess -> current.segmented
+        else -> false
+    }
+    val displayedIds = when (val current = state) {
+        is DashboardUiState.Success -> current.displayedIds
+        is DashboardUiState.PartialSuccess -> current.displayedIds
+        else -> emptySet()
+    }
+    // All cards stay in state; segmented mode only filters what the list shows.
+    val visible = if (segmented) cards.filter { it.connection.id in displayedIds } else cards
+    LaunchedEffect(segmented, displayedIds, cards) {
+        if (selectedId != null && visible.none { it.connection.id == selectedId }) selectedId = null
+    }
+    val selected = visible.find { it.connection.id == selectedId }
     BackHandler(selected != null) { selectedId = null }
     Scaffold(topBar = {
         TopAppBar(title = { Text(stringResource(R.string.app_name)) }, actions = {
@@ -71,7 +88,10 @@ fun DashboardScreen(onNavigateToSettings: () -> Unit, viewModel: DashboardViewMo
                 BoxWithConstraints(Modifier.fillMaxSize()) {
                     val wide = maxWidth >= 840.dp
                     Row(Modifier.fillMaxSize()) {
-                        CardList(cards, now, { selectedId = it.connection.id }, Modifier.weight(1f).fillMaxHeight())
+                        CardList(visible,
+                            if (segmented) cards.groupBy { it.service }.filterValues { it.size > 1 } else emptyMap(),
+                            now, { selectedId = it.connection.id },
+                            { viewModel.setDisplayed(it.connection) }, Modifier.weight(1f).fillMaxHeight())
                         if (wide && selected != null) {
                             VerticalDivider()
                             QuotaDetail(selected, now, { viewModel.refresh(selected.connection) }, onNavigateToSettings,
@@ -93,10 +113,41 @@ fun DashboardScreen(onNavigateToSettings: () -> Unit, viewModel: DashboardViewMo
 }
 
 @Composable
-private fun CardList(cards: List<ServiceCardData>, now: Instant, onSelect: (ServiceCardData) -> Unit, modifier: Modifier = Modifier) {
+private fun CardList(
+    cards: List<ServiceCardData>,
+    chips: Map<com.codexbar.android.core.domain.model.AiService, List<ServiceCardData>>,
+    now: Instant,
+    onSelect: (ServiceCardData) -> Unit,
+    onChip: (ServiceCardData) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(modifier, contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         items(cards, key = { it.connection.id }) { card ->
-            ServiceCard(card, { onSelect(card) }, Modifier.fillMaxWidth(), now)
+            val group = chips[card.service]
+            if (group == null) {
+                ServiceCard(card, { onSelect(card) }, Modifier.fillMaxWidth(), now)
+            } else {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        group.forEach { option ->
+                            // Localized text, not color-only, so hidden chips stay accessible.
+                            val attention = when {
+                                option.snapshot.freshness() == com.codexbar.android.core.presentation.Freshness.RECONNECT ->
+                                    stringResource(R.string.reconnect_required)
+                                option.error != null -> stringResource(R.string.account_needs_attention)
+                                else -> null
+                            }
+                            FilterChip(
+                                selected = option.connection.id == card.connection.id,
+                                onClick = { onChip(option) },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                                label = { Text(option.connection.name + (attention?.let { " · $it" } ?: "")) }
+                            )
+                        }
+                    }
+                    ServiceCard(card, { onSelect(card) }, Modifier.fillMaxWidth(), now)
+                }
+            }
         }
     }
 }

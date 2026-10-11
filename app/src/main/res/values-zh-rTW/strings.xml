@@ -140,6 +140,11 @@
     <string name="overview_layout_summary">選擇概覽卡片顯示的資訊多寡。</string>
     <string name="overview_layout_detailed">詳細</string>
     <string name="overview_layout_compact">精簡</string>
+    <string name="multi_account_layout_title">多帳號版面</string>
+    <string name="multi_account_layout_summary">選擇分段切換帳號或堆疊帳號卡片。</string>
+    <string name="multi_account_segmented">分段</string>
+    <string name="multi_account_stacked">堆疊</string>
+    <string name="account_needs_attention">需處理</string>
     <string name="display_pace_summary">在額度詳情中顯示節奏狀態與用盡預估；不影響提醒</string>
     <string name="display_workdays_auto">全部</string>
     <string name="pace_window">%1$s · %2$s</string>

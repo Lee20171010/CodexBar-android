@@ -10,6 +10,7 @@ data class SettingsUiState(
     },
     val refreshIntervalMinutes: Long = 30L,
     val refreshOnOpen: Boolean = false,
+    val multiAccountSegmented: Boolean = true,
     val statusChecksEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
     val recoveryAlertsEnabled: Boolean = false,

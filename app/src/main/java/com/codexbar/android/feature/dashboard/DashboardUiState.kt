@@ -13,12 +13,16 @@ sealed class DashboardUiState {
 
     data class Success(
         val cards: List<ServiceCardData>,
-        val lastUpdated: Instant
+        val lastUpdated: Instant,
+        val segmented: Boolean = false,
+        val displayedIds: Set<String> = emptySet()
     ) : DashboardUiState()
 
     data class PartialSuccess(
         val cards: List<ServiceCardData>,
-        val errors: Map<AccountConnection, AppError>
+        val errors: Map<AccountConnection, AppError>,
+        val segmented: Boolean = false,
+        val displayedIds: Set<String> = emptySet()
     ) : DashboardUiState()
 
     data class Error(val error: AppError) : DashboardUiState()

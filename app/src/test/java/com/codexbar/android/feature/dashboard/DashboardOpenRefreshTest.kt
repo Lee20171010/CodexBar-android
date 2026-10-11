@@ -58,6 +58,8 @@ class DashboardOpenRefreshTest {
                 `when`(prefs.loadConnections()).thenReturn(connections)
                 `when`(prefs.getRefreshOnOpen()).thenReturn(refreshOnOpen)
                 `when`(prefs.statusChecksEnabled).thenReturn(MutableStateFlow(true))
+                `when`(prefs.multiAccountSegmented).thenReturn(MutableStateFlow(false))
+                `when`(prefs.displayedConnections).thenReturn(MutableStateFlow(emptyMap()))
                 `when`(accounts.quotas).thenReturn(MutableStateFlow(emptyMap<String, AccountQuota>()))
                 `when`(status.statuses).thenReturn(MutableStateFlow(emptyMap<AiService, OfficialStatus>()))
                 snapshots.forEach { (account, snapshot) -> `when`(accounts.snapshot(account)).thenReturn(snapshot) }

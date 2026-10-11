@@ -10,6 +10,8 @@ import com.codexbar.android.core.domain.model.Credential
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.encodeToString
 import java.io.IOException
 import java.time.Instant
@@ -35,6 +37,52 @@ class EncryptedPrefsManager internal constructor(
     private val connectionState = MutableStateFlow<List<AccountConnection>>(emptyList())
     val connections = connectionState.asStateFlow()
     private var writeFailed = false
+
+    // Mac multiAccountMenuLayout (default .segmented, SettingsStore.swift:139-153). Resolved once at
+    // storage init and persisted before any account can be created; the existing-account check is only an
+    // upgrade heuristic for the missing key, never re-derived afterwards, so an explicit choice and a
+    // fresh-install default both survive adding accounts, restart, and delete-all.
+    private val multiAccountSegmentedState = MutableStateFlow(
+        if (prefs.contains("multi_account_segmented")) prefs.getBoolean("multi_account_segmented", true)
+        else {
+            val resolved = !prefs.all.keys.any {
+                it.endsWith("_connection_provider") || it.endsWith("_access_token")
+            }
+            commit(prefs.edit().putBoolean("multi_account_segmented", resolved))
+            resolved
+        }
+    )
+    val multiAccountSegmented = multiAccountSegmentedState.asStateFlow()
+
+    fun isMultiAccountSegmented(): Boolean = multiAccountSegmentedState.value
+
+    fun setMultiAccountSegmented(enabled: Boolean) {
+        commit(prefs.edit().putBoolean("multi_account_segmented", enabled))
+        multiAccountSegmentedState.value = enabled
+    }
+
+    // Display-only pointer per service; unlike Mac's Codex selection it never changes credential
+    // ownership, and widgets keep their own per-widget pins and never read this.
+    private val displayedState = MutableStateFlow(
+        runCatching {
+            json.decodeFromString(displayedMapSerializer, prefs.getString("displayed_connections", "{}") ?: "{}")
+        }.getOrDefault(emptyMap())
+    )
+    val displayedConnections = displayedState.asStateFlow()
+
+    /**
+     * Stores the displayed connection for its service; returns false when the selection is no
+     * longer current. Validation, commit, and flow publication share the instance monitor that all
+     * account mutations use, so a concurrent delete/reconnect cannot slip between them.
+     */
+    @Synchronized
+    fun setDisplayedConnection(connection: AccountConnection): Boolean {
+        if (!isCurrent(connection)) return false
+        val next = displayedState.value + (connection.service.name to connection.id)
+        commit(prefs.edit().putString("displayed_connections", json.encodeToString(displayedMapSerializer, next)))
+        displayedState.value = next
+        return true
+    }
 
     private fun writeCredential(
         editor: SharedPreferences.Editor,
@@ -427,6 +475,8 @@ class EncryptedPrefsManager internal constructor(
     }
 
     private companion object {
+        val json = kotlinx.serialization.json.Json
+        val displayedMapSerializer = MapSerializer(String.serializer(), String.serializer())
         val CREDENTIAL_FIELDS = listOf(
             "access_token", "refresh_token", "expires_at", "scopes", "rate_limit_tier",
             "account_id", "last_refresh", "expires_at_ms", "oauth_client_id", "oauth_client_secret"

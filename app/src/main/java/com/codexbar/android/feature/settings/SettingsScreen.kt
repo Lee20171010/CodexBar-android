@@ -383,6 +383,8 @@ private fun SettingsPageContent(
             }
             page == SettingsPage.MENU -> DisplayPrefsSection(
                 display = uiState.globalDisplay,
+                segmented = uiState.multiAccountSegmented,
+                onLayoutChange = { viewModel.setMultiAccountSegmented(it) },
                 onChange = { viewModel.setGlobalDisplay(it) }
             )
             page == SettingsPage.SPEND -> Card(Modifier.fillMaxWidth()) {
@@ -828,6 +830,8 @@ private fun ProviderDisplaySection(account: AccountConnection, viewModel: Settin
 @Composable
 private fun DisplayPrefsSection(
     display: com.codexbar.android.core.presentation.DisplayOptions,
+    segmented: Boolean,
+    onLayoutChange: (Boolean) -> Unit,
     onChange: (com.codexbar.android.core.presentation.DisplayOptions) -> Unit
 ) {
     Card(
@@ -888,6 +892,22 @@ private fun DisplayPrefsSection(
                     onClick = { onChange(display.copy(compactOverview = true)) },
                     shape = SegmentedButtonDefaults.itemShape(1, 2)
                 ) { Text(stringResource(R.string.overview_layout_compact)) }
+            }
+            // Mac multiAccountMenuLayout picker (default Segmented, SettingsStore.swift:139-153).
+            Text(stringResource(R.string.multi_account_layout_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.multi_account_layout_summary), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = segmented,
+                    onClick = { onLayoutChange(true) },
+                    shape = SegmentedButtonDefaults.itemShape(0, 2)
+                ) { Text(stringResource(R.string.multi_account_segmented)) }
+                SegmentedButton(
+                    selected = !segmented,
+                    onClick = { onLayoutChange(false) },
+                    shape = SegmentedButtonDefaults.itemShape(1, 2)
+                ) { Text(stringResource(R.string.multi_account_stacked)) }
             }
             Text(stringResource(R.string.display_workdays_title), style = MaterialTheme.typography.bodyLarge)
             Text(stringResource(R.string.display_workdays_summary), style = MaterialTheme.typography.bodySmall,

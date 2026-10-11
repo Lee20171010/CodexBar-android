@@ -40,6 +40,7 @@ class SettingsViewModel @Inject constructor(
         connections = prefsManager.loadConnections(),
         refreshIntervalMinutes = prefsManager.getRefreshInterval(),
         refreshOnOpen = prefsManager.getRefreshOnOpen(),
+        multiAccountSegmented = prefsManager.isMultiAccountSegmented(),
         statusChecksEnabled = prefsManager.isStatusChecksEnabled(),
         notificationsEnabled = prefsManager.isNotificationsEnabled(),
         recoveryAlertsEnabled = prefsManager.isRecoveryAlertsEnabled(),
@@ -214,6 +215,17 @@ class SettingsViewModel @Inject constructor(
     fun setRefreshOnOpen(enabled: Boolean) {
         prefsManager.setRefreshOnOpen(enabled)
         _uiState.update { it.copy(refreshOnOpen = enabled) }
+    }
+
+    fun setMultiAccountSegmented(enabled: Boolean) {
+        try {
+            prefsManager.setMultiAccountSegmented(enabled)
+        } catch (_: IOException) {
+            // commit() failed closed; the toggle stays at the persisted value and the other
+            // storage paths surface the restart message.
+            return
+        }
+        _uiState.update { it.copy(multiAccountSegmented = enabled) }
     }
 
     fun setNotificationsEnabled(enabled: Boolean) {
