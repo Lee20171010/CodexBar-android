@@ -5,6 +5,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -109,10 +113,16 @@ class MainActivity : ComponentActivity() {
                 // Each screen owns its system-bar insets (TopAppBar + its own Scaffold); a
                 // Scaffold here would pad the NavHost with the status-bar inset a second time.
                 // The snackbar therefore overlays directly with its own nav-bar/IME safety.
-                Box(Modifier.fillMaxSize()) {
+                // The opaque background replaces the Scaffold surface: the window theme is
+                // always Light, so a transparent container flashes bright during navigation.
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                     NavHost(
                         navController = navController,
-                        startDestination = "dashboard"
+                        startDestination = "dashboard",
+                        enterTransition = { EnterTransition.None },
+                        exitTransition = { ExitTransition.None },
+                        popEnterTransition = { EnterTransition.None },
+                        popExitTransition = { ExitTransition.None }
                     ) {
                         composable("dashboard") {
                             DashboardScreen(
