@@ -4,6 +4,14 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.9-beta-native
+
+### Fixed
+
+- Removed duplicate outer insets on the dashboard and settings screens.
+- Custom quota notification text now uses notification text appearances that
+  follow the system light/dark theme instead of fixed light-theme colors.
+
 ## 0.0.8-beta-native
 
 ### Added
