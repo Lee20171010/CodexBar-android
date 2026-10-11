@@ -5,9 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -17,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -100,13 +106,13 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHostState) }
-                ) { paddingValues ->
+                // Each screen owns its system-bar insets (TopAppBar + its own Scaffold); a
+                // Scaffold here would pad the NavHost with the status-bar inset a second time.
+                // The snackbar therefore overlays directly with its own nav-bar/IME safety.
+                Box(Modifier.fillMaxSize()) {
                     NavHost(
                         navController = navController,
-                        startDestination = "dashboard",
-                        modifier = Modifier.padding(paddingValues)
+                        startDestination = "dashboard"
                     ) {
                         composable("dashboard") {
                             DashboardScreen(
@@ -123,6 +129,11 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                    SnackbarHost(
+                        snackbarHostState,
+                        modifier = Modifier.align(Alignment.BottomCenter)
+                            .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                    )
                 }
             }
         }
