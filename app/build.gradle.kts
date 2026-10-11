@@ -15,8 +15,8 @@ android {
         applicationId = "com.codexbar.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.0.10-beta"
+        versionCode = 12
+        versionName = "0.0.11-beta"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "false")

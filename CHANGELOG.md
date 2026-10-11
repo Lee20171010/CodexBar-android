@@ -4,6 +4,13 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.11-beta-native
+
+### Fixed
+
+- Stable theme-aware navigation background with no fade during dashboard and
+  settings transitions.
+
 ## 0.0.10-beta-native
 
 ### Fixed
