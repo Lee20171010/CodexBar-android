@@ -4,6 +4,24 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.8-beta-native
+
+### Added
+
+- Segmented and stacked multi-account dashboard layouts with persistent display
+  selection, scoped refresh and safe fallback after account removal.
+- Detailed and compact overview layouts, global pace visibility, refresh-on-open
+  policy and independent provider-status checks.
+
+### Fixed
+
+- Pace uses provider window slots, reported durations and confidence metadata;
+  predictive alerts follow the supported Mac lanes and cycle rules.
+- Confirmed-reset notifications use boundary evidence, delayed Codex weekly
+  confirmation and persistent receipts instead of a simple usage-drop heuristic.
+- Reset receipts handle disabled notifications, late boundary metadata and legacy
+  migration without duplicate notices.
+
 ## 0.0.7-beta-native
 
 ### Changed
