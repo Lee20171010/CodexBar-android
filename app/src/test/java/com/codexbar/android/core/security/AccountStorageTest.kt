@@ -84,7 +84,8 @@ class AccountStorageTest {
           AiService.DEEPSEEK to { Credential.DeepSeekCredential(it) },
           AiService.COPILOT to { Credential.CopilotCredential(it) },
           AiService.VENICE to { Credential.VeniceCredential(it) },
-          AiService.AMP to { Credential.AmpCredential(it) })) {
+          AiService.AMP to { Credential.AmpCredential(it) },
+          AiService.ZAI to { Credential.ZaiCredential(it) })) {
         val memory = MemoryPreferences()
         val store = EncryptedPrefsManager(memory.prefs)
         val first = AccountConnection.create(service)

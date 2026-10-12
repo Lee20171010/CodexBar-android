@@ -60,8 +60,14 @@ enum class AiService(
         brandColor = 0xFFF34E3F,
         baseUrl = "https://ampcode.com/",
         requiresManualCredentials = true
+    ),
+    ZAI(
+        displayName = "z.ai / GLM",
+        brandColor = 0xFFE85A6A,
+        baseUrl = "https://api.z.ai/",
+        requiresManualCredentials = true
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

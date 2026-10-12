@@ -52,4 +52,8 @@ sealed class Credential {
     class AmpCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class ZaiCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }
