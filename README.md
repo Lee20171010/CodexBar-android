@@ -241,6 +241,7 @@ Native toolchain setup, Release packaging and signing are documented in [native/
 | [CHANGELOG.md](CHANGELOG.md) | Changes maintained in this fork |
 | [native/README.md](native/README.md) | Pinned native toolchain, packaging and build commands |
 | [docs/ui.md](docs/ui.md) | Mac UI/UX reference, implemented presentation and design targets |
+| [docs/providers.md](docs/providers.md) | Provider support matrix: sources, auth, regions, units, verification state |
 
 ## Acknowledgments
 
