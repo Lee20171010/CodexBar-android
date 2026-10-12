@@ -4,6 +4,28 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.12-beta-native
+
+### Added
+
+- Six native-CLI provider integrations (pinned CLI v0.71.0 unchanged): Venice
+  (API key, upstream-derived `Balance` percent), Amp (access token, `Amp`/`Orb`
+  extra quotas plus reported plan), Z.ai (personal coding plan, `5-Hour` and
+  `Weekly` windows), Factory (`Standard`/`Premium`/`Monthly` windows plus
+  reported provider cost as money), Alibaba Coding Plan (international,
+  reported plan) and Charm Hyper (balance-only HC provider credits — not fiat,
+  no reset windows). Thirteen selectable providers in
+  total; see [docs/providers.md](docs/providers.md) for the support matrix,
+  including which entries are synthetic-tested only and not yet device/live
+  verified.
+
+### Fixed
+
+- The persistent notification's expanded view aligns account columns with
+  weighted single-line label/value columns, concise status markers without
+  per-row age, and a header timer that counts only from the oldest trustworthy
+  measurement (`5a7e64f`).
+
 ## 0.0.11-beta-native
 
 ### Fixed
