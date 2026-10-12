@@ -48,4 +48,8 @@ sealed class Credential {
     class VeniceCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class AmpCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

@@ -54,8 +54,14 @@ enum class AiService(
         brandColor = 0xFF3C8FDD,
         baseUrl = "https://venice.ai/",
         requiresManualCredentials = true
+    ),
+    AMP(
+        displayName = "Amp",
+        brandColor = 0xFFF34E3F,
+        baseUrl = "https://ampcode.com/",
+        requiresManualCredentials = true
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

@@ -45,6 +45,7 @@ class NativeCodexBarClient @Inject constructor(
             AiService.OPENROUTER -> "openrouter" to "OPENROUTER_API_KEY"
             AiService.COPILOT -> "copilot" to "COPILOT_API_TOKEN"
             AiService.VENICE -> "venice" to "VENICE_API_KEY"
+            AiService.AMP -> "amp" to "AMP_API_KEY"
             AiService.CODEX -> if (codex != null) "codex" to "" else
                 return@withLock Result.Failure(AppError.ParseError("Codex requires an OAuth credential session."))
             else -> return@withLock Result.Failure(AppError.ParseError("Unsupported native API-key provider."))

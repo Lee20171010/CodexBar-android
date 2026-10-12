@@ -24,6 +24,7 @@ object NativeQuotaCliParser {
             AiService.OPENCODE_GO -> "opencodego"
             AiService.COPILOT -> "copilot"
             AiService.VENICE -> "venice"
+            AiService.AMP -> "amp"
             AiService.CODEX -> "codex"
             else -> error("Unsupported quota provider")
         }
@@ -44,7 +45,8 @@ object NativeQuotaCliParser {
                     message.contains("credentials are invalid or expired", ignoreCase = true) ||
                         (service == AiService.CODEX && message.contains("Codex OAuth token expired or invalid")) ||
                         (service == AiService.COPILOT && message.contains("NSURLErrorDomain") && Regex("-1013(?![0-9])").containsMatchIn(message)) ||
-                        (service == AiService.VENICE && message.contains("Venice API error: HTTP 401")) ->
+                        (service == AiService.VENICE && message.contains("Venice API error: HTTP 401")) ||
+                        (service == AiService.AMP && message.contains("Amp access token is invalid or expired")) ->
                         AppError.AuthError(service, isTerminal = true)
                     message.contains("HTTP 429") || message.contains("Codex API error 429") -> AppError.RateLimited
                     Regex("(?:HTTP |Codex API error )5[0-9]{2}").containsMatchIn(message) -> AppError.ServiceUnavailable
@@ -60,6 +62,7 @@ object NativeQuotaCliParser {
                 AiService.COPILOT -> listOf("primary" to "Premium", "secondary" to "Chat")
                 AiService.CODEX -> listOf("primary" to "Primary", "secondary" to "Secondary")
                 AiService.VENICE -> listOf("primary" to "Balance")
+                AiService.AMP -> listOf("primary" to "Amp", "secondary" to "Orb")
                 else -> listOf("primary" to "5-Hour", "secondary" to "Weekly", "tertiary" to "Monthly")
             }
             val windows = labels
@@ -83,9 +86,9 @@ object NativeQuotaCliParser {
                         slot = UsageWindowSlot.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
                     )
                 }.toMutableList()
-            if (service == AiService.CODEX) {
+            if (service == AiService.CODEX || service == AiService.AMP) {
                 usage["extraRateWindows"]?.takeUnless { it == JsonNull }?.jsonArray?.forEach { value ->
-                    // Optional model pools cannot invalidate a good principal quota response.
+                    // Optional named windows cannot invalidate a good principal quota response.
                     runCatching {
                         val named = value.jsonObject
                         if (named["usageKnown"]?.jsonPrimitive?.booleanOrNull == false) return@runCatching
@@ -103,7 +106,7 @@ object NativeQuotaCliParser {
                     }
                 }
             }
-            val plan = if (service == AiService.COPILOT || service == AiService.CODEX) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
+            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf { it.isNotBlank() && it.length <= 128 && it.none(Char::isISOControl) } else null
             require(windows.isNotEmpty() || (service == AiService.COPILOT && plan != null))
             Result.Success(QuotaInfo(
