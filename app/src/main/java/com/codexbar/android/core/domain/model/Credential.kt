@@ -56,4 +56,8 @@ sealed class Credential {
     class ZaiCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class FactoryCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

@@ -10,6 +10,7 @@ import com.codexbar.android.core.data.DeepSeekRepositoryImpl
 import com.codexbar.android.core.data.VeniceRepositoryImpl
 import com.codexbar.android.core.data.AmpRepositoryImpl
 import com.codexbar.android.core.data.ZaiRepositoryImpl
+import com.codexbar.android.core.data.FactoryRepositoryImpl
 import com.codexbar.android.core.network.deepseek.DeepSeekApiService
 import com.codexbar.android.core.nativecli.NativeCodexBarClient
 import com.codexbar.android.core.domain.repository.QuotaRepository
@@ -66,6 +67,10 @@ annotation class AmpRepository
 @Retention(AnnotationRetention.BINARY)
 annotation class ZaiRepository
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class FactoryRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
@@ -89,6 +94,11 @@ object RepositoryModule {
     @Singleton
     @ZaiRepository
     fun provideZaiRepository(client: NativeCodexBarClient): QuotaRepository = ZaiRepositoryImpl(client)
+
+    @Provides
+    @Singleton
+    @FactoryRepository
+    fun provideFactoryRepository(client: NativeCodexBarClient): QuotaRepository = FactoryRepositoryImpl(client)
 
     @Provides
     @Singleton

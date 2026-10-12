@@ -66,8 +66,14 @@ enum class AiService(
         brandColor = 0xFFE85A6A,
         baseUrl = "https://api.z.ai/",
         requiresManualCredentials = true
+    ),
+    FACTORY(
+        displayName = "Factory",
+        brandColor = 0xFFFF6B35,
+        baseUrl = "https://app.factory.ai/",
+        requiresManualCredentials = true
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

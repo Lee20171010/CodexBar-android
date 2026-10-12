@@ -3,6 +3,7 @@ package com.codexbar.android.core.nativecli
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
 import com.codexbar.android.core.domain.model.QuotaInfo
+import com.codexbar.android.core.domain.model.ReportedMoney
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.model.UsageDataConfidence
 import com.codexbar.android.core.domain.model.UsageWindow
@@ -26,6 +27,7 @@ object NativeQuotaCliParser {
             AiService.VENICE -> "venice"
             AiService.AMP -> "amp"
             AiService.ZAI -> "zai"
+            AiService.FACTORY -> "factory"
             AiService.CODEX -> "codex"
             else -> error("Unsupported quota provider")
         }
@@ -48,7 +50,8 @@ object NativeQuotaCliParser {
                         (service == AiService.COPILOT && message.contains("NSURLErrorDomain") && Regex("-1013(?![0-9])").containsMatchIn(message)) ||
                         (service == AiService.VENICE && message.contains("Venice API error: HTTP 401")) ||
                         (service == AiService.AMP && message.contains("Amp access token is invalid or expired")) ||
-                        (service == AiService.ZAI && message.contains("z.ai quota API error: HTTP 401")) ->
+                        (service == AiService.ZAI && message.contains("z.ai quota API error: HTTP 401")) ||
+                        (service == AiService.FACTORY && message.contains("Droid API authentication failed")) ->
                         AppError.AuthError(service, isTerminal = true)
                     message.contains("HTTP 429") || message.contains("Codex API error 429") -> AppError.RateLimited
                     Regex("(?:HTTP |Codex API error )5[0-9]{2}").containsMatchIn(message) -> AppError.ServiceUnavailable
@@ -66,6 +69,7 @@ object NativeQuotaCliParser {
                 AiService.VENICE -> listOf("primary" to "Balance")
                 AiService.AMP -> listOf("primary" to "Amp", "secondary" to "Orb")
                 AiService.ZAI -> listOf("primary" to "5-Hour", "secondary" to "Weekly")
+                AiService.FACTORY -> listOf("primary" to "Standard", "secondary" to "Premium", "tertiary" to "Monthly")
                 else -> listOf("primary" to "5-Hour", "secondary" to "Weekly", "tertiary" to "Monthly")
             }
             val windows = labels
@@ -76,7 +80,7 @@ object NativeQuotaCliParser {
                     require(percent != null && percent.isFinite() && percent >= 0)
                     val minutes = window["windowMinutes"]?.jsonPrimitive?.longOrNull?.takeIf { it in 1..525600 }
                     UsageWindow(
-                        label = if (service == AiService.CODEX) when (minutes) {
+                        label = if (service == AiService.CODEX || service == AiService.FACTORY) when (minutes) {
                             300L -> "5-Hour"
                             10080L -> "7-Day"
                             null -> label
@@ -89,7 +93,7 @@ object NativeQuotaCliParser {
                         slot = UsageWindowSlot.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
                     )
                 }.toMutableList()
-            if (service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI) {
+            if (service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY) {
                 usage["extraRateWindows"]?.takeUnless { it == JsonNull }?.jsonArray?.forEach { value ->
                     // Optional named windows cannot invalidate a good principal quota response.
                     runCatching {
@@ -109,15 +113,32 @@ object NativeQuotaCliParser {
                     }
                 }
             }
-            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
+            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf { it.isNotBlank() && it.length <= 128 && it.none(Char::isISOControl) } else null
             require(windows.isNotEmpty() || (service == AiService.COPILOT && plan != null))
+            val fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content)
+            // Factory's providerCost.used carries the remaining extra-usage balance in USD
+            // (upstream ProviderCostSnapshot(used: cents/100, limit: 0, period: "Extra usage balance")).
+            val money = if (service == AiService.FACTORY) usage["providerCost"]?.takeUnless { it == JsonNull }?.jsonObject?.let { cost ->
+                val used = cost["used"]?.jsonPrimitive?.doubleOrNull
+                require(used != null && used.isFinite() && used >= 0)
+                val period = cost["period"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull
+                require(period == null || (period.length <= 120 && period.none(Char::isISOControl)))
+                ReportedMoney(
+                    balance = used,
+                    spent = null,
+                    currency = cost["currencyCode"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull ?: "USD",
+                    period = period,
+                    fetchedAt = cost["updatedAt"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull?.let(Instant::parse) ?: fetchedAt
+                )
+            } else null
             Result.Success(QuotaInfo(
                 service = service,
                 windows = windows,
                 tier = plan,
                 extraUsage = null,
-                fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content),
+                fetchedAt = fetchedAt,
+                money = money,
                 source = if (service == AiService.CODEX) "native-oauth" else "native-api",
                 credits = if (service == AiService.CODEX) CodexReportedCredits.balance(envelope["credits"]) else null,
                 resetInventory = if (service == AiService.CODEX) CodexReportedCredits.inventory(usage["codexResetCredits"]) else null,

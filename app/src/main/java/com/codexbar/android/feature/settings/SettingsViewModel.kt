@@ -153,6 +153,7 @@ class SettingsViewModel @Inject constructor(
                 AiService.VENICE -> Credential.VeniceCredential(state.accessToken.trim())
                 AiService.AMP -> Credential.AmpCredential(state.accessToken.trim())
                 AiService.ZAI -> Credential.ZaiCredential(state.accessToken.trim())
+                AiService.FACTORY -> Credential.FactoryCredential(state.accessToken.trim())
                 AiService.CLAUDE -> Credential.ClaudeCredential(
                     state.accessToken.trim(), state.refreshToken.trim().ifBlank { null }
                 )
