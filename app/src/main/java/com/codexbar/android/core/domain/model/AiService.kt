@@ -78,8 +78,14 @@ enum class AiService(
         brandColor = 0xFFFF6A00,
         baseUrl = "https://modelstudio.console.alibabacloud.com/",
         requiresManualCredentials = true
+    ),
+    HYPER(
+        displayName = "Charm Hyper",
+        brandColor = 0xFFFF60FF,
+        baseUrl = "https://hyper.charm.land/",
+        requiresManualCredentials = true
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN || this == HYPER
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

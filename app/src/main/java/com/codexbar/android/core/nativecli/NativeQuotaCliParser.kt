@@ -30,6 +30,7 @@ object NativeQuotaCliParser {
             AiService.FACTORY -> "factory"
             // Envelope carries ProviderID rawValue, not the "alibaba-coding-plan" cliName.
             AiService.ALIBABA_CODING_PLAN -> "alibaba"
+            AiService.HYPER -> "hyper"
             AiService.CODEX -> "codex"
             else -> error("Unsupported quota provider")
         }
@@ -53,9 +54,12 @@ object NativeQuotaCliParser {
                         (service == AiService.VENICE && message.contains("Venice API error: HTTP 401")) ||
                         (service == AiService.AMP && message.contains("Amp access token is invalid or expired")) ||
                         (service == AiService.ZAI && message.contains("z.ai quota API error: HTTP 401")) ||
-                        (service == AiService.FACTORY && message.contains("Droid API authentication failed")) ->
+                        (service == AiService.FACTORY && message.contains("Droid API authentication failed")) ||
+                        (service == AiService.HYPER && (message.contains("Charm Hyper API key rejected") ||
+                            message.contains("cannot access credits"))) ->
                         AppError.AuthError(service, isTerminal = true)
-                    message.contains("HTTP 429") || message.contains("Codex API error 429") -> AppError.RateLimited
+                    message.contains("HTTP 429") || message.contains("Codex API error 429") ||
+                        (service == AiService.HYPER && message.contains("rate limited")) -> AppError.RateLimited
                     Regex("(?:HTTP |Codex API error )5[0-9]{2}").containsMatchIn(message) -> AppError.ServiceUnavailable
                     message.contains("No OpenCode Go subscription") ->
                         AppError.NetworkError("No active OpenCode Go subscription is available for this key.")
@@ -115,25 +119,42 @@ object NativeQuotaCliParser {
                     }
                 }
             }
-            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.ALIBABA_CODING_PLAN) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
+            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.ALIBABA_CODING_PLAN || service == AiService.HYPER) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf { it.isNotBlank() && it.length <= 128 && it.none(Char::isISOControl) } else null
-            require(windows.isNotEmpty() || (service == AiService.COPILOT && plan != null))
             val fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content)
             // Factory's providerCost.used carries the remaining extra-usage balance in USD
             // (upstream ProviderCostSnapshot(used: cents/100, limit: 0, period: "Extra usage balance")).
-            val money = if (service == AiService.FACTORY) usage["providerCost"]?.takeUnless { it == JsonNull }?.jsonObject?.let { cost ->
-                val used = cost["used"]?.jsonPrimitive?.doubleOrNull
-                require(used != null && used.isFinite() && used >= 0)
-                val period = cost["period"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull
-                require(period == null || (period.length <= 120 && period.none(Char::isISOControl)))
-                ReportedMoney(
-                    balance = used,
-                    spent = null,
-                    currency = cost["currencyCode"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull ?: "USD",
-                    period = period,
-                    fetchedAt = cost["updatedAt"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull?.let(Instant::parse) ?: fetchedAt
-                )
-            } else null
+            val money = when (service) {
+                AiService.FACTORY -> usage["providerCost"]?.takeUnless { it == JsonNull }?.jsonObject?.let { cost ->
+                    val used = cost["used"]?.jsonPrimitive?.doubleOrNull
+                    require(used != null && used.isFinite() && used >= 0)
+                    val period = cost["period"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull
+                    require(period == null || (period.length <= 120 && period.none(Char::isISOControl)))
+                    ReportedMoney(
+                        balance = used,
+                        spent = null,
+                        currency = cost["currencyCode"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull ?: "USD",
+                        period = period,
+                        fetchedAt = cost["updatedAt"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.contentOrNull?.let(Instant::parse) ?: fetchedAt
+                    )
+                }
+                // Charm Hyper is balance-only: hyper.js emits the raw number as usageValue on the
+                // details "Hypercredits"/"Balance" row (never parse the formatted display string).
+                // "HC" is the provider credit unit, not fiat — rendered verbatim, no conversion.
+                AiService.HYPER -> usage["details"]?.takeUnless { it == JsonNull }?.jsonArray?.firstNotNullOfOrNull { element ->
+                    val section = element.jsonObject
+                    if (section["title"]?.jsonPrimitive?.contentOrNull != "Hypercredits") return@firstNotNullOfOrNull null
+                    section["rows"]?.takeUnless { it == JsonNull }?.jsonArray
+                        ?.firstOrNull { it.jsonObject["label"]?.jsonPrimitive?.contentOrNull == "Balance" }
+                        ?.jsonObject?.get("usageValue")?.takeUnless { it == JsonNull }?.jsonPrimitive?.doubleOrNull
+                }?.let { balance ->
+                    require(balance.isFinite() && balance >= 0)
+                    ReportedMoney(balance = balance, spent = null, currency = "HC", period = null, fetchedAt = fetchedAt)
+                }
+                else -> null
+            }
+            require(windows.isNotEmpty() || (service == AiService.COPILOT && plan != null) ||
+                (service == AiService.HYPER && money != null))
             Result.Success(QuotaInfo(
                 service = service,
                 windows = windows,

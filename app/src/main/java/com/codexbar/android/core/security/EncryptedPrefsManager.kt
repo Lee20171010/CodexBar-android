@@ -103,6 +103,7 @@ class EncryptedPrefsManager internal constructor(
             is Credential.ZaiCredential -> AiService.ZAI
             is Credential.FactoryCredential -> AiService.FACTORY
             is Credential.AlibabaCodingPlanCredential -> AiService.ALIBABA_CODING_PLAN
+            is Credential.HyperCredential -> AiService.HYPER
         }
         require(owner == service) { "Credential provider mismatch" }
         require(credential.accessToken.isNotBlank()) { "Access token is required" }
@@ -143,6 +144,7 @@ class EncryptedPrefsManager internal constructor(
             is Credential.ZaiCredential -> Unit
             is Credential.FactoryCredential -> Unit
             is Credential.AlibabaCodingPlanCredential -> Unit
+            is Credential.HyperCredential -> Unit
         }
 
     }
@@ -166,6 +168,7 @@ class EncryptedPrefsManager internal constructor(
             AiService.ZAI -> Credential.ZaiCredential(accessToken)
             AiService.FACTORY -> Credential.FactoryCredential(accessToken)
             AiService.ALIBABA_CODING_PLAN -> Credential.AlibabaCodingPlanCredential(accessToken)
+            AiService.HYPER -> Credential.HyperCredential(accessToken)
             AiService.CLAUDE -> {
                 val refreshToken = prefs.getString("${prefix}_refresh_token", null)
                 val expiresAt = prefs.getLong("${prefix}_expires_at", -1L)

@@ -64,4 +64,8 @@ sealed class Credential {
     class AlibabaCodingPlanCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class HyperCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }
