@@ -51,6 +51,7 @@ class NativeCodexBarClient @Inject constructor(
             // CLI accepts the descriptor cliName; the envelope echoes ProviderID rawValue "alibaba".
             AiService.ALIBABA_CODING_PLAN -> "alibaba-coding-plan" to "ALIBABA_CODING_PLAN_API_KEY"
             AiService.HYPER -> "hyper" to "HYPER_API_KEY"
+            AiService.KIMI -> "kimi" to "KIMI_CODE_API_KEY"
             AiService.CODEX -> if (codex != null) "codex" to "" else
                 return@withLock Result.Failure(AppError.ParseError("Codex requires an OAuth credential session."))
             else -> return@withLock Result.Failure(AppError.ParseError("Unsupported native API-key provider."))

@@ -587,6 +587,7 @@ private fun ServiceCredentialSection(
                         service == AiService.FACTORY -> { { Text(stringResource(R.string.factory_key_help)) } }
                         service == AiService.ALIBABA_CODING_PLAN -> { { Text(stringResource(R.string.alibaba_key_help)) } }
                         service == AiService.ZAI -> { { Text(stringResource(R.string.zai_key_help)) } }
+                        service == AiService.KIMI -> { { Text(stringResource(R.string.kimi_key_help)) } }
                         service == AiService.AMP -> { { Text(stringResource(R.string.amp_key_help)) } }
                         service.usesApiKey -> {
                             { Text("Paste your ${service.displayName} API key. Stored encrypted; only the provider API is queried.") }
@@ -599,7 +600,8 @@ private fun ServiceCredentialSection(
                 )
                 service.keyPageUrl?.let { url ->
                     TextButton(onClick = { openExternal(url) }) {
-                        Text(stringResource(R.string.get_api_key))
+                        // Kimi's console page is linked for navigation; the exact key-issuing page is unverified.
+                        Text(stringResource(if (service == AiService.KIMI) R.string.open_console else R.string.get_api_key))
                     }
                 }
 

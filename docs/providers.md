@@ -31,6 +31,7 @@ Android sources.
 | Factory | native CLI | access token | not separately verified | `Standard`/`Premium`/`Monthly` % windows + reported provider cost as money (currency from payload, default USD) | synthetic CLI-parser tests only; device/live **not verified** |
 | Alibaba Coding Plan | native CLI | access token | international Coding Plan | % windows; plan from reported login method | synthetic CLI-parser tests only; device/live **not verified** |
 | Charm Hyper | native CLI | manual API key | not separately verified | balance-only: raw `Hypercredits`/`Balance` value rendered verbatim as HC provider credits — not fiat, no conversion, no reset windows | synthetic CLI-parser tests only; device/live **not verified** |
+| Kimi | native CLI | Kimi Code API key | China site only (kimi.com); international kimi.ai not supported | `7-Day` primary + `5-Hour` secondary % windows, `Total usage` supplemental monthly; plan from membership level; weekly reset alerts only (session lane not detected), no pace alerts | synthetic CLI-parser tests only; device/live **not verified** |
 
 ## Deferred and future sources
 

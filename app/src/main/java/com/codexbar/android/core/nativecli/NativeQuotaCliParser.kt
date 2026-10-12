@@ -31,6 +31,7 @@ object NativeQuotaCliParser {
             // Envelope carries ProviderID rawValue, not the "alibaba-coding-plan" cliName.
             AiService.ALIBABA_CODING_PLAN -> "alibaba"
             AiService.HYPER -> "hyper"
+            AiService.KIMI -> "kimi"
             AiService.CODEX -> "codex"
             else -> error("Unsupported quota provider")
         }
@@ -56,7 +57,8 @@ object NativeQuotaCliParser {
                         (service == AiService.ZAI && message.contains("z.ai quota API error: HTTP 401")) ||
                         (service == AiService.FACTORY && message.contains("Droid API authentication failed")) ||
                         (service == AiService.HYPER && (message.contains("Charm Hyper API key rejected") ||
-                            message.contains("cannot access credits"))) ->
+                            message.contains("cannot access credits"))) ||
+                        (service == AiService.KIMI && message.contains("Kimi Code API key is invalid or expired")) ->
                         AppError.AuthError(service, isTerminal = true)
                     message.contains("HTTP 429") || message.contains("Codex API error 429") ||
                         (service == AiService.HYPER && message.contains("rate limited")) -> AppError.RateLimited
@@ -75,6 +77,8 @@ object NativeQuotaCliParser {
                 AiService.VENICE -> listOf("primary" to "Balance")
                 AiService.AMP -> listOf("primary" to "Amp", "secondary" to "Orb")
                 AiService.ZAI -> listOf("primary" to "5-Hour", "secondary" to "Weekly")
+                // CLI maps weekly pool→primary, session pool→secondary; labels follow actual minutes below.
+                AiService.KIMI -> listOf("primary" to "Weekly", "secondary" to "5-Hour")
                 AiService.FACTORY -> listOf("primary" to "Standard", "secondary" to "Premium", "tertiary" to "Monthly")
                 else -> listOf("primary" to "5-Hour", "secondary" to "Weekly", "tertiary" to "Monthly")
             }
@@ -86,7 +90,7 @@ object NativeQuotaCliParser {
                     require(percent != null && percent.isFinite() && percent >= 0)
                     val minutes = window["windowMinutes"]?.jsonPrimitive?.longOrNull?.takeIf { it in 1..525600 }
                     UsageWindow(
-                        label = if (service == AiService.CODEX || service == AiService.FACTORY) when (minutes) {
+                        label = if (service == AiService.CODEX || service == AiService.FACTORY || service == AiService.KIMI) when (minutes) {
                             300L -> "5-Hour"
                             10080L -> "7-Day"
                             null -> label
@@ -99,7 +103,7 @@ object NativeQuotaCliParser {
                         slot = UsageWindowSlot.entries.firstOrNull { it.name.equals(name, ignoreCase = true) }
                     )
                 }.toMutableList()
-            if (service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY) {
+            if (service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.KIMI) {
                 usage["extraRateWindows"]?.takeUnless { it == JsonNull }?.jsonArray?.forEach { value ->
                     // Optional named windows cannot invalidate a good principal quota response.
                     runCatching {
@@ -119,7 +123,7 @@ object NativeQuotaCliParser {
                     }
                 }
             }
-            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.ALIBABA_CODING_PLAN || service == AiService.HYPER) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
+            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.ALIBABA_CODING_PLAN || service == AiService.HYPER || service == AiService.KIMI) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf { it.isNotBlank() && it.length <= 128 && it.none(Char::isISOControl) } else null
             val fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content)
             // Factory's providerCost.used carries the remaining extra-usage balance in USD

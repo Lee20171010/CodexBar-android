@@ -13,6 +13,7 @@ import com.codexbar.android.core.data.ZaiRepositoryImpl
 import com.codexbar.android.core.data.FactoryRepositoryImpl
 import com.codexbar.android.core.data.AlibabaCodingPlanRepositoryImpl
 import com.codexbar.android.core.data.HyperRepositoryImpl
+import com.codexbar.android.core.data.KimiRepositoryImpl
 import com.codexbar.android.core.network.deepseek.DeepSeekApiService
 import com.codexbar.android.core.nativecli.NativeCodexBarClient
 import com.codexbar.android.core.domain.repository.QuotaRepository
@@ -81,6 +82,10 @@ annotation class AlibabaCodingPlanRepository
 @Retention(AnnotationRetention.BINARY)
 annotation class HyperRepository
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class KimiRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
@@ -120,6 +125,11 @@ object RepositoryModule {
     @Singleton
     @HyperRepository
     fun provideHyperRepository(client: NativeCodexBarClient): QuotaRepository = HyperRepositoryImpl(client)
+
+    @Provides
+    @Singleton
+    @KimiRepository
+    fun provideKimiRepository(client: NativeCodexBarClient): QuotaRepository = KimiRepositoryImpl(client)
 
     @Provides
     @Singleton

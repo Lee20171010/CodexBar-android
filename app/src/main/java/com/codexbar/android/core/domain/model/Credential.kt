@@ -68,4 +68,8 @@ sealed class Credential {
     class HyperCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class KimiCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

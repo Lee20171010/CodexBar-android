@@ -39,6 +39,8 @@ class AiServiceKeyPageUrlTest {
             AiService.ALIBABA_CODING_PLAN.keyPageUrl
         )
         assertEquals("https://hyper.charm.land", AiService.HYPER.keyPageUrl)
+        // Kimi console is a navigation link only; the button label stays neutral ("Open console").
+        assertEquals("https://www.kimi.com/code/console", AiService.KIMI.keyPageUrl)
     }
 
     @Test

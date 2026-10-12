@@ -97,8 +97,18 @@ enum class AiService(
         baseUrl = "https://hyper.charm.land/",
         requiresManualCredentials = true,
         keyPageUrl = "https://hyper.charm.land"
+    ),
+    // China-site only: the CLI defaults to kimi.com/api.kimi.com and Android wires no region
+    // override, so international kimi.ai keys are not supported yet. Console page is linked
+    // for navigation only; the exact key-issuing page is unverified, hence the neutral label.
+    KIMI(
+        displayName = "Kimi",
+        brandColor = 0xFF6157FF,
+        baseUrl = "https://www.kimi.com/",
+        requiresManualCredentials = true,
+        keyPageUrl = "https://www.kimi.com/code/console"
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN || this == HYPER
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN || this == HYPER || this == KIMI
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

@@ -88,7 +88,8 @@ class AccountStorageTest {
           AiService.ZAI to { Credential.ZaiCredential(it) },
           AiService.FACTORY to { Credential.FactoryCredential(it) },
           AiService.ALIBABA_CODING_PLAN to { Credential.AlibabaCodingPlanCredential(it) },
-          AiService.HYPER to { Credential.HyperCredential(it) })) {
+          AiService.HYPER to { Credential.HyperCredential(it) },
+          AiService.KIMI to { Credential.KimiCredential(it) })) {
         val memory = MemoryPreferences()
         val store = EncryptedPrefsManager(memory.prefs)
         val first = AccountConnection.create(service)

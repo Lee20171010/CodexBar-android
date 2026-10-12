@@ -61,6 +61,8 @@
     <string name="alibaba_key_help">來自國際版 Model Studio Coding Plan 的 Coding Plan API 金鑰；不適用於隨用隨付金鑰。</string>
     <string name="zai_key_help">z.ai 全球個人 API 金鑰（GLM Coding Plan 或標準金鑰）；不適用於中國大陸 bigmodel.cn 金鑰。</string>
     <string name="amp_key_help">來自您 ampcode.com 帳號的 Amp 存取權杖。</string>
+    <string name="kimi_key_help">Kimi Code API 金鑰請取自中國版控制台（kimi.com）；目前不支援國際版 kimi.ai 金鑰。</string>
+    <string name="open_console">開啟控制台</string>
     <string name="unofficial_port">CodexBar 的非官方 Android 移植版，基於 Peter Steinberger 與 hyunnnchoi 的作品。獨立維護，未獲上游專案或服務供應商背書。</string>
     <string name="licenses_unavailable">無法載入授權條文。</string>
     <string name="widget_description">快速查看 AI 服務配額用量</string>

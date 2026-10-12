@@ -92,6 +92,8 @@
     <string name="alibaba_key_help">Coding Plan API key from the international Model Studio Coding Plan; pay-as-you-go keys are not accepted.</string>
     <string name="zai_key_help">Global z.ai personal API key (GLM Coding Plan or standard); mainland bigmodel.cn keys are not accepted.</string>
     <string name="amp_key_help">Amp access token from your ampcode.com account.</string>
+    <string name="kimi_key_help">Kimi Code API key from the China-site console (kimi.com). International kimi.ai keys are not supported yet.</string>
+    <string name="open_console">Open console</string>
     <string name="about_licenses">About &amp; licenses</string>
     <string name="unofficial_port">Unofficial Android port of CodexBar. Based on work by Peter Steinberger and hyunnnchoi. Independently maintained; not endorsed by upstream or service providers.</string>
     <string name="licenses_unavailable">License text could not be loaded.</string>

@@ -25,8 +25,13 @@ class AccountQuotaCoordinatorTest {
     private val repository = object : QuotaRepository {
         override suspend fun fetchQuota(session: CredentialSession) = fetch(session)
     }
-    private val coordinator = AccountQuotaCoordinator(repository, repository, repository, repository, repository, repository, repository, repository, repository, repository, repository, repository, repository,
-        prefs, cache, mock(QuotaNotificationService::class.java))
+    // Named args: adding a provider repository never shifts positional fixtures again.
+    private val coordinator = AccountQuotaCoordinator(
+        claude = repository, codex = repository, gemini = repository, go = repository,
+        openRouter = repository, copilot = repository, deepSeek = repository, venice = repository,
+        amp = repository, zai = repository, factory = repository, alibabaCodingPlan = repository,
+        hyper = repository, kimi = repository,
+        prefs = prefs, widgets = cache, notifications = mock(QuotaNotificationService::class.java))
 
     @Test fun `failed draft never replaces saved account or publishes draft rotations`() = runTest {
         val saved = save("first")
