@@ -55,6 +55,7 @@
     <string name="reconnect_required">Reconnect required</string>
     <string name="quota_unavailable">Quota unavailable</string>
     <string name="stale_measurement">Stale · %1$s</string>
+    <string name="stale_short">Stale</string>
     <string name="network_error">Network error</string>
     <string name="authentication_pending">Authentication pending</string>
     <string name="rate_limited">Rate limited · try again later</string>

@@ -61,6 +61,7 @@
     <string name="reconnect_required">需要重新連線</string>
     <string name="quota_unavailable">配額資料不可用</string>
     <string name="stale_measurement">資料已過期 · %1$s</string>
+    <string name="stale_short">資料已過期</string>
     <string name="network_error">網路錯誤</string>
     <string name="authentication_pending">等待認證</string>
     <string name="rate_limited">請求過於頻繁，請稍後重試</string>

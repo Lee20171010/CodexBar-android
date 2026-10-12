@@ -5,16 +5,20 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.view.View
+import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.codexbar.android.R
 import com.codexbar.android.core.domain.model.AccountConnection
+import com.codexbar.android.core.domain.model.QuotaInfo
+import com.codexbar.android.core.domain.model.balanceText
+import com.codexbar.android.core.presentation.Freshness
 import com.codexbar.android.core.presentation.QuotaSnapshot
 import com.codexbar.android.core.presentation.QuotaPresentation
 import com.codexbar.android.core.workmanager.QuotaRefreshWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -75,7 +79,9 @@ class QuotaNotificationService @Inject constructor(
             return
         }
         if (!manager.areNotificationsEnabled()) return
-        val lines = quotaSummaryLines(context, quotas)
+        val now = Instant.now()
+        val rows = notificationRows(context, quotas, now)
+        val (visible, overflow) = expandedRows(context, rows)
 
         // Refresh action
         val refreshIntent = Intent(context, RefreshReceiver::class.java).apply {
@@ -97,23 +103,47 @@ class QuotaNotificationService @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Standard system templates instead of a custom RemoteViews: OEM shades clip and
-        // re-theme custom views (collapsed second row lost, expanded content dropped).
-        val style = NotificationCompat.InboxStyle()
-        lines.forEach { style.addLine(it) }
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        // Collapsed stays the standard system template (title + text). The expanded
+        // area uses a decorated custom layout: DecoratedCustomViewStyle supplies the
+        // frame, header and theming, so the content rows adapt to light/dark shades.
+        // Decorated does NOT guarantee no clipping — device verification is required.
+        val big = RemoteViews(context.packageName, R.layout.notification_expanded)
+        val rowIds = listOf(R.id.row_1, R.id.row_2, R.id.row_3, R.id.row_4, R.id.row_5, R.id.row_6)
+        val labelIds = listOf(R.id.row_label_1, R.id.row_label_2, R.id.row_label_3, R.id.row_label_4, R.id.row_label_5, R.id.row_label_6)
+        val valueIds = listOf(R.id.row_value_1, R.id.row_value_2, R.id.row_value_3, R.id.row_value_4, R.id.row_value_5, R.id.row_value_6)
+        visible.forEachIndexed { i, row ->
+            big.setViewVisibility(rowIds[i], View.VISIBLE)
+            big.setTextViewText(labelIds[i], row.label)
+            big.setTextViewText(valueIds[i], row.value)
+        }
+        for (i in visible.size until MAX_EXPANDED_ROWS) big.setViewVisibility(rowIds[i], View.GONE)
+        if (overflow != null) {
+            big.setTextViewText(R.id.overflow_text, overflow)
+            big.setViewVisibility(R.id.overflow_text, View.VISIBLE)
+        } else {
+            big.setViewVisibility(R.id.overflow_text, View.GONE)
+        }
+
+        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setSmallIcon(R.drawable.ic_quota)
             .setContentTitle(context.getString(R.string.notification_status_title))
-            .setContentText(lines.first())
-            .setStyle(style)
+            .setContentText("${rows.first().label} · ${rows.first().value}")
+            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
+            .setCustomBigContentView(big)
             .setContentIntent(dashboardPendingIntent)
             .setOngoing(true)
             .setSilent(true)
             .addAction(R.drawable.ic_refresh, context.getString(R.string.refresh), refreshPendingIntent)
-            .build()
+        // The timer counts from the oldest trustworthy measurement (<= now); with only
+        // missing or future timestamps there is no honest start, so no timer at all.
+        // Rebuilds keep the same `when`: measurement time belongs to the reading, not
+        // to the render. Per-row stale/reconnect markers keep mixed data honest.
+        val oldest = oldestMeasurement(quotas, now)
+        if (oldest != null) builder.setWhen(oldest).setShowWhen(true).setUsesChronometer(true)
+        else builder.setShowWhen(false)
 
-        manager.notify(NOTIFICATION_ID, notification)
+        manager.notify(NOTIFICATION_ID, builder.build())
     }
 
     fun showResetNotification(connection: AccountConnection, windowLabel: String, remainingPercent: Int) {
@@ -174,23 +204,81 @@ class QuotaNotificationService @Inject constructor(
         manager.activeNotifications.filter { it.tag?.startsWith("${connection.id}:") == true }
             .forEach { manager.cancel(it.tag, it.id) }
     }
+}
 
-    private fun formatElapsed(fetchedAt: Instant?): String {
-        if (fetchedAt == null) return "just now"
-        val elapsed = Duration.between(fetchedAt, Instant.now())
-        return when {
-            elapsed.toMinutes() < 1 -> "just now"
-            elapsed.toMinutes() < 60 -> "${elapsed.toMinutes()} min ago"
-            else -> "${elapsed.toHours()}h ago"
+internal data class NotificationRow(val label: String, val value: String)
+
+// Expanded-area row cap: notification height adaptation for the shade, not Mac parity.
+internal const val MAX_EXPANDED_ROWS = 6
+
+// One row per connection. Label is the provider display name; duplicates are
+// disambiguated by account name, and any identical final label gets a
+// deterministic occurrence suffix.
+internal fun notificationRows(
+    context: Context,
+    quotas: List<Pair<AccountConnection, QuotaSnapshot>>,
+    now: Instant = Instant.now()
+): List<NotificationRow> {
+    val bases = quotas.map { it.first.service.displayName }
+    val counts = bases.groupingBy { it }.eachCount()
+    val raw = quotas.mapIndexed { i, (connection, _) ->
+        val base = bases[i]
+        if (counts.getValue(base) == 1 || connection.name == base) base else "$base (${connection.name})"
+    }
+    val dupes = raw.groupingBy { it }.eachCount()
+    val seen = HashMap<String, Int>()
+    val labels = raw.map { label ->
+        if (dupes.getValue(label) == 1) label
+        else {
+            val n = (seen[label] ?: 0) + 1
+            seen[label] = n
+            "$label #$n"
         }
+    }
+    return quotas.mapIndexed { i, (_, snapshot) ->
+        NotificationRow(labels[i], rowValue(context, snapshot, now))
     }
 }
 
-// One line per connection: "Name · 5-Hour 65% left · just now". The collapsed
-// notification shows the first line; the expanded InboxStyle shows every line.
-internal fun quotaSummaryLines(
-    context: Context,
-    quotas: List<Pair<AccountConnection, QuotaSnapshot>>
-): List<String> = quotas.map { (connection, snapshot) ->
-    "${connection.name} · ${QuotaPresentation.summary(context, snapshot)}"
-}
+// Fresh rows show the window value with no age suffix; stale rows keep a concise
+// marker (header owns age) and reconnect/unavailable rows their status, so old or
+// failed data never looks fresh.
+private fun rowValue(context: Context, snapshot: QuotaSnapshot, now: Instant): String =
+    when (snapshot.freshness(now)) {
+        Freshness.RECONNECT -> context.getString(R.string.reconnect_required)
+        Freshness.UNAVAILABLE -> context.getString(R.string.quota_unavailable)
+        Freshness.STALE -> {
+            // No age (header timer owns it); numeric limit stays before the marker and
+            // the value column ellipsizes from the start, keeping the marker visible.
+            val marker = context.getString(R.string.stale_short)
+            windowValue(context, snapshot.quota!!)?.let { "$it · $marker" } ?: marker
+        }
+        Freshness.CURRENT -> {
+            val quota = snapshot.quota!!
+            windowValue(context, quota)
+                ?: quota.money?.balanceText()
+                ?: context.getString(R.string.quota_unavailable)
+        }
+    }
+
+// Explicit highest-utilization principal window: the service has no
+// display-options wiring, so it does not claim to respect headline prefs.
+private fun windowValue(context: Context, quota: QuotaInfo): String? =
+    QuotaPresentation.principal(quota).maxByOrNull { it.utilization }?.let {
+        "${it.label} ${context.getString(R.string.percent_left, QuotaPresentation.remainingPercent(it.utilization))}"
+    }
+
+internal fun expandedRows(context: Context, rows: List<NotificationRow>): Pair<List<NotificationRow>, String?> =
+    if (rows.size <= MAX_EXPANDED_ROWS) rows to null
+    else rows.take(MAX_EXPANDED_ROWS) to
+        context.getString(R.string.widget_more_accounts, rows.size - MAX_EXPANDED_ROWS)
+
+// Oldest trustworthy measurement (<= now) in epoch millis; null when every reading
+// is missing or in the future, so the header timer is never started from bad data.
+internal fun oldestMeasurement(
+    quotas: List<Pair<AccountConnection, QuotaSnapshot>>,
+    now: Instant = Instant.now()
+): Long? = quotas
+    .mapNotNull { it.second.quota?.fetchedAt }
+    .filter { !it.isAfter(now) }
+    .minOrNull()?.toEpochMilli()
