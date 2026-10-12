@@ -28,6 +28,8 @@ object NativeQuotaCliParser {
             AiService.AMP -> "amp"
             AiService.ZAI -> "zai"
             AiService.FACTORY -> "factory"
+            // Envelope carries ProviderID rawValue, not the "alibaba-coding-plan" cliName.
+            AiService.ALIBABA_CODING_PLAN -> "alibaba"
             AiService.CODEX -> "codex"
             else -> error("Unsupported quota provider")
         }
@@ -113,7 +115,7 @@ object NativeQuotaCliParser {
                     }
                 }
             }
-            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
+            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.ALIBABA_CODING_PLAN) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf { it.isNotBlank() && it.length <= 128 && it.none(Char::isISOControl) } else null
             require(windows.isNotEmpty() || (service == AiService.COPILOT && plan != null))
             val fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content)

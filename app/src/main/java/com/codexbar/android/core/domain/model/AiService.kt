@@ -72,8 +72,14 @@ enum class AiService(
         brandColor = 0xFFFF6B35,
         baseUrl = "https://app.factory.ai/",
         requiresManualCredentials = true
+    ),
+    ALIBABA_CODING_PLAN(
+        displayName = "Alibaba",
+        brandColor = 0xFFFF6A00,
+        baseUrl = "https://modelstudio.console.alibabacloud.com/",
+        requiresManualCredentials = true
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

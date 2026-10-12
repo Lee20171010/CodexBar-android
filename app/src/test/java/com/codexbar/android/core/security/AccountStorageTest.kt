@@ -86,7 +86,8 @@ class AccountStorageTest {
           AiService.VENICE to { Credential.VeniceCredential(it) },
           AiService.AMP to { Credential.AmpCredential(it) },
           AiService.ZAI to { Credential.ZaiCredential(it) },
-          AiService.FACTORY to { Credential.FactoryCredential(it) })) {
+          AiService.FACTORY to { Credential.FactoryCredential(it) },
+          AiService.ALIBABA_CODING_PLAN to { Credential.AlibabaCodingPlanCredential(it) })) {
         val memory = MemoryPreferences()
         val store = EncryptedPrefsManager(memory.prefs)
         val first = AccountConnection.create(service)

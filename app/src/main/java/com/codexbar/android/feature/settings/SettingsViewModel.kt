@@ -154,6 +154,7 @@ class SettingsViewModel @Inject constructor(
                 AiService.AMP -> Credential.AmpCredential(state.accessToken.trim())
                 AiService.ZAI -> Credential.ZaiCredential(state.accessToken.trim())
                 AiService.FACTORY -> Credential.FactoryCredential(state.accessToken.trim())
+                AiService.ALIBABA_CODING_PLAN -> Credential.AlibabaCodingPlanCredential(state.accessToken.trim())
                 AiService.CLAUDE -> Credential.ClaudeCredential(
                     state.accessToken.trim(), state.refreshToken.trim().ifBlank { null }
                 )

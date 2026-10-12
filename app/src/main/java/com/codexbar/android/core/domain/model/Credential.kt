@@ -60,4 +60,8 @@ sealed class Credential {
     class FactoryCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class AlibabaCodingPlanCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }
