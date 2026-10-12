@@ -5,7 +5,10 @@ enum class AiService(
     val displayName: String,
     val brandColor: Long,
     val baseUrl: String,
-    val requiresManualCredentials: Boolean
+    val requiresManualCredentials: Boolean,
+    // Official page where this provider's credential is created. Null when no verified page
+    // exists for the credential this app actually accepts (OAuth tokens, PATs, uncertain pages).
+    val keyPageUrl: String? = null
 ) {
     CLAUDE(
         displayName = "Claude",
@@ -29,13 +32,15 @@ enum class AiService(
         displayName = "OpenCode Go",
         brandColor = 0xFF3B82F6,
         baseUrl = "https://opencode.ai/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://opencode.ai/auth"
     ),
     DEEPSEEK(
         displayName = "DeepSeek",
         brandColor = 0xFF4D6BFE,
         baseUrl = "https://api.deepseek.com/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://platform.deepseek.com/api_keys"
     ),
     COPILOT(
         displayName = "GitHub Copilot",
@@ -47,14 +52,17 @@ enum class AiService(
         displayName = "OpenRouter",
         brandColor = 0xFF6467F2,
         baseUrl = "https://openrouter.ai/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://openrouter.ai/keys"
     ),
     VENICE(
         displayName = "Venice",
         brandColor = 0xFF3C8FDD,
         baseUrl = "https://venice.ai/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://venice.ai/settings/api"
     ),
+    // Amp: no verified web key page upstream; guidance text only.
     AMP(
         displayName = "Amp",
         brandColor = 0xFFF34E3F,
@@ -65,25 +73,30 @@ enum class AiService(
         displayName = "z.ai / GLM",
         brandColor = 0xFFE85A6A,
         baseUrl = "https://api.z.ai/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://z.ai/manage-apikey"
     ),
     FACTORY(
         displayName = "Factory",
         brandColor = 0xFFFF6B35,
         baseUrl = "https://app.factory.ai/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://app.factory.ai/settings/api-keys"
     ),
+    // Coding Plan key comes from the Coding Plan console page, not the pay-as-you-go key page.
     ALIBABA_CODING_PLAN(
         displayName = "Alibaba",
         brandColor = 0xFFFF6A00,
         baseUrl = "https://modelstudio.console.alibabacloud.com/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://modelstudio.console.alibabacloud.com/ap-southeast-1/?tab=coding-plan#/efm/coding_plan"
     ),
     HYPER(
         displayName = "Charm Hyper",
         brandColor = 0xFFFF60FF,
         baseUrl = "https://hyper.charm.land/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://hyper.charm.land"
     );
 
     val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN || this == HYPER

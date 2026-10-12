@@ -462,7 +462,7 @@ private fun AccountsPage(
     val state = uiState.serviceStates[service] ?: ServiceCredentialState()
     if (state.connection == null) OutlinedButton(
         onClick = { viewModel.beginAdd(service) }, modifier = Modifier.fillMaxWidth()
-    ) { Text("Add ${service.displayName} account") }
+    ) { Text(stringResource(R.string.add_account, service.displayName)) }
     else ServiceCredentialSection(
         service = service,
         state = state,
@@ -504,7 +504,11 @@ private fun ServiceCredentialSection(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(if (state.previous == null) "New account" else "Reconnect ${state.previous.name}")
+            Text(
+                if (state.previous == null) stringResource(R.string.new_account)
+                else stringResource(R.string.reconnect_account, state.previous.name),
+                style = MaterialTheme.typography.bodyMedium
+            )
             OutlinedTextField(
                 value = state.name,
                 onValueChange = { onFieldChange("name", it) },
@@ -517,110 +521,152 @@ private fun ServiceCredentialSection(
             if (service == AiService.COPILOT && BuildConfig.COPILOT_CLIENT_ID.isEmpty()) {
                 Text(stringResource(R.string.copilot_registration_pending), style = MaterialTheme.typography.bodySmall)
             }
-            if (service == AiService.CODEX || (service == AiService.COPILOT && BuildConfig.COPILOT_CLIENT_ID.isNotEmpty())) {
+            val uriHandler = LocalUriHandler.current
+            val deviceFlowAvailable =
+                service == AiService.CODEX || (service == AiService.COPILOT && BuildConfig.COPILOT_CLIENT_ID.isNotEmpty())
+            // Reconnect drafts and drafts that already hold manual tokens start expanded.
+            var manualExpanded by rememberSaveable(service, state.connection?.id, state.previous?.id) {
+                mutableStateOf(
+                    state.previous != null || state.accessToken.isNotBlank() || state.refreshToken.isNotBlank()
+                )
+            }
+            // Any external link can fail with no browser; show the URL so sign-in/key creation can finish manually.
+            var externalUnavailableUrl by remember { mutableStateOf<String?>(null) }
+            val openExternal: (String) -> Unit = { url ->
+                externalUnavailableUrl = try {
+                    uriHandler.openUri(url)
+                    null
+                } catch (_: IllegalArgumentException) { url }
+            }
+            if (deviceFlowAvailable) {
                 val verificationUrl = if (service == AiService.CODEX) CodexDeviceAuth.VERIFICATION_URL else CopilotDeviceAuth.VERIFICATION_URL
-                val uriHandler = LocalUriHandler.current
-                var browserUnavailable by remember { mutableStateOf(false) }
                 OutlinedButton(onClick = onSignIn, enabled = !state.isValidating) {
-                    Text(if (service == AiService.CODEX) "Sign in with ChatGPT" else stringResource(R.string.sign_in_github))
+                    Text(if (service == AiService.CODEX) stringResource(R.string.sign_in_chatgpt) else stringResource(R.string.sign_in_github))
                 }
-                Text(if (service == AiService.CODEX) "Enable device-code sign-in in ChatGPT security settings if required. Authorize in your browser; this app never asks for your password."
+                Text(
+                    if (service == AiService.CODEX) stringResource(R.string.codex_device_help)
                     else stringResource(R.string.github_device_help),
-                    style = MaterialTheme.typography.bodySmall)
+                    style = MaterialTheme.typography.bodySmall
+                )
                 state.deviceUserCode?.let { code ->
-                    SelectionContainer { Text("Device code: $code", style = MaterialTheme.typography.titleMedium) }
-                    OutlinedButton(onClick = {
-                        browserUnavailable = try {
-                            uriHandler.openUri(verificationUrl)
-                            false
-                        } catch (_: IllegalArgumentException) { true }
-                    }) { Text("Open authorization page") }
-                    Text("Waiting for authorization. Cancel to stop.")
-                    if (browserUnavailable) Text("Open $verificationUrl in your browser.")
+                    SelectionContainer {
+                        Text(stringResource(R.string.device_code_label, code), style = MaterialTheme.typography.titleMedium)
+                    }
+                    OutlinedButton(onClick = { openExternal(verificationUrl) }) {
+                        Text(stringResource(R.string.open_authorization_page))
+                    }
+                    Text(stringResource(R.string.waiting_authorization))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Or enter existing tokens manually", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { manualExpanded = !manualExpanded }) {
+                    Text(stringResource(if (manualExpanded) R.string.hide_tokens_manually else R.string.enter_tokens_manually))
+                }
             }
 
-            OutlinedTextField(
-                value = state.accessToken,
-                onValueChange = { onFieldChange("accessToken", it) },
-                label = { Text(if (service == AiService.COPILOT) "GitHub OAuth token" else if (service.usesApiKey) "${service.displayName} API Key" else "Access Token") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                supportingText = if (service.usesApiKey) {
-                    { Text(if (service == AiService.COPILOT) "Use a GitHub OAuth token with Copilot access, not a short-lived Copilot session token. Stored encrypted. Enterprise hosts are not supported."
-                        else "Paste your ${service.displayName} API key. Stored encrypted; only the provider API is queried.") }
-                } else null,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (!service.usesApiKey) OutlinedTextField(
-                value = state.refreshToken,
-                onValueChange = { onFieldChange("refreshToken", it) },
-                label = { Text("Refresh Token") },
-                supportingText = if (service == AiService.CLAUDE) {
-                    { Text("Required for auto-refresh (tokens expire every 8h)") }
-                } else null,
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Service-specific fields
-            when (service) {
-                AiService.CODEX -> {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = state.accountId,
-                        onValueChange = { onFieldChange("accountId", it) },
-                        label = { Text("Account ID (optional)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+            if (!deviceFlowAvailable || manualExpanded) {
+                val tokenSource = when (service) {
+                    AiService.CLAUDE -> R.string.token_source_claude
+                    AiService.CODEX -> R.string.token_source_codex
+                    AiService.GEMINI -> R.string.token_source_gemini
+                    else -> null
                 }
-                AiService.GEMINI -> {
+                tokenSource?.let {
+                    Text(stringResource(it), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = state.oauthClientId,
-                        onValueChange = { onFieldChange("oauthClientId", it) },
-                        label = { Text("OAuth Client ID") },
-                        supportingText = { Text("From Google Cloud Console") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = state.oauthClientSecret,
-                        onValueChange = { onFieldChange("oauthClientSecret", it) },
-                        label = { Text("OAuth Client Secret") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-                    if (state.expiresAtDisplay.isNotBlank()) {
+                }
+                OutlinedTextField(
+                    value = state.accessToken,
+                    onValueChange = { onFieldChange("accessToken", it) },
+                    label = { Text(if (service == AiService.COPILOT) "GitHub OAuth token" else if (service.usesApiKey) "${service.displayName} API Key" else "Access Token") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    supportingText = when {
+                        service == AiService.COPILOT -> {
+                            { Text("Use a GitHub OAuth token with Copilot access, not a short-lived Copilot session token. Stored encrypted. Enterprise hosts are not supported.") }
+                        }
+                        service == AiService.FACTORY -> { { Text(stringResource(R.string.factory_key_help)) } }
+                        service == AiService.ALIBABA_CODING_PLAN -> { { Text(stringResource(R.string.alibaba_key_help)) } }
+                        service == AiService.ZAI -> { { Text(stringResource(R.string.zai_key_help)) } }
+                        service == AiService.AMP -> { { Text(stringResource(R.string.amp_key_help)) } }
+                        service.usesApiKey -> {
+                            { Text("Paste your ${service.displayName} API key. Stored encrypted; only the provider API is queried.") }
+                        }
+                        else -> null
+                    },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                service.keyPageUrl?.let { url ->
+                    TextButton(onClick = { openExternal(url) }) {
+                        Text(stringResource(R.string.get_api_key))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                if (!service.usesApiKey) OutlinedTextField(
+                    value = state.refreshToken,
+                    onValueChange = { onFieldChange("refreshToken", it) },
+                    label = { Text("Refresh Token") },
+                    supportingText = if (service == AiService.CLAUDE) {
+                        { Text(stringResource(R.string.claude_refresh_help)) }
+                    } else null,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+
+                // Service-specific fields
+                when (service) {
+                    AiService.CODEX -> {
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
-                            value = state.expiresAtDisplay,
-                            onValueChange = {},
-                            label = { Text("Token Expiry") },
+                            value = state.accountId,
+                            onValueChange = { onFieldChange("accountId", it) },
+                            label = { Text("Account ID (optional)") },
                             modifier = Modifier.fillMaxWidth(),
-                            readOnly = true,
-                            enabled = false,
                             singleLine = true
                         )
                     }
+                    AiService.GEMINI -> {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = state.oauthClientId,
+                            onValueChange = { onFieldChange("oauthClientId", it) },
+                            label = { Text("OAuth Client ID") },
+                            supportingText = { Text(stringResource(R.string.gemini_client_help)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = state.oauthClientSecret,
+                            onValueChange = { onFieldChange("oauthClientSecret", it) },
+                            label = { Text("OAuth Client Secret") },
+                            visualTransformation = PasswordVisualTransformation(),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        if (state.expiresAtDisplay.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = state.expiresAtDisplay,
+                                onValueChange = {},
+                                label = { Text("Token Expiry") },
+                                modifier = Modifier.fillMaxWidth(),
+                                readOnly = true,
+                                enabled = false,
+                                singleLine = true
+                            )
+                        }
+                    }
+                    else -> {} // Claude has no extra fields
                 }
-                else -> {} // Claude has no extra fields
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            // Validate button + result
-            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Validate button; the result below stays visible even when this area is collapsed.
                 OutlinedButton(
                     onClick = onValidate,
                     enabled = !state.isValidating && state.accessToken.isNotBlank()
@@ -629,26 +675,33 @@ private fun ServiceCredentialSection(
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    Text("Validate & save")
+                    Text(stringResource(R.string.validate_save))
                 }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
-                Spacer(modifier = Modifier.width(12.dp))
+            externalUnavailableUrl?.let { url ->
+                Text(stringResource(R.string.browser_unavailable, url), color = MaterialTheme.colorScheme.error)
+            }
 
-                when (state.validationResult) {
-                    is ValidationResult.Success -> {
+            when (state.validationResult) {
+                is ValidationResult.Success -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.CheckCircle,
-                            contentDescription = "Valid",
+                            contentDescription = null,
                             tint = Color(0xFF4CAF50),
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Valid", color = Color(0xFF4CAF50), style = MaterialTheme.typography.bodySmall)
+                        Text(stringResource(R.string.validation_valid), color = Color(0xFF4CAF50), style = MaterialTheme.typography.bodySmall)
                     }
-                    is ValidationResult.Failure -> {
+                }
+                is ValidationResult.Failure -> {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Default.Error,
-                            contentDescription = "Invalid",
+                            contentDescription = null,
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(20.dp)
                         )
@@ -660,10 +713,10 @@ private fun ServiceCredentialSection(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    null -> {}
                 }
+                null -> {}
             }
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.cancel_draft)) }
         }
     }
 }
