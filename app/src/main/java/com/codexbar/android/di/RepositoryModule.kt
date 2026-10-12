@@ -7,6 +7,7 @@ import com.codexbar.android.core.data.OpenCodeGoRepositoryImpl
 import com.codexbar.android.core.data.OpenRouterRepositoryImpl
 import com.codexbar.android.core.data.CopilotRepositoryImpl
 import com.codexbar.android.core.data.DeepSeekRepositoryImpl
+import com.codexbar.android.core.data.VeniceRepositoryImpl
 import com.codexbar.android.core.network.deepseek.DeepSeekApiService
 import com.codexbar.android.core.nativecli.NativeCodexBarClient
 import com.codexbar.android.core.domain.repository.QuotaRepository
@@ -51,6 +52,10 @@ annotation class CopilotRepository
 @Retention(AnnotationRetention.BINARY)
 annotation class DeepSeekRepository
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class VeniceRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
@@ -59,6 +64,11 @@ object RepositoryModule {
     @Singleton
     @DeepSeekRepository
     fun provideDeepSeekRepository(api: DeepSeekApiService): QuotaRepository = DeepSeekRepositoryImpl(api)
+
+    @Provides
+    @Singleton
+    @VeniceRepository
+    fun provideVeniceRepository(client: NativeCodexBarClient): QuotaRepository = VeniceRepositoryImpl(client)
 
     @Provides
     @Singleton

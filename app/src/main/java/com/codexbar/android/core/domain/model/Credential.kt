@@ -44,4 +44,8 @@ sealed class Credential {
     class DeepSeekCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class VeniceCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

@@ -23,6 +23,7 @@ object NativeQuotaCliParser {
         val provider = when (service) {
             AiService.OPENCODE_GO -> "opencodego"
             AiService.COPILOT -> "copilot"
+            AiService.VENICE -> "venice"
             AiService.CODEX -> "codex"
             else -> error("Unsupported quota provider")
         }
@@ -42,7 +43,8 @@ object NativeQuotaCliParser {
                 val mapped = when {
                     message.contains("credentials are invalid or expired", ignoreCase = true) ||
                         (service == AiService.CODEX && message.contains("Codex OAuth token expired or invalid")) ||
-                        (service == AiService.COPILOT && message.contains("NSURLErrorDomain") && Regex("-1013(?![0-9])").containsMatchIn(message)) ->
+                        (service == AiService.COPILOT && message.contains("NSURLErrorDomain") && Regex("-1013(?![0-9])").containsMatchIn(message)) ||
+                        (service == AiService.VENICE && message.contains("Venice API error: HTTP 401")) ->
                         AppError.AuthError(service, isTerminal = true)
                     message.contains("HTTP 429") || message.contains("Codex API error 429") -> AppError.RateLimited
                     Regex("(?:HTTP |Codex API error )5[0-9]{2}").containsMatchIn(message) -> AppError.ServiceUnavailable
@@ -57,6 +59,7 @@ object NativeQuotaCliParser {
             val labels = when (service) {
                 AiService.COPILOT -> listOf("primary" to "Premium", "secondary" to "Chat")
                 AiService.CODEX -> listOf("primary" to "Primary", "secondary" to "Secondary")
+                AiService.VENICE -> listOf("primary" to "Balance")
                 else -> listOf("primary" to "5-Hour", "secondary" to "Weekly", "tertiary" to "Monthly")
             }
             val windows = labels

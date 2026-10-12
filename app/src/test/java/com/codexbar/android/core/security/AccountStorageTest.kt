@@ -82,7 +82,8 @@ class AccountStorageTest {
       for ((service, create) in listOf<Pair<AiService, (String) -> Credential>>(
           AiService.OPENROUTER to { Credential.OpenRouterCredential(it) },
           AiService.DEEPSEEK to { Credential.DeepSeekCredential(it) },
-          AiService.COPILOT to { Credential.CopilotCredential(it) })) {
+          AiService.COPILOT to { Credential.CopilotCredential(it) },
+          AiService.VENICE to { Credential.VeniceCredential(it) })) {
         val memory = MemoryPreferences()
         val store = EncryptedPrefsManager(memory.prefs)
         val first = AccountConnection.create(service)

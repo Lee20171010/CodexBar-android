@@ -48,8 +48,14 @@ enum class AiService(
         brandColor = 0xFF6467F2,
         baseUrl = "https://openrouter.ai/",
         requiresManualCredentials = true
+    ),
+    VENICE(
+        displayName = "Venice",
+        brandColor = 0xFF3C8FDD,
+        baseUrl = "https://venice.ai/",
+        requiresManualCredentials = true
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }
