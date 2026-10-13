@@ -126,7 +126,7 @@ class QuotaNotificationService @Inject constructor(
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-            .setSmallIcon(R.drawable.ic_quota)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.notification_status_title))
             .setContentText("${rows.first().label} · ${rows.first().value}")
             .setStyle(NotificationCompat.DecoratedCustomViewStyle())
@@ -160,7 +160,7 @@ class QuotaNotificationService @Inject constructor(
         )
 
         val notification = NotificationCompat.Builder(context, RESET_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_quota)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(R.string.recovery_title, connection.name))
             .setContentText(context.getString(R.string.recovery_detail, windowLabel, remainingPercent))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -189,7 +189,7 @@ class QuotaNotificationService @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         val notification = NotificationCompat.Builder(context, WARNING_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_quota)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(context.getString(titleRes, connection.name))
             .setContentText(context.getString(R.string.alert_detail, windowLabel, remainingPercent))
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
