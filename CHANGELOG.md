@@ -4,6 +4,54 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.13-beta-native
+
+### Fixed
+
+- Persistent, recovery and warning notifications now use a monochrome silhouette
+  derived from the CodexBar launcher artwork instead of the generic quota chart.
+- Notification acceptance fixtures use valid account UUIDs and verify the actual
+  posted notification and small-icon resource through app-scoped diagnostics.
+
+### Verification
+
+- 256 JVM tests and debug lint passed. Signed ARM64 release builds passed.
+- Isolated acceptance notification checks passed in light and dark modes on the
+  API 36 emulator's ARM64 translation path. A separate test-only instrumentation
+  snapshot bypassed the shared runtime's UI idle timeout; the standard CLI
+  hierarchy dump remains unreliable there. Icon resource identity was checked;
+  visual appearance and physical ARM64 behavior remain unverified.
+- The final daily-package device check refused to replace an existing install;
+  its data was preserved. This is not a completed daily-package runtime check.
+
+### Added
+
+- Provider connection setup guidance: verified official key-page links for
+  eight API-key providers, provider-specific key-type help (Factory `fk-`,
+  Alibaba Coding Plan, z.ai regional keys, Amp), original-OAuth-client
+  wording for Gemini, collapsed manual token entry for device-flow providers
+  (reconnect and prefilled drafts stay expanded), and a visible URL fallback
+  when no browser can open an authorization or key page. Copilot intentionally
+  links no token page: the settings PAT page cannot issue the GitHub OAuth
+  token the flow requires.
+- Two native-CLI providers (pinned CLI unchanged): Kimi (Kimi Code API key,
+  China site only — international kimi.ai keys are not supported; `7-Day`
+  and `5-Hour` windows plus `Total usage` monthly supplement) and MiniMax
+  (Token Plan Subscription Key `sk-cp-` only — pay-as-you-go `sk-api-` keys
+  are rejected before any request; global region default with the upstream
+  single China-mainland retry on credential rejection, no region selection
+  in-app). Fifteen selectable providers in total.
+
+### Known limitations
+
+- Kimi and MiniMax are synthetic-tested only; device and live-account
+  behavior is **not verified** (see docs/providers.md).
+- Neither new provider has pace display or predictive pace alerts: the Mac
+  pace lanes cover Codex/Claude/OpenCode Go/Copilot only. Recovery alerts
+  apply only where lanes match (session: PRIMARY with explicit duration
+  ≤360 min; weekly: exactly one 604800 s window); MiniMax monthly windows
+  have no alert lane.
+
 ## 0.0.12-beta-native
 
 ### Added
