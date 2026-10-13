@@ -150,6 +150,15 @@ def verify_product_ui(run_id):
                 str(width // 2), str(height // 3), "350")
         raise RuntimeError(f"Missing product UI: {text}")
 
+    def find_contains(substring):
+        for _ in range(10):
+            nodes = [n for n in snapshot().iter("node") if substring in n.get("text", "")]
+            if nodes:
+                return nodes[0]
+            adb("shell", "input", "swipe", str(width // 2), str(height * 3 // 4),
+                str(width // 2), str(height // 3), "350")
+        raise RuntimeError(f"Missing product UI text: {substring}")
+
     def assert_selected(text):
         assert any(
             (n.get("checked") == "true" or n.get("selected") == "true") and
@@ -196,6 +205,63 @@ def verify_product_ui(run_id):
         tap(find("Codex"))
         tap(find("Add Codex account"))
         find("Sign in with ChatGPT")
+        # A new device-flow draft starts with manual token entry collapsed.
+        collapsed_texts = {n.get("text") for n in snapshot().iter("node")}
+        assert "Access Token" not in collapsed_texts and "Validate & save" not in collapsed_texts, \
+            "manual token entry should start collapsed"
+        tap(find("Enter existing tokens manually"))
+
+        def manual_field():
+            for _ in range(10):
+                fields = [n for n in snapshot().iter("node")
+                          if n.get("class") == "android.widget.EditText" and
+                          any(c.get("text") == "Access Token" for c in n.iter("node"))]
+                if fields:
+                    return fields[0]
+                adb("shell", "input", "swipe", str(width // 2), str(height * 3 // 4),
+                    str(width // 2), str(height // 2), "350")
+            raise RuntimeError("Access Token field missing after expanding manual entry")
+
+        field = manual_field()
+        assert field.get("password") == "true", "Access Token field must be masked"
+        synthetic_token = "synthetic-codex-token-not-real"
+        tap(field)
+        adb("shell", "input", "text", synthetic_token)
+        adb("shell", "input", "keyevent", "4")
+        find("Validate & save")
+
+        def find_up(text):
+            for _ in range(10):
+                nodes = [n for n in snapshot().iter("node") if n.get("text") == text]
+                if nodes:
+                    return nodes[0]
+                adb("shell", "input", "swipe", str(width // 2), str(height // 3),
+                    str(width // 2), str(height * 3 // 4), "350")
+            raise RuntimeError(f"Missing product UI above: {text}")
+
+        # Collapse then re-expand: the draft value survives; it is never printed here.
+        tap(find_up("Hide manual token entry"))
+        assert "Access Token" not in {n.get("text") for n in snapshot().iter("node")}, \
+            "manual entry stayed expanded"
+        tap(find("Enter existing tokens manually"))
+        value = manual_field().get("text", "")
+        # The dump exposes either the raw value or a dot mask; either way it must be the
+        # typed token, not the field label.
+        assert value == synthetic_token or (set(value) == {"•"} and len(value) == len(synthetic_token)), \
+            "synthetic token was not preserved across collapse/expand"
+        tap(find("Cancel"))
+        tree = snapshot()
+        assert any(n.get("text") == "Add Codex account" for n in tree.iter("node")), \
+            "cancelled draft did not return to the add-account state"
+        assert not any(n.get("text") in ("Reconnect", "Rename") for n in tree.iter("node")), \
+            "Cancelled draft was saved"
+        adb("shell", "input", "keyevent", "4")
+        # One API-key provider shows its official key-page link and provider-specific hint;
+        # neither is clicked, so no external site or network request is involved.
+        tap(find("Factory"))
+        tap(find("Add Factory account"))
+        find_contains("Factory API key (starts with fk-")
+        find("Get your API key")
         tap(find("Cancel"))
         adb("shell", "input", "keyevent", "4")
         tap(find("About"))
@@ -215,7 +281,7 @@ def verify_product_ui(run_id):
         adb("shell", "screencap", "-p", remote + ".png")
         adb("pull", remote + ".png", str(ROOT / "build/native/product-app-info.png"))
         adb("shell", "input", "keyevent", "4")
-        print("Product UI: dashboard, provider navigation, display/cadence persistence, Codex sign-in entry and offline attribution passed", flush=True)
+        print("Product UI: dashboard, provider navigation, display/cadence persistence, Codex sign-in entry, collapsed manual entry with masked persistence and no saved account, API-key provider link/hint, and offline attribution passed", flush=True)
         return True
     finally:
         adb("shell", "rm", "-f", remote + ".xml", remote + ".png", check=False)
@@ -294,6 +360,96 @@ def verify_quota_demo(run_id):
     finally:
         adb("shell", "am", "force-stop", PACKAGE, check=False)
         adb("shell", "rm", "-f", remote + ".xml", remote + ".png", check=False)
+
+
+def verify_notifications(run_id):
+    """Post the real persistent quota notification with two synthetic accounts; verify
+    activeNotification extras and expanded shade text in light and dark system modes."""
+    remote = f"/data/local/tmp/codexbar-notify-{run_id}"
+    names = ("Codex", "Claude")
+    night = re.search(r"mNightMode=(\d)", adb("shell", "dumpsys", "uimode").stdout)
+    modes = {"0": "auto", "1": "no", "2": "yes", "3": "custom"}
+    assert night and night.group(1) in modes, "Cannot safely restore original night mode"
+    original = modes[night.group(1)]
+
+    def shade_snapshot(name):
+        adb("shell", "cmd", "statusbar", "expand-notifications")
+        time.sleep(1)
+        # Preserve visual evidence even when animated System UI cannot become idle.
+        adb("shell", "screencap", "-p", remote + ".png")
+        adb("pull", remote + ".png", str(ROOT / f"build/native/notify-{name}.png"))
+        xml = dump_ui(remote + ".xml")
+        (ROOT / f"build/native/notify-{name}.xml").write_text(xml)
+        tree = ET.fromstring(xml)
+        text = " ".join(n.get("text", "") + " " + n.get("content-desc", "") for n in tree.iter("node"))
+        if not all(n in text for n in names):
+            expand = next((n for n in tree.iter("node")
+                           if (n.get("content-desc") or n.get("text", "")).strip().lower() == "expand"), None)
+            if expand is not None:
+                x1, y1, x2, y2 = map(int, re.findall(r"\d+", expand.attrib["bounds"]))
+                adb("shell", "input", "tap", str((x1 + x2) // 2), str((y1 + y2) // 2))
+                time.sleep(1)
+                xml = dump_ui(remote + ".xml")
+                (ROOT / f"build/native/notify-{name}.xml").write_text(xml)
+                tree = ET.fromstring(xml)
+                text = " ".join(n.get("text", "") + " " + n.get("content-desc", "") for n in tree.iter("node"))
+        assert all(n in text for n in names), f"Expanded shade must show both accounts: {name}"
+        adb("shell", "screencap", "-p", remote + ".png")
+        adb("pull", remote + ".png", str(ROOT / f"build/native/notify-{name}.png"))
+
+    try:
+        adb("shell", "pm", "grant", PACKAGE, "android.permission.POST_NOTIFICATIONS", check=False)
+        adb("shell", "am", "force-stop", PACKAGE)
+        start = adb("shell", "am", "start", "-W", "-n", f"{PACKAGE}/com.codexbar.android.NativeCliSmokeActivity",
+                    "--es", "run_id", run_id, "--ez", "ui_notify", "true")
+        assert "Error" not in start.stdout, f"Smoke activity launch failed: {start.stdout.strip()}"
+        # App-side proof: the fixture self-reports permission, channel importance and its own
+        # activeNotifications via logcat (acceptance APK is non-debuggable, so no run-as).
+        report = None
+        for _ in range(20):
+            line = next((entry for entry in adb("logcat", "-d", "-v", "raw", "-s",
+                                                "CodexBarNotify:I", "*:S", check=False).stdout.splitlines()
+                         if run_id in entry), None)
+            if line:
+                report = json.loads(line)
+                break
+            time.sleep(0.5)
+        assert report, "Notification fixture produced no report (activity did not run or crashed early)"
+        (ROOT / "build/native/notify-report.json").write_text(json.dumps(report, indent=2))
+        posted = report["outcome"] == "posted" and any(a["id"] == 1001 for a in report["active"])
+        assert posted, ("Persistent quota notification was not posted; app-side evidence: "
+                        f"permission={report['permissionGranted']} enabled={report['notificationsEnabled']} "
+                        f"channelImportance={report['channelImportance']} outcome={report['outcome']} "
+                        f"active={report['active']}")
+        icon = next(a.get("smallIcon") for a in report["active"] if a["id"] == 1001)
+        assert icon == f"{PACKAGE}:drawable/ic_notification", f"Wrong notification icon: {icon}"
+        # Best-effort parser cross-check (redacted dumpsys: no other apps' text). The app-side
+        # activeNotifications report is the source of truth; a miss here is a parser gap, not absence.
+        adb("shell", f"dumpsys notification > {remote}.txt")
+        local_dump = ROOT / "build/native/notification-dump.txt"
+        adb("pull", remote + ".txt", str(local_dump))
+        dump = local_dump.read_text()
+        local_dump.unlink()
+        record = next((block for block in dump.split("NotificationRecord")
+                       if PACKAGE in block and "id=1001 " in block), "")
+        if not record:
+            print("Note: dumpsys record match missed although the app proves the notification is "
+                  "active; the record parser needs review (not a posting failure)", flush=True)
+        extras_verified = all(n in record for n in names)
+        if record and not extras_verified:
+            print("Note: dumpsys record does not expose textLines text; shade assertion is the proof", flush=True)
+        for mode, night_mode in (("light", "no"), ("dark", "yes")):
+            adb("shell", "cmd", "uimode", "night", night_mode)
+            shade_snapshot(mode)
+        print(f"Notifications: app-side active + expanded shade (light + dark) passed; "
+              f"dumpsys-record={'match' if record else 'parser-miss'}, "
+              f"extras-visible-in-dumpsys={'yes' if extras_verified else 'no'}", flush=True)
+        return True
+    finally:
+        adb("shell", "cmd", "uimode", "night", original, check=False)
+        adb("shell", "cmd", "statusbar", "collapse", check=False)
+        adb("shell", "am", "force-stop", PACKAGE, check=False)
+        adb("shell", "rm", "-f", remote + ".xml", remote + ".png", remote + ".txt", check=False)
 
 
 def main():
@@ -397,6 +553,13 @@ def main():
                             report["quotaUiPassed"] = verify_quota_demo(run_id)
                         except Exception as error:
                             report["quotaUiPassed"] = False
+                            report["uiError"] = str(error)
+                            report["passed"] = False
+                    if args.ui_demo and report.get("passed"):
+                        try:
+                            report["notificationUiPassed"] = verify_notifications(run_id)
+                        except Exception as error:
+                            report["notificationUiPassed"] = False
                             report["uiError"] = str(error)
                             report["passed"] = False
                     report_path.parent.mkdir(parents=True, exist_ok=True)

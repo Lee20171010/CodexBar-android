@@ -6,6 +6,7 @@ import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.repository.CredentialSession
 import com.codexbar.android.di.NetworkModule
 
+import android.app.NotificationManager
 import android.os.Bundle
 import android.os.Process
 import android.content.Intent
@@ -24,7 +25,9 @@ import com.codexbar.android.core.nativecli.CliProcess
 import com.codexbar.android.core.nativecli.NativeCodexBarClient
 import com.codexbar.android.core.domain.model.AiService
 import com.codexbar.android.core.domain.model.AppError
+import com.codexbar.android.core.domain.model.QuotaInfo
 import com.codexbar.android.core.domain.model.Result
+import com.codexbar.android.core.domain.model.UsageWindow
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +48,57 @@ class NativeCliSmokeActivity : ComponentActivity() {
             if (intent.getBooleanExtra("ui_wide", false)) requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             setContent { QuotaDemo(intent.getBooleanExtra("ui_dark", false), intent.getBooleanExtra("ui_large", false),
                 intent.getBooleanExtra("ui_rich", false)) }
+            return
+        }
+        if (intent.getBooleanExtra("ui_notify", false)) {
+            // Fixed synthetic snapshots through the real QuotaNotificationService; no accounts, no network.
+            val now = java.time.Instant.parse("2026-10-08T12:00:00Z")
+            fun snapshot(service: AiService, id: String, name: String, used: Double) =
+                AccountConnection(id, service, name, "00000000-0000-0000-0000-000000000002") to
+                    com.codexbar.android.core.presentation.QuotaSnapshot(
+                        QuotaInfo(service, listOf(UsageWindow("5-Hour", used, now.plusSeconds(7200), "primary")),
+                            null, "Demo plan", now, source = "synthetic-demo"), now)
+            val manager = getSystemService(NotificationManager::class.java)
+            val outcome = try {
+                com.codexbar.android.core.notification.QuotaNotificationService(applicationContext)
+                    .showQuotaNotification(listOf(
+                        snapshot(AiService.CODEX, "00000000-0000-0000-0000-000000000010", "Synthetic Alpha", 0.42),
+                        snapshot(AiService.CLAUDE, "00000000-0000-0000-0000-000000000011", "Synthetic Beta", 0.66)))
+                "posted"
+            } catch (error: Exception) {
+                "threw ${error.javaClass.simpleName}: ${error.message}"
+            }
+            // activeNotifications exposes only this app's own notifications; poll briefly so a
+            // record that settles slightly after notify() is not misread as absent.
+            lifecycleScope.launch {
+            var active = manager.activeNotifications
+            var tries = 0
+            while (tries++ < 20 && active.none {
+                    it.id == com.codexbar.android.core.notification.QuotaNotificationService.NOTIFICATION_ID
+                }) {
+                kotlinx.coroutines.delay(250)
+                active = manager.activeNotifications
+            }
+            // Synthetic-only self-report; read back via logcat because the acceptance APK is
+            // non-debuggable (no run-as). Contains no credentials and no other app's data.
+            val report = JSONObject()
+                .put("runId", intent.getStringExtra("run_id") ?: "none")
+                .put("outcome", outcome)
+                .put("permissionGranted", checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED)
+                .put("notificationsEnabled", manager.areNotificationsEnabled())
+                .put("channelImportance", manager.getNotificationChannel(
+                    com.codexbar.android.core.notification.QuotaNotificationService.CHANNEL_ID)?.importance ?: -1)
+                .put("active", JSONArray(active.map { sbn ->
+                    val icon = sbn.notification.smallIcon
+                    JSONObject().put("id", sbn.id)
+                        .put("channelId", sbn.notification.channelId)
+                        .put("smallIcon", if (icon is android.graphics.drawable.Icon)
+                            runCatching { resources.getResourceName(icon.resId) }.getOrNull() else null)
+                }))
+            Log.i("CodexBarNotify", report.toString())
+            setContentView(TextView(this@NativeCliSmokeActivity).apply { text = "Synthetic quota notification: $outcome" })
+            }
             return
         }
         val status = TextView(this).apply {
