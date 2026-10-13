@@ -32,6 +32,7 @@ object NativeQuotaCliParser {
             AiService.ALIBABA_CODING_PLAN -> "alibaba"
             AiService.HYPER -> "hyper"
             AiService.KIMI -> "kimi"
+            AiService.MINIMAX -> "minimax"
             AiService.CODEX -> "codex"
             else -> error("Unsupported quota provider")
         }
@@ -79,6 +80,9 @@ object NativeQuotaCliParser {
                 AiService.ZAI -> listOf("primary" to "5-Hour", "secondary" to "Weekly")
                 // CLI maps weekly pool→primary, session pool→secondary; labels follow actual minutes below.
                 AiService.KIMI -> listOf("primary" to "Weekly", "secondary" to "5-Hour")
+                // MiniMax services are per-model; the envelope carries no slot names, so neutral
+                // slot labels stand unless actual minutes below identify the window.
+                AiService.MINIMAX -> listOf("primary" to "Primary", "secondary" to "Secondary", "tertiary" to "Tertiary")
                 AiService.FACTORY -> listOf("primary" to "Standard", "secondary" to "Premium", "tertiary" to "Monthly")
                 else -> listOf("primary" to "5-Hour", "secondary" to "Weekly", "tertiary" to "Monthly")
             }
@@ -90,9 +94,12 @@ object NativeQuotaCliParser {
                     require(percent != null && percent.isFinite() && percent >= 0)
                     val minutes = window["windowMinutes"]?.jsonPrimitive?.longOrNull?.takeIf { it in 1..525600 }
                     UsageWindow(
-                        label = if (service == AiService.CODEX || service == AiService.FACTORY || service == AiService.KIMI) when (minutes) {
+                        label = if (service == AiService.CODEX || service == AiService.FACTORY || service == AiService.KIMI || service == AiService.MINIMAX) when (minutes) {
                             300L -> "5-Hour"
                             10080L -> "7-Day"
+                            // MiniMax's monthly tertiary is a known upstream window; other
+                            // providers keep the honest raw-minutes label untouched.
+                            43200L -> if (service == AiService.MINIMAX) "Monthly" else "$minutes min"
                             null -> label
                             else -> "$minutes min"
                         } else label,
@@ -123,7 +130,7 @@ object NativeQuotaCliParser {
                     }
                 }
             }
-            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.ALIBABA_CODING_PLAN || service == AiService.HYPER || service == AiService.KIMI) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
+            val plan = if (service == AiService.COPILOT || service == AiService.CODEX || service == AiService.AMP || service == AiService.ZAI || service == AiService.FACTORY || service == AiService.ALIBABA_CODING_PLAN || service == AiService.HYPER || service == AiService.KIMI || service == AiService.MINIMAX) usage["loginMethod"]?.jsonPrimitive?.contentOrNull
                 ?.takeIf { it.isNotBlank() && it.length <= 128 && it.none(Char::isISOControl) } else null
             val fetchedAt = Instant.parse(usage.getValue("updatedAt").jsonPrimitive.content)
             // Factory's providerCost.used carries the remaining extra-usage balance in USD

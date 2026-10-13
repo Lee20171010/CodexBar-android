@@ -28,6 +28,7 @@ import com.codexbar.android.di.FactoryRepository
 import com.codexbar.android.di.AlibabaCodingPlanRepository
 import com.codexbar.android.di.HyperRepository
 import com.codexbar.android.di.KimiRepository
+import com.codexbar.android.di.MiniMaxRepository
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -58,6 +59,7 @@ class AccountQuotaCoordinator @Inject constructor(
     @AlibabaCodingPlanRepository alibabaCodingPlan: QuotaRepository,
     @HyperRepository hyper: QuotaRepository,
     @KimiRepository kimi: QuotaRepository,
+    @MiniMaxRepository minimax: QuotaRepository,
     private val prefs: EncryptedPrefsManager,
     private val widgets: WidgetPrefsManager,
     private val notifications: QuotaNotificationService
@@ -72,7 +74,8 @@ class AccountQuotaCoordinator @Inject constructor(
         AiService.FACTORY to factory,
         AiService.ALIBABA_CODING_PLAN to alibabaCodingPlan,
         AiService.HYPER to hyper,
-        AiService.KIMI to kimi
+        AiService.KIMI to kimi,
+        AiService.MINIMAX to minimax
     )
     // ponytail: retain one tiny mutex per seen ID until process exit; refcount if account churn grows.
     private val locks = ConcurrentHashMap<String, Mutex>()

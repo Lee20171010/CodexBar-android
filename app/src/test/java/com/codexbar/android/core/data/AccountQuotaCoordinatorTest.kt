@@ -30,7 +30,7 @@ class AccountQuotaCoordinatorTest {
         claude = repository, codex = repository, gemini = repository, go = repository,
         openRouter = repository, copilot = repository, deepSeek = repository, venice = repository,
         amp = repository, zai = repository, factory = repository, alibabaCodingPlan = repository,
-        hyper = repository, kimi = repository,
+        hyper = repository, kimi = repository, minimax = repository,
         prefs = prefs, widgets = cache, notifications = mock(QuotaNotificationService::class.java))
 
     @Test fun `failed draft never replaces saved account or publishes draft rotations`() = runTest {

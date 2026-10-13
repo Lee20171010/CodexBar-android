@@ -107,8 +107,20 @@ enum class AiService(
         baseUrl = "https://www.kimi.com/",
         requiresManualCredentials = true,
         keyPageUrl = "https://www.kimi.com/code/console"
+    ),
+    // Console root is linked for navigation only (exact key-issuing page unverified), hence the
+    // neutral "Open console" label. The native engine defaults to the global region and retries
+    // the China mainland host once on credential rejection (MiniMaxUsageFetcher.swift:101-139);
+    // Android exposes no region selection. Token Plan Subscription Keys (sk-cp-) only — the
+    // upstream .api strategy rejects pay-as-you-go sk-api- keys (MiniMaxProviderDescriptor.swift:161-166).
+    MINIMAX(
+        displayName = "MiniMax",
+        brandColor = 0xFFFE603C,
+        baseUrl = "https://platform.minimax.io/",
+        requiresManualCredentials = true,
+        keyPageUrl = "https://platform.minimax.io"
     );
 
-    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN || this == HYPER || this == KIMI
+    val usesNativeApiKey: Boolean get() = this == OPENCODE_GO || this == OPENROUTER || this == COPILOT || this == VENICE || this == AMP || this == ZAI || this == FACTORY || this == ALIBABA_CODING_PLAN || this == HYPER || this == KIMI || this == MINIMAX
     val usesApiKey: Boolean get() = usesNativeApiKey || this == DEEPSEEK
 }

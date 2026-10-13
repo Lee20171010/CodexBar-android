@@ -14,6 +14,7 @@ import com.codexbar.android.core.data.FactoryRepositoryImpl
 import com.codexbar.android.core.data.AlibabaCodingPlanRepositoryImpl
 import com.codexbar.android.core.data.HyperRepositoryImpl
 import com.codexbar.android.core.data.KimiRepositoryImpl
+import com.codexbar.android.core.data.MiniMaxRepositoryImpl
 import com.codexbar.android.core.network.deepseek.DeepSeekApiService
 import com.codexbar.android.core.nativecli.NativeCodexBarClient
 import com.codexbar.android.core.domain.repository.QuotaRepository
@@ -86,6 +87,10 @@ annotation class HyperRepository
 @Retention(AnnotationRetention.BINARY)
 annotation class KimiRepository
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class MiniMaxRepository
+
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
@@ -130,6 +135,11 @@ object RepositoryModule {
     @Singleton
     @KimiRepository
     fun provideKimiRepository(client: NativeCodexBarClient): QuotaRepository = KimiRepositoryImpl(client)
+
+    @Provides
+    @Singleton
+    @MiniMaxRepository
+    fun provideMiniMaxRepository(client: NativeCodexBarClient): QuotaRepository = MiniMaxRepositoryImpl(client)
 
     @Provides
     @Singleton

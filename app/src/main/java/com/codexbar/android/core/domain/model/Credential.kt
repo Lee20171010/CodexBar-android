@@ -72,4 +72,8 @@ sealed class Credential {
     class KimiCredential(override val accessToken: String) : Credential() {
         override val refreshToken: String? = null
     }
+
+    class MiniMaxCredential(override val accessToken: String) : Credential() {
+        override val refreshToken: String? = null
+    }
 }

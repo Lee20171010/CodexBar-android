@@ -41,6 +41,8 @@ class AiServiceKeyPageUrlTest {
         assertEquals("https://hyper.charm.land", AiService.HYPER.keyPageUrl)
         // Kimi console is a navigation link only; the button label stays neutral ("Open console").
         assertEquals("https://www.kimi.com/code/console", AiService.KIMI.keyPageUrl)
+        // MiniMax console root likewise — exact key-issuing page unverified.
+        assertEquals("https://platform.minimax.io", AiService.MINIMAX.keyPageUrl)
     }
 
     @Test
