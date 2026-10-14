@@ -4,6 +4,18 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.14-beta-native
+
+- Enable phone-only GitHub Copilot device sign-in with the public OAuth client
+  used by upstream CodexBar. Explain the Visual Studio Code consent identity
+  before authorization; an explicit empty build override still disables login.
+- Add the Amp account settings link and access-token guidance.
+- Clarify that Gemini setup reads CLI / Code Assist quota, not Gemini App usage,
+  and describe Google's consumer-service retirement and supported license scope.
+- Verification: 257 JVM tests, debug lint and native Kotlin compilation passed.
+  Real Copilot authorization and quota retrieval still require account acceptance.
+  Claude remains manual-credential setup; no new direct phone OAuth is claimed.
+
 ## 0.0.13-beta-native
 
 ### Fixed
