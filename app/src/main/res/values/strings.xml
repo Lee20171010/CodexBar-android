@@ -65,7 +65,8 @@
     <string name="over_quota">Reported usage exceeds this quota</string>
     <string name="reported_credits">Credits: %1$s %2$.2f / %3$.2f</string>
     <string name="measurement_source">Source: %1$s\nMeasured: %2$s</string>
-    <string name="copilot_registration_pending">GitHub device sign-in awaits this project’s OAuth App registration. Existing OAuth tokens can still be validated below.</string>
+    <string name="copilot_device_disabled">GitHub device sign-in is disabled in this build. Existing OAuth tokens can still be validated below.</string>
+    <string name="copilot_device_disclosure">GitHub’s authorization page will identify the app as Visual Studio Code — this app uses the same public sign-in client as the upstream CodexBar Mac app. Use the sign-in button to continue or cancel.</string>
     <string name="sign_in_github">Sign in with GitHub</string>
     <string name="github_device_help">Authorize in your browser. Copilot quota access is verified before saving this account.</string>
     <string name="sign_in_chatgpt">Sign in with ChatGPT</string>
@@ -91,7 +92,8 @@
     <string name="factory_key_help">Factory API key (starts with fk-). Regenerate it on the key page if authentication fails.</string>
     <string name="alibaba_key_help">Coding Plan API key from the international Model Studio Coding Plan; pay-as-you-go keys are not accepted.</string>
     <string name="zai_key_help">Global z.ai personal API key (GLM Coding Plan or standard); mainland bigmodel.cn keys are not accepted.</string>
-    <string name="amp_key_help">Amp access token from your ampcode.com account.</string>
+    <string name="amp_key_help">Amp access token from Security Settings in your ampcode.com account.</string>
+    <string name="gemini_path_help">This path reads Gemini CLI / Gemini Code Assist quota, not the Gemini app. Google retired consumer access (free, AI Pro, Ultra) from Gemini CLI on June 18, 2026; a supported organization license (Code Assist Standard or Enterprise) is required for this path. Paid Gemini API keys are billed separately and are not read here.</string>
     <string name="kimi_key_help">Kimi Code API key from the China-site console (kimi.com). International kimi.ai keys are not supported yet.</string>
     <string name="minimax_key_help">MiniMax Token Plan Subscription Key (sk-cp-) from the platform.minimax.io console; pay-as-you-go keys (sk-api-) are not supported.</string>
     <string name="open_console">Open console</string>

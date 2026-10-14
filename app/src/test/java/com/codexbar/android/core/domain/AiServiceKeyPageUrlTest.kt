@@ -21,8 +21,6 @@ class AiServiceKeyPageUrlTest {
         assertNull(AiService.GEMINI.keyPageUrl)
         // Copilot needs a GitHub OAuth token; github.com/settings/tokens would create a PAT instead.
         assertNull(AiService.COPILOT.keyPageUrl)
-        // Amp has no verified web key page upstream.
-        assertNull(AiService.AMP.keyPageUrl)
     }
 
     @Test
@@ -33,6 +31,7 @@ class AiServiceKeyPageUrlTest {
         assertEquals("https://venice.ai/settings/api", AiService.VENICE.keyPageUrl)
         assertEquals("https://z.ai/manage-apikey", AiService.ZAI.keyPageUrl)
         assertEquals("https://app.factory.ai/settings/api-keys", AiService.FACTORY.keyPageUrl)
+        assertEquals("https://ampcode.com/settings", AiService.AMP.keyPageUrl)
         // Coding Plan keys come from the Coding Plan console page, not the pay-as-you-go key page.
         assertEquals(
             "https://modelstudio.console.alibabacloud.com/ap-southeast-1/?tab=coding-plan#/efm/coding_plan",
@@ -64,7 +63,7 @@ class AiServiceKeyPageUrlTest {
 
     @Test
     fun `api-key providers are linked except the documented exclusions`() {
-        val exclusions = setOf(AiService.COPILOT, AiService.AMP)
+        val exclusions = setOf(AiService.COPILOT)
         for (service in AiService.entries.filter { it.usesApiKey }) {
             if (service in exclusions) assertNull(service.keyPageUrl)
             else assertTrue("missing key page for ${service.name}", service.keyPageUrl != null)

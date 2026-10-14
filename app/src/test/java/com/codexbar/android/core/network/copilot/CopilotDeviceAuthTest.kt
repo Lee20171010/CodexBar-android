@@ -40,6 +40,14 @@ class CopilotDeviceAuthTest {
         assertTrue(poll.body.readUtf8().contains("grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code"))
     }
 
+    @Test fun `empty client id disables device sign-in without network`() = runBlocking {
+        val disabled = CopilotDeviceAuth(NetworkModule.provideCodexTokenOkHttpClient(), "", server.url("/"))
+        val failure = runCatching { disabled.requestCode() }.exceptionOrNull()
+        assertTrue(failure is IOException)
+        assertEquals("GitHub device sign-in is disabled in this build.", failure!!.message)
+        assertEquals(0, server.requestCount)
+    }
+
     @Test fun `unregistered client untrusted verification URL denial and expiry fail closed`() = runBlocking {
         val unregistered = CopilotDeviceAuth(NetworkModule.provideCodexTokenOkHttpClient(), "", server.url("/"))
         assertTrue(runCatching { unregistered.requestCode() }.exceptionOrNull() is IOException)

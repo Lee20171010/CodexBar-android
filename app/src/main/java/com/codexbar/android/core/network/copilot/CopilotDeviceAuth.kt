@@ -14,7 +14,11 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 
-/** GitHub OAuth device flow, enabled only with this project's registered public client ID. */
+/**
+ * GitHub OAuth device flow. Defaults to the public client ID pinned by upstream CodexBar
+ * (the VS Code OAuth App, upstream-codexbar CopilotDeviceFlow.swift:9); overridable via
+ * COPILOT_OAUTH_CLIENT_ID at build time, empty value disables device sign-in.
+ */
 class CopilotDeviceAuth internal constructor(
     private val client: OkHttpClient,
     private val clientId: String,
@@ -31,7 +35,7 @@ class CopilotDeviceAuth internal constructor(
     )
 
     suspend fun requestCode(): Challenge {
-        if (!clientId.matches(Regex("[A-Za-z0-9._-]{1,128}"))) throw IOException("GitHub OAuth App registration is required.")
+        if (!clientId.matches(Regex("[A-Za-z0-9._-]{1,128}"))) throw IOException("GitHub device sign-in is disabled in this build.")
         val reply = post("login/device/code", "client_id" to clientId, "scope" to "read:user")
         if (reply.code != 200) failed()
         val body = reply.body

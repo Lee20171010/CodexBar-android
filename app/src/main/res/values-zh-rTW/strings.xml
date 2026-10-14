@@ -34,7 +34,8 @@
     <string name="status_maintenance">維護中</string>
     <string name="status_unknown">未知／無法取得</string>
     <string name="status_checked">狀態檢查：%1$s</string>
-    <string name="copilot_registration_pending">GitHub 裝置登入尚待本專案註冊 OAuth 應用程式。仍可在下方驗證既有 OAuth 權杖。</string>
+    <string name="copilot_device_disabled">此版本已停用 GitHub 裝置登入。仍可在下方驗證既有 OAuth 權杖。</string>
+    <string name="copilot_device_disclosure">GitHub 授權頁面會將應用程式顯示為 Visual Studio Code——本應用程式使用與上游 CodexBar Mac 版相同的公開登入用戶端。使用登入按鈕繼續或取消。</string>
     <string name="sign_in_github">使用 GitHub 登入</string>
     <string name="github_device_help">請在瀏覽器授權。儲存帳號前會驗證 Copilot 配額存取權限。</string>
     <string name="sign_in_chatgpt">使用 ChatGPT 登入</string>
@@ -60,7 +61,8 @@
     <string name="factory_key_help">Factory API 金鑰（以 fk- 開頭）。若驗證失敗，請在金鑰頁面重新產生。</string>
     <string name="alibaba_key_help">來自國際版 Model Studio Coding Plan 的 Coding Plan API 金鑰；不適用於隨用隨付金鑰。</string>
     <string name="zai_key_help">z.ai 全球個人 API 金鑰（GLM Coding Plan 或標準金鑰）；不適用於中國大陸 bigmodel.cn 金鑰。</string>
-    <string name="amp_key_help">來自您 ampcode.com 帳號的 Amp 存取權杖。</string>
+    <string name="amp_key_help">Amp 存取權杖請從 ampcode.com 帳號的 Security Settings 頁面取得。</string>
+    <string name="gemini_path_help">此管道讀取 Gemini CLI / Gemini Code Assist 的用量配額,而非 Gemini App。Google 已於 2026 年 6 月 18 日停止 Gemini CLI 對個人免費、AI Pro 與 Ultra 帳號的服務;此管道需要受支援的組織授權(Code Assist Standard 或 Enterprise)。付費 Gemini API 金鑰為另行計費,此處不會讀取。</string>
     <string name="kimi_key_help">Kimi Code API 金鑰請取自中國版控制台（kimi.com）；目前不支援國際版 kimi.ai 金鑰。</string>
     <string name="minimax_key_help">MiniMax Token Plan 訂閱金鑰（sk-cp-）請取自 platform.minimax.io 控制台；不支援按量計費金鑰（sk-api-）。</string>
     <string name="open_console">開啟控制台</string>

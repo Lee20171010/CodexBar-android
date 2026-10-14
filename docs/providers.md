@@ -1,9 +1,9 @@
 # Provider Support Matrix
 
-Android currently offers thirteen selectable providers: the seven shipped before
-0.0.12 plus six native-CLI integrations added in this cycle. Sources are split:
+Android currently offers fifteen selectable providers: the seven shipped before
+0.0.12 plus eight native-CLI integrations added since. Sources are split:
 Claude, Codex, Gemini and DeepSeek use Kotlin HTTP implementations; the
-remaining nine use the pinned native CLI (`steipete/CodexBar` v0.71.0,
+remaining eleven use the pinned native CLI (`steipete/CodexBar` v0.71.0,
 unchanged in this release; see [native/README.md](../native/README.md)). Codex
 additionally uses the native CLI when it is enabled on API 28+; native-only
 providers require API 28+.

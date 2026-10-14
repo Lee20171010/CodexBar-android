@@ -519,7 +519,7 @@ private fun ServiceCredentialSection(
             Spacer(modifier = Modifier.height(8.dp))
 
             if (service == AiService.COPILOT && BuildConfig.COPILOT_CLIENT_ID.isEmpty()) {
-                Text(stringResource(R.string.copilot_registration_pending), style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.copilot_device_disabled), style = MaterialTheme.typography.bodySmall)
             }
             val uriHandler = LocalUriHandler.current
             val deviceFlowAvailable =
@@ -539,6 +539,10 @@ private fun ServiceCredentialSection(
                 } catch (_: IllegalArgumentException) { url }
             }
             if (deviceFlowAvailable) {
+                if (service == AiService.COPILOT && BuildConfig.COPILOT_CLIENT_ID == "Iv1.b507a08c87ecfe98") {
+                    Text(stringResource(R.string.copilot_device_disclosure), style = MaterialTheme.typography.bodySmall)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
                 val verificationUrl = if (service == AiService.CODEX) CodexDeviceAuth.VERIFICATION_URL else CopilotDeviceAuth.VERIFICATION_URL
                 OutlinedButton(onClick = onSignIn, enabled = !state.isValidating) {
                     Text(if (service == AiService.CODEX) stringResource(R.string.sign_in_chatgpt) else stringResource(R.string.sign_in_github))
@@ -590,6 +594,7 @@ private fun ServiceCredentialSection(
                         service == AiService.KIMI -> { { Text(stringResource(R.string.kimi_key_help)) } }
                         service == AiService.MINIMAX -> { { Text(stringResource(R.string.minimax_key_help)) } }
                         service == AiService.AMP -> { { Text(stringResource(R.string.amp_key_help)) } }
+                        service == AiService.GEMINI -> { { Text(stringResource(R.string.gemini_path_help)) } }
                         service.usesApiKey -> {
                             { Text("Paste your ${service.displayName} API key. Stored encrypted; only the provider API is queried.") }
                         }

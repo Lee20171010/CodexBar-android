@@ -67,7 +67,8 @@ enum class AiService(
         displayName = "Amp",
         brandColor = 0xFFF34E3F,
         baseUrl = "https://ampcode.com/",
-        requiresManualCredentials = true
+        requiresManualCredentials = true,
+        keyPageUrl = "https://ampcode.com/settings"
     ),
     ZAI(
         displayName = "z.ai / GLM",
