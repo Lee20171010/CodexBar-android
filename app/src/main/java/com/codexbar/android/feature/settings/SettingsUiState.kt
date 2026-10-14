@@ -9,6 +9,7 @@ data class SettingsUiState(
         ServiceCredentialState()
     },
     val refreshIntervalMinutes: Long = 30L,
+    val showBatteryOffer: Boolean = false,
     val refreshOnOpen: Boolean = false,
     val multiAccountSegmented: Boolean = true,
     val statusChecksEnabled: Boolean = true,

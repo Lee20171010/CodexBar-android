@@ -241,6 +241,13 @@ class EncryptedPrefsManager internal constructor(
         prefs.edit().putBoolean("refresh_on_open", enabled).apply()
     }
 
+    /** True once the one-time battery-exemption offer has been shown. */
+    fun isBatteryOfferShown(): Boolean = prefs.getBoolean("battery_offer_shown", false)
+
+    fun setBatteryOfferShown(shown: Boolean) {
+        prefs.edit().putBoolean("battery_offer_shown", shown).apply()
+    }
+
     fun isNotificationsEnabled(): Boolean {
         return prefs.getBoolean("notifications_enabled", true)
     }

@@ -91,6 +91,7 @@ import com.codexbar.android.core.domain.model.AccountConnection
 import com.codexbar.android.BuildConfig
 import com.codexbar.android.R
 import com.codexbar.android.core.network.codex.CodexDeviceAuth
+import com.codexbar.android.core.util.BatteryOptimizationHelper
 import com.codexbar.android.core.network.copilot.CopilotDeviceAuth
 
 private enum class SettingsPage(val titleRes: Int) {
@@ -332,6 +333,10 @@ private fun SettingsPageContent(
                 RefreshIntervalSection(
                     currentMinutes = uiState.refreshIntervalMinutes,
                     onIntervalChange = { viewModel.setRefreshInterval(it) }
+                )
+                BatterySections(
+                    showOffer = uiState.showBatteryOffer,
+                    onDismissOffer = { viewModel.dismissBatteryOffer() }
                 )
                 ToggleSection(
                     title = stringResource(R.string.status_checks_setting),
@@ -1002,6 +1007,77 @@ private fun PrefsSwitchRow(checked: Boolean, title: String, summary: String, onT
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = onToggle)
+    }
+}
+
+/**
+ * One-time battery-exemption offer (shown by the ViewModel only on a manual/disabled ->
+ * enabled refresh change) plus a permanent entry to the same system settings.
+ * Exemption is optional: scheduling happens regardless of the choice.
+ */
+@Composable
+private fun BatterySections(
+    showOffer: Boolean,
+    onDismissOffer: () -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    ) { }
+    val openBatterySettings: () -> Unit = {
+        try {
+            launcher.launch(BatteryOptimizationHelper.requestIgnoreBatteryOptimizationsIntent(context))
+        } catch (_: Exception) {
+            try {
+                launcher.launch(BatteryOptimizationHelper.openBatteryOptimizationSettingsIntent())
+            } catch (_: Exception) {
+                // Device exposes no battery optimization settings; nothing to open.
+            }
+        }
+    }
+    if (showOffer) {
+        AlertDialog(
+            onDismissRequest = onDismissOffer,
+            title = { Text(stringResource(R.string.battery_offer_title)) },
+            text = { Text(stringResource(R.string.battery_offer_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    openBatterySettings()
+                    onDismissOffer()
+                }) { Text(stringResource(R.string.battery_offer_open)) }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissOffer) { Text(stringResource(R.string.not_now)) }
+            }
+        )
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.battery_settings_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = stringResource(R.string.battery_settings_summary),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(onClick = openBatterySettings) {
+                Text(stringResource(R.string.battery_offer_open))
+            }
+        }
     }
 }
 

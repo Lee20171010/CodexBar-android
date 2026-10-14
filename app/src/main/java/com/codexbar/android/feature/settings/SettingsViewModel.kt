@@ -11,6 +11,8 @@ import com.codexbar.android.core.domain.model.Credential
 import com.codexbar.android.core.domain.model.Result
 import com.codexbar.android.core.domain.repository.StaleCredentialException
 import com.codexbar.android.core.security.EncryptedPrefsManager
+import com.codexbar.android.core.util.BatteryOptimizationHelper
+import com.codexbar.android.core.workmanager.WorkManagerInitializer
 import com.codexbar.android.core.widget.updateQuotaSurfaces
 import com.codexbar.android.core.network.codex.CodexDeviceAuth
 import com.codexbar.android.core.network.copilot.CopilotDeviceAuth
@@ -51,6 +53,15 @@ class SettingsViewModel @Inject constructor(
     ))
     val uiState = _uiState.asStateFlow()
     private val validationJobs = mutableMapOf<AiService, Job>()
+
+    companion object {
+        /**
+         * Offer the optional battery exemption only when the user turns background updates on
+         * (manual/disabled -> enabled), never at startup or on default restore, and only once.
+         */
+        fun shouldOfferBattery(minutes: Long, previousMinutes: Long, offerShown: Boolean, exempt: Boolean): Boolean =
+            previousMinutes <= 0 && minutes > 0 && !offerShown && !exempt
+    }
 
     init {
         viewModelScope.launch {
@@ -210,9 +221,22 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setRefreshInterval(minutes: Long) {
+        val previous = _uiState.value.refreshIntervalMinutes
         prefsManager.setRefreshInterval(minutes)
-        com.codexbar.android.core.workmanager.WorkManagerInitializer.schedulePeriodicRefresh(context, minutes)
-        _uiState.update { it.copy(refreshIntervalMinutes = minutes) }
+        // Scheduling is independent of the battery exemption below.
+        WorkManagerInitializer.schedulePeriodicRefresh(context, minutes)
+        val offer = shouldOfferBattery(
+            minutes = minutes,
+            previousMinutes = previous,
+            offerShown = prefsManager.isBatteryOfferShown(),
+            exempt = BatteryOptimizationHelper.isIgnoringBatteryOptimizations(context),
+        )
+        if (offer) prefsManager.setBatteryOfferShown(true)
+        _uiState.update { it.copy(refreshIntervalMinutes = minutes, showBatteryOffer = offer) }
+    }
+
+    fun dismissBatteryOffer() {
+        _uiState.update { it.copy(showBatteryOffer = false) }
     }
 
     fun setStatusChecksEnabled(enabled: Boolean) {

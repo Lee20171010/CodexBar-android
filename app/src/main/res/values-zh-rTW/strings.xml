@@ -28,6 +28,12 @@
     <string name="status_checks_setting_summary">輪詢 OpenAI、Claude 與 GitHub 官方狀態頁面，並在卡片與詳情中顯示服務異常。關閉後會隱藏狀態並停止輪詢；額度更新不受影響。</string>
     <string name="refresh_on_open_title">開啟儀表板時重新整理</string>
     <string name="refresh_on_open_summary">每次開啟儀表板時取得所有帳戶的最新用量。</string>
+    <string name="battery_offer_title">改善背景重新整理</string>
+    <string name="battery_offer_text">選用：將此應用程式排除於電池最佳化之外，可能讓背景重新整理更貼近排程執行。這不是必要步驟，且不保證重新整理時間。</string>
+    <string name="battery_offer_open">開啟設定</string>
+    <string name="not_now">稍後再說</string>
+    <string name="battery_settings_title">電池最佳化</string>
+    <string name="battery_settings_summary">選用。排除此應用程式可能改善背景重新整理的可靠性；不保證執行時間。</string>
     <string name="official_status">官方服務狀態：%1$s</string>
     <string name="status_operational">正常運作</string>
     <string name="status_incident">已通報事故</string>

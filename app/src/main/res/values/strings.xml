@@ -28,6 +28,12 @@
     <string name="status_checks_setting_summary">Polls official OpenAI, Claude and GitHub status pages and shows incidents on cards and details. Turning this off hides status and stops polling; usage refresh is unaffected.</string>
     <string name="refresh_on_open_title">Refresh when the dashboard opens</string>
     <string name="refresh_on_open_summary">Fetch the latest usage for every account each time the dashboard opens.</string>
+    <string name="battery_offer_title">Improve background refresh</string>
+    <string name="battery_offer_text">Optional: exempting this app from battery optimization may help background refresh run closer to its schedule. It is not required, and refresh timing is never guaranteed.</string>
+    <string name="battery_offer_open">Open settings</string>
+    <string name="not_now">Not now</string>
+    <string name="battery_settings_title">Battery optimization</string>
+    <string name="battery_settings_summary">Optional. Exempting this app may improve background refresh reliability; timing is not guaranteed.</string>
     <string name="official_status">Official service status: %1$s</string>
     <string name="status_operational">Operational</string>
     <string name="status_incident">Incident reported</string>
