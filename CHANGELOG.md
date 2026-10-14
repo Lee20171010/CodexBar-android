@@ -4,6 +4,18 @@ Changes maintained in this unofficial Android port. The Android source baseline
 is `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`, separate from the pinned Swift
 Core/CLI revision. Artifact delivery does not imply a public GitHub release.
 
+## 0.0.15-beta-native
+
+- Remove the battery optimization prompt at startup. Offer optional exemption
+  once when switching from manual to periodic refresh, with a Not now action.
+- Keep a battery settings entry under General. Background scheduling remains
+  independent of battery exemption.
+- Verification: 263 JVM tests, debug lint and native Kotlin compilation passed.
+- The signed ARM64 Release APK passed battery-flow UI checks on the shared API 36
+  emulator (x86_64 with ARM64 translation): no startup prompt, optional first offer,
+  dismissal, repeated enable, process restart and the system settings entry.
+  This is not a physical ARM64 or background-timing guarantee.
+
 ## 0.0.14-beta-native
 
 - Enable phone-only GitHub Copilot device sign-in with the public OAuth client
