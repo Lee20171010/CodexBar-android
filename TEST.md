@@ -1,29 +1,55 @@
 # CodexBar Android Test Plan
 
-## Evidence boundary for current source
+## 1. Evidence boundary and current baseline
 
-The signed `0.0.7-beta-native` trial (versionCode 8, application source `07f6272`)
-contains the display/pace/alert/locale fixes and individual provider settings.
-Both Release variants built successfully. Runtime checks used the separate,
-release-optimized, non-debuggable `nativeAcceptance` package on the shared API 36
-emulator's ARM64 native bridge. The existing daily `.native` app was preserved;
-the test-owned package was removed after the run. This is not runtime proof of
-the exact daily APK, physical ARM64 hardware, live OAuth renewal, or full visual
-Mac parity. The daily APK passed signature, manifest, ABI and notice checks.
+This document owns test commands, evidence and remaining acceptance work.
+[SPEC.md](SPEC.md) describes behavior; [CONTRIBUTING.md](CONTRIBUTING.md)
+describes development setup. Compilation, smoke checks, negative authentication
+tests and successful real-account quota retrieval are distinct gates.
 
-Counts in feature sections record their historical check runs. The latest retained
-JVM result set is **128 tests across 26 suites, zero failures/errors/skips**
-(2026-10-10, source through `b7f7dad`), with Debug lint and NativeDebug Kotlin
-compilation passing; itemized below. Neither the Mac comparison mockup nor source
-compilation proves full Mac UI/UX parity.
+The delivered `0.0.15-beta-native` artifact (versionCode 16) is the current
+reference. The latest JVM result set is **263 tests, zero failures** at the
+`0.0.15-beta-native` baseline commit `c73db11` (counted from the retained
+Gradle test-report XML), with debug lint and native Kotlin compilation passing.
+The signed ARM64 Release APK passed battery-flow UI checks on the shared API 36
+emulator (x86_64 host with ARM64 translation): no startup battery prompt,
+one-time optional offer on switching to periodic refresh, dismissal, repeated
+enable and the permanent settings entry. This is not physical ARM64 hardware
+proof, a background-timing guarantee, or full visual Mac parity.
 
-## Production packaging and daily artifact
+Live-account acceptance is confirmed only for Codex and OpenCode Go. Copilot
+phone sign-in and the API-key providers added since 0.0.12 (Venice, Amp, z.ai,
+Factory, Alibaba Coding Plan, Charm Hyper, Kimi, MiniMax) are covered by
+synthetic parser/storage tests only; no live-account quota retrieval is claimed
+for them. Claude and Gemini remain manual-credential setup paths with the
+limitations recorded in [docs/providers.md](docs/providers.md).
 
-`nativeRelease` is the daily build: dashboard launcher only, no diagnostic activity,
-`.native` identity, versionCode 8 / `0.0.7-beta-native`, minSdk 26, ARM64-only.
-Release-optimized diagnostics use the separate `nativeAcceptance` variant
-(`.native.acceptance`) that reuses the same ARM64 Release payload and adds the smoke
-activity, synthetic UI demo and the fresh-install cadence-persistence probe.
+Counts in the historical sections record their check runs at the time; they are
+not restated per release. Neither the Mac comparison mockups nor source
+compilation prove full Mac UI/UX parity.
+
+### Production packaging and daily artifact
+
+`nativeRelease` is the daily build: dashboard launcher only, no diagnostic
+activity, `.native` identity, versionCode 16 / `0.0.15-beta-native`, minSdk 26,
+ARM64-only. Release-optimized diagnostics use the separate `nativeAcceptance`
+variant (`.native.acceptance`) that reuses the same ARM64 Release payload and
+adds the smoke activity, synthetic UI demo and the fresh-install
+cadence-persistence probe.
+
+Signed ARM64 `0.0.15-beta-native` daily APK: **35,896,403 bytes**, SHA-256:
+
+```text
+27b65171f1098dc7a1747de147516a22270ff3bf1c51fe0e4f7fd81ac23ed34e
+```
+
+This exact APK was installed and passed the battery-flow UI checks above, then
+delivered. Earlier artifacts' acceptance runs (native/repository probes,
+provider settings rejection flows, preference persistence, synthetic quota UI
+assertions for phone/dark/200%-text/wide layouts) belong to their recorded
+versions below and are not retroactive evidence for 0.0.15.
+
+### Historical artifacts
 
 Signed ARM64 `0.0.7-beta-native` daily APK: **35,839,584 bytes**, SHA-256:
 
@@ -31,28 +57,11 @@ Signed ARM64 `0.0.7-beta-native` daily APK: **35,839,584 bytes**, SHA-256:
 5233271cb906beae613ddc5b8e3a3cc8ad20c7675ebcd5b2a9c0ef122b28feca
 ```
 
-Signed acceptance APK: **35,847,480 bytes**, SHA-256:
+Signed `0.0.7` acceptance APK: **35,847,480 bytes**, SHA-256:
 
 ```text
 923b67485ab35e9005e16e70e94d53ee494b0a4c6e13291aa704a61d4cf545e0
 ```
-
-Both are non-debuggable, ARM64-only, and launch the dashboard. Only acceptance
-contains the diagnostic activity. All four packaged native libraries are
-byte-identical between variants. The daily signature matches the previous
-0.0.6 delivery; all 25 license assets (24 notices plus provenance) match source.
-
-The locked acceptance run passed ten native/repository probes, four provider
-settings rejection flows, Used/Manual preference persistence across process
-restart, Codex sign-in entry and offline attribution. Synthetic quota UI assertions
-passed for phone, dark, 200% text, wide, detail, chart, credits and display controls.
-These are automated text/state assertions, not a completed screenshot, TalkBack
-or launcher widget-host review. No real account credentials were used.
-
-The first run passed its probes but exceeded the former 30-second remote ADB
-deadline while removing a test XML file. With a bounded 60-second command timeout,
-the complete rerun passed and cleaned up its package. The machine-local report is
-`build/native/device-report-arm64-v8a-release.json` (not a tracked artifact).
 
 Historical `0.0.6-beta-native` daily APK: **35,817,287 bytes**, SHA-256:
 
@@ -60,139 +69,43 @@ Historical `0.0.6-beta-native` daily APK: **35,817,287 bytes**, SHA-256:
 d1e0a029209f11bcf618cfa00b6df0b30231450cf349bf31110e6f6abb13f2b7
 ```
 
-The recorded smoke for that daily APK covered the empty dashboard, settings
-directory and provider page. Earlier native probes and diagnostic UI runs belong
-to their recorded artifacts; they are not evidence that all six probes or sign-in,
-attribution and cadence interactions ran on this exact 0.0.6 daily APK.
+Signed `0.0.4-beta-native` ARM64 APK: **35,656,926 bytes**, SHA-256:
 
-## Reported credits
+```text
+d7761ce5d78d4310e1d503203e0532fdfd9f1075425677afe2d15d387cd77b69
+```
 
-100 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Added fixtures
-distinguish zero/unread balance and empty/unknown inventory, preserve separate caps,
-units and expiry through serialization, and keep good quota after malformed optional
-enrichment. Real-account inventory availability has not been independently verified.
+These hashes identify the tested artifacts; later documentation/history edits
+do not imply that a newly rebuilt APK will have identical bytes. Revalidate
+changed payloads. The current daily artifact is the 0.0.15-beta-native APK
+identified above.
 
-## Display profiles
+The 0.0.7 locked acceptance run passed ten native/repository probes, four
+provider settings rejection flows, Used/Manual preference persistence across
+process restart, Codex sign-in entry and offline attribution; synthetic quota UI
+assertions passed for phone, dark, 200% text, wide, detail, chart, credits and
+display controls. Those were automated text/state assertions, not a completed
+screenshot, TalkBack or launcher widget-host review, and used no real account
+credentials. The machine-local report is
+`build/native/device-report-arm64-v8a-release.json` (not a tracked artifact).
 
-97 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Fixtures cover
-stable metric IDs across labels/disappearance, hidden-risk retention, independent
-dashboard/widget/account choices, persistence, reconnect and deletion. The delivered
-Release synthetic detail demo reached display controls; widget-host interaction and
-the subsequent Mac row/header changes still need acceptance.
-
-## Quota history and pace
-
-95 JVM tests, Debug lint and Native Debug compilation pass. Pace fixtures cover a
-fixed reset cycle, moving resets, source changes, recovery, gaps, sparse/unknown data,
-duplicate/backwards/future measurements, over-quota data, exact 48-sample retention,
-restart/generation isolation, sibling deletion and 14-day expiry. The delivered
-Release synthetic detail demo reached the chart, credits and display controls;
-TalkBack and physical-device accessibility remain unverified.
-
-## Confirmed quota recovery
-
-90 JVM tests, Debug lint and Native Debug compilation pass. Fixtures reject timestamp
-jitter, first observations, stale/future/legacy readings, source changes and repeated
-rolling events. Encrypted receipt tests cover restart, sibling isolation, reconnect
-and deletion. Device notification permission/display acceptance is pending.
-
-## Official service status
-
-87 JVM tests, Debug lint and Native Debug compilation pass. Fixtures cover every
-Core status indicator, stale/future checks, provider/source mismatch, unknown failures,
-concurrent accounts, five-minute throttling and persisted-cache restart. Optimized
-ARM64 Core build passed. The App-UID `--status-only` probe now passes on device after
-fixing the Android flag lookup to the ArgumentParser property name (`statusOnly`);
-the earlier dashed-name check silently fell through to the quota path.
-No fixture or unknown response proves a real service healthy.
-
-## Responsive account widgets
-
-85 JVM tests, Debug lint and Native Debug compilation pass. Existing widget-cache
-tests cover legacy pin migration, sibling deletion and generation isolation.
-Single-account/overview binding, resize, cancelled/reconfigured pins, refresh actions
-and R8 launcher rendering require final locked Release acceptance; compilation alone
-is not widget-host acceptance.
-
-## Background refresh reliability
-
-85 JVM tests and Debug lint pass, including terminal/transient retry classification
-and simultaneous foreground/worker coalescing with retained rotated credentials.
-Native Debug compilation also passes. The acceptance build's fresh-install probe passed
-on device: a saved 15-minute cadence schedules the unique periodic work, Manual (0)
-cancels it and it stays cancelled across startup reapply, and the legacy second token
-writer is never scheduled. Long-run OEM doze behavior remains an observation target.
-
-## Compact dashboard and detail
-
-- 84 JVM tests, Debug lint, native Debug Kotlin compilation and optimized native
-  Release assembly passed after the compact UI/resource changes.
-- `native/test.py --abi arm64-v8a --configuration release --ui-demo` exercises
-  fixed synthetic Compose readings on phone, dark, 200% text and wide layouts,
-  plus principal/model detail semantics; retained captures use `build/native/quota-*`.
-  These fixtures never read credentials or make quota requests.
-- Runtime/visual results are recorded separately from compilation. TalkBack,
-  OEM launchers and the owner's real accounts remain separate acceptance.
-- ARM64-on-x86_64 native-bridge Release runtime passed the four CLI probes,
-  dashboard/sign-in/notices checks and all five synthetic UI layouts. Visual review
-  confirmed remaining-first bars and principal/detail separation; forced-theme demo
-  system-bar contrast was corrected. Detail panels are scrollable, with bottom-action
-  assertions added to the harness. Physical ARM64 and TalkBack remain unverified.
-
-## Shared snapshots
-
-84 JVM tests and Debug lint passed, including owner-to-cache failure publication.
-
-Fixtures cover repeated labels with distinct IDs, model pools, duration/source and
-measurement-age preservation across transient failure and cache restart, reconnect
-isolation, authentication invalidation, retention pruning, future timestamps,
-over-quota rounding and reset-due wording. Existing legacy-cache tests retain missing
-and invalid-value coverage. Final all-surface Release/runtime acceptance remains a
-separate gate from these JVM checks.
-
-## Copilot device sign-in
-
-81 JVM tests and Debug lint passed after this addition.
-
-Synthetic tests cover the registered client/scope/grant, pending authorization,
-unregistered configuration, untrusted verification URLs, denial, expiry, five-second
-slow-down and cancellation. Shared bounded transport retains the Codex redirect and
-oversized-response checks. No project OAuth App is registered yet; distributed
-builds keep this button disabled and do not claim live OAuth/Copilot eligibility.
-
-## Full-plan continuation: native Codex ownership
-
-- 78 JVM tests and Debug lint pass, including native Codex parser/error mapping,
-  private-file permissions, real freshness, orphan cleanup and published-pair-before-retry.
-- Optimized ARM64 Core/CLI compilation and reverse application of `native/android.patch`
-  pass. This proves compilation, not App-UID or real native Codex quota acceptance.
-- User reported Codex and OpenCode Go working on the phone with `0.0.4-beta-native`.
-  That version used Kotlin for Codex, so this is not evidence for the new native path
-  or automatic token renewal. No real-account request was made by the test runner.
-- The packaged native runtime passed the general App-UID probes below. Successful
-  native Codex quota and token renewal with an authorized real account remain pending.
-
-## 1. Verification scope
-
-This document owns test commands, evidence and remaining acceptance work.
-[SPEC.md](SPEC.md) describes behavior; [CONTRIBUTING.md](CONTRIBUTING.md) describes
-development setup. Compilation, smoke checks, negative authentication tests and
-successful real-account quota retrieval are distinct gates.
+## 2. Verification scope by provider
 
 | Provider | Ordinary refresh path implemented | Synthetic checks | Android App-UID evidence | Owner-authorized live quota |
 | --- | --- | --- | --- | --- |
-| Claude / Gemini | Kotlin | HTTP fixtures | Full account acceptance pending | Pending |
-| Codex | Native OAuth on API 28+ native builds; Kotlin otherwise | Protocol, ownership, parser and HTTP fixtures | General CLI/missing-credential smoke; successful native quota pending | Owner reported Kotlin path in 0.0.4; native quota/renewal pending |
-| OpenCode Go | Native API in native-engine builds | Parser, repository, account lifecycle | Invalid-key CLI and Settings rejection | Owner reported working in 0.0.4; controlled provider comparison pending |
+| Claude / Gemini | Kotlin | HTTP fixtures | Full account acceptance pending | Pending; manual-credential setup only (no phone OAuth) |
+| Codex | Native OAuth on API 28+ native builds; Kotlin otherwise | Protocol, ownership, parser and HTTP fixtures | General CLI/missing-credential smoke | Owner confirmed Codex working on the phone (reported on the 0.0.4 Kotlin path; native-path live renewal remains owner-authorized pending) |
+| OpenCode Go | Native API in native-engine builds | Parser, repository, account lifecycle | Invalid-key CLI and Settings rejection | Owner confirmed OpenCode Go working on the phone |
 | OpenRouter | Native API in native-engine builds | Budget/balance parser, ownership, cache | Invalid-key native and Settings rejection passed | Pending |
-| Copilot | Native API in native-engine builds | Premium/chat/plan-only parser and account isolation | Invalid-token and Settings rejection passed | Pending; device flow also requires OAuth App registration |
+| Copilot | Native API in native-engine builds | Premium/chat/plan-only parser and account isolation | Invalid-token and Settings rejection passed | Pending; phone device sign-in added in 0.0.14, live acceptance unverified |
 | DeepSeek | Kotlin official balance API | Numeric/currency/unknown/zero and account-header HTTP fixtures | Invalid-key and Settings rejection passed | Pending |
+| Venice, Amp, z.ai / GLM, Factory, Alibaba Coding Plan, Charm Hyper, Kimi, MiniMax | Native API in native-engine builds | Parser fixtures (success/partial/malformed/error redaction), repository ownership, storage round-trip | None yet | Pending — synthetic tests only, no live-account claim |
 
 Codex device-code login is implemented with synthetic protocol checks. Owner-authorized
 browser login, real quota retrieval and token renewal remain separate pending gates;
 manual credentials remain available.
 
-## 2. Host checks
+## 3. Host checks
 
 From the repository root:
 
@@ -205,15 +118,17 @@ git diff --check
 
 Attribution checks: `python3 native/collect_notices.py --check` verifies all 24
 checked-in notice assets and their hashes, including exact copies of the Android
-license and the root attribution document. The About screen compiles and the
-33 JVM tests pass. Debug lint passes after routing API-34+ Quick Settings launches
+license and the root attribution document. Debug lint passes after routing API-34+ Quick Settings launches
 through an explicit, immutable PendingIntent. The legacy overload remains guarded
 to older SDKs; its SDK-insensitive lint warning is suppressed only on that handler.
 About/launcher runtime acceptance is recorded below; tile visual acceptance remains pending.
 
-The latest retained JVM result set contains **128 tests across 26 suites**
-(2026-10-10, source through `b7f7dad`; authoritative per-suite counts from
-`app/build/test-results/testDebugUnitTest`):
+The latest retained JVM result set contains **263 tests, zero failures** at the
+`0.0.15-beta-native` baseline (`c73db11`), with debug lint and native Kotlin
+compilation passing. The per-suite breakdown below is the historical itemization
+from the earlier **128 tests across 26 suites** run (2026-10-10, source through
+`b7f7dad`); later provider/onboarding/battery slices added suites without
+re-itemizing:
 
 | Suite | Count | Coverage |
 | --- | ---: | --- |
@@ -269,7 +184,7 @@ or extracting them again:
 python3 native/setup_toolchain.py --tools "$SWIFT_ANDROID_TOOLS" --verify-only
 ```
 
-## 3. Release build and artifact checks
+## 4. Release build and artifact checks
 
 Prepare the pinned tools and private signing environment as documented in
 [native/README.md](native/README.md), then:
@@ -296,7 +211,7 @@ sha256sum app/build/outputs/apk/nativeRelease/app-nativeRelease.apk
 Use the same APK for remote acceptance and delivery, identified by its SHA-256.
 Do not rebuild solely to transfer an already verified artifact.
 
-## 4. Locked Android runtime acceptance
+## 5. Locked Android runtime acceptance
 
 Configure `ANDROID_TEST_ADB_WRAPPER` and `ANDROID_TEST_SESSION_WRAPPER` through
 local operator configuration. Prefer the Release variant to reduce remote transfer:
@@ -356,13 +271,15 @@ Generated reports are ignored by Git:
 Failure reports must remain failures even if some probes passed. A missing-credential
 or rejected-key result does not prove successful quota retrieval.
 
-## 5. Recorded evidence
+## 6. Recorded evidence
 
-Latest isolated device/runtime and host verification: **2026-10-10**. Earlier
-rows retain their historical scope; the new acceptance run is identified below.
+Current baseline verification: **2026-10-14** (0.0.15 battery-flow check).
+Earlier rows retain their historical scope and do not establish current acceptance.
 
 | Gate | Recorded result |
 | --- | --- |
+| 0.0.15 host gate | 263 JVM tests, debug lint and native Kotlin compilation passed |
+| 0.0.15 signed delivery | Exact ARM64 Release APK (35,896,403 bytes, SHA-256 in §1) installed; battery-flow UI passed on the API 36 emulator (x86_64 with ARM64 translation): no startup prompt, one-time offer, dismissal, repeated enable, process restart, settings entry; then delivered. Not physical ARM64 or background-timing proof |
 | 0.0.7 host gate | 128/128 JVM tests (26 suites), Debug lint, NativeDebug Kotlin compilation, three Python tool/runtime-config tests and 24 notice checks passed |
 | 0.0.7 signed builds | Native Release and Native Acceptance R8 builds passed; signature, ABI, non-debuggable manifest and diagnostic isolation checked |
 | 0.0.7 isolated acceptance | Ten probes, four rejected-draft provider flows, display/cadence restart persistence, sign-in entry, licenses and synthetic UI matrix passed on the API 36 ARM64 bridge; daily app preserved |
@@ -395,23 +312,125 @@ The first optimized build reduced APK size from **76.91 MiB to 33.28 MiB (56.7%)
 Uncompressed CLI size changed from 142.14 to 73.47 MiB, and the C++ runtime from
 9.05 to 1.36 MiB. These are artifact measurements, not performance benchmarks.
 
-The signed **0.0.4-beta-native** ARM64 APK is **35,656,926 bytes**, SHA-256:
-
-```text
-d7761ce5d78d4310e1d503203e0532fdfd9f1075425677afe2d15d387cd77b69
-```
-
-This hash identifies the tested artifact; later documentation/history edits do not
-imply that a newly rebuilt APK will have identical bytes. Revalidate changed payloads.
-The current daily artifact is the 0.0.7-beta-native APK identified at the top of this
-document.
-
 The upstream Swift `make check` attempt stopped because `plutil` was unavailable;
 plain `make test` stopped because the host `swift` was not on PATH in the isolated
 cross-compilation setup. Neither upstream suite is claimed as passing. Cross-build
 and App-UID checks are the native evidence recorded here.
 
-## 6. Manual and remaining acceptance
+## 7. Feature slice evidence history
+
+Per-slice results at the time each feature landed. Test counts are historical
+run counts for that slice, not the current total.
+
+### Reported credits
+
+100 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Added fixtures
+distinguish zero/unread balance and empty/unknown inventory, preserve separate caps,
+units and expiry through serialization, and keep good quota after malformed optional
+enrichment. Real-account inventory availability has not been independently verified.
+
+### Display profiles
+
+97 JVM tests, Debug lint and NativeDebug Kotlin compilation pass. Fixtures cover
+stable metric IDs across labels/disappearance, hidden-risk retention, independent
+dashboard/widget/account choices, persistence, reconnect and deletion. The delivered
+Release synthetic detail demo reached display controls; widget-host interaction and
+the subsequent Mac row/header changes still need acceptance.
+
+### Quota history and pace
+
+95 JVM tests, Debug lint and Native Debug compilation pass. Pace fixtures cover a
+fixed reset cycle, moving resets, source changes, recovery, gaps, sparse/unknown data,
+duplicate/backwards/future measurements, over-quota data, exact 48-sample retention,
+restart/generation isolation, sibling deletion and 14-day expiry. The delivered
+Release synthetic detail demo reached the chart, credits and display controls;
+TalkBack and physical-device accessibility remain unverified.
+
+### Confirmed quota recovery
+
+90 JVM tests, Debug lint and Native Debug compilation pass. Fixtures reject timestamp
+jitter, first observations, stale/future/legacy readings, source changes and repeated
+rolling events. Encrypted receipt tests cover restart, sibling isolation, reconnect
+and deletion. Device notification permission/display acceptance is pending.
+
+### Official service status
+
+87 JVM tests, Debug lint and Native Debug compilation pass. Fixtures cover every
+Core status indicator, stale/future checks, provider/source mismatch, unknown failures,
+concurrent accounts, five-minute throttling and persisted-cache restart. Optimized
+ARM64 Core build passed. The App-UID `--status-only` probe now passes on device after
+fixing the Android flag lookup to the ArgumentParser property name (`statusOnly`);
+the earlier dashed-name check silently fell through to the quota path.
+No fixture or unknown response proves a real service healthy.
+
+### Responsive account widgets
+
+85 JVM tests, Debug lint and Native Debug compilation pass. Existing widget-cache
+tests cover legacy pin migration, sibling deletion and generation isolation.
+Single-account/overview binding, resize, cancelled/reconfigured pins, refresh actions
+and R8 launcher rendering require final locked Release acceptance; compilation alone
+is not widget-host acceptance.
+
+### Background refresh reliability
+
+85 JVM tests and Debug lint pass, including terminal/transient retry classification
+and simultaneous foreground/worker coalescing with retained rotated credentials.
+Native Debug compilation also passes. The acceptance build's fresh-install probe passed
+on device: a saved 15-minute cadence schedules the unique periodic work, Manual (0)
+cancels it and it stays cancelled across startup reapply, and the legacy second token
+writer is never scheduled. Long-run OEM doze behavior remains an observation target.
+
+### Compact dashboard and detail
+
+- 84 JVM tests, Debug lint, native Debug Kotlin compilation and optimized native
+  Release assembly passed after the compact UI/resource changes.
+- `native/test.py --abi arm64-v8a --configuration release --ui-demo` exercises
+  fixed synthetic Compose readings on phone, dark, 200% text and wide layouts,
+  plus principal/model detail semantics; retained captures use `build/native/quota-*`.
+  These fixtures never read credentials or make quota requests.
+- Runtime/visual results are recorded separately from compilation. TalkBack,
+  OEM launchers and the owner's real accounts remain separate acceptance.
+- ARM64-on-x86_64 native-bridge Release runtime passed the four CLI probes,
+  dashboard/sign-in/notices checks and all five synthetic UI layouts. Visual review
+  confirmed remaining-first bars and principal/detail separation; forced-theme demo
+  system-bar contrast was corrected. Detail panels are scrollable, with bottom-action
+  assertions added to the harness. Physical ARM64 and TalkBack remain unverified.
+
+### Shared snapshots
+
+84 JVM tests and Debug lint passed, including owner-to-cache failure publication.
+
+Fixtures cover repeated labels with distinct IDs, model pools, duration/source and
+measurement-age preservation across transient failure and cache restart, reconnect
+isolation, authentication invalidation, retention pruning, future timestamps,
+over-quota rounding and reset-due wording. Existing legacy-cache tests retain missing
+and invalid-value coverage. Final all-surface Release/runtime acceptance remains a
+separate gate from these JVM checks.
+
+### Copilot device sign-in
+
+81 JVM tests and Debug lint passed after this addition.
+
+Synthetic tests cover the registered client/scope/grant, pending authorization,
+unregistered configuration, untrusted verification URLs, denial, expiry, five-second
+slow-down and cancellation. Shared bounded transport retains the Codex redirect and
+oversized-response checks. At this historical slice the button was disabled.
+Version 0.0.14 enabled the public client used by upstream, with the Visual Studio
+Code consent explanation; live OAuth/Copilot eligibility remains unverified.
+
+### Native Codex ownership
+
+- 78 JVM tests and Debug lint pass, including native Codex parser/error mapping,
+  private-file permissions, real freshness, orphan cleanup and published-pair-before-retry.
+- Optimized ARM64 Core/CLI compilation and reverse application of `native/android.patch`
+  pass. This proves compilation, not App-UID or real native Codex quota acceptance.
+- User reported Codex and OpenCode Go working on the phone with `0.0.4-beta-native`.
+  That version used Kotlin for Codex, so this is not evidence for the new native path
+  or automatic token renewal. No real-account request was made by the test runner.
+- The packaged native runtime passed the general App-UID probes in §5. Successful
+  native Codex quota and token renewal with an authorized real account remain pending.
+
+## 8. Manual and remaining acceptance
 
 Codex OAuth synthetic coverage includes bounded polling, cancellation, absolute expiry,
 PKCE exchange and renewal-classification regression tests. Live browser authorization, real quota and token renewal are separate

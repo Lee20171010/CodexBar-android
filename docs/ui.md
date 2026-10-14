@@ -9,19 +9,14 @@ design authority. The native engine remains pinned independently to v0.71.0.
 
 ## Status and design workflow
 
-`0.0.6-beta-native` contains partial settings, display, pace, alerts and widget
-implementation. Native Mac alignment is incomplete. The following implementation
-defects are now fixed in source and host-verified (128 JVM tests, Debug lint,
-NativeDebug compilation, 2026-10-10): preference propagation/per-field inheritance
-(`a4dc917`, `b7f7dad`), Used percentage labels and pace ETA units (`8297d87`),
-seconds-based default weekly duration (`ffb975a`), work-day-aware alerts with
-retained overquota receipts (`2536445`), declared `en`/`zh-TW` locales (`1216f0f`),
-native Mac sidebar grouping with individual provider panes and accessible wrapping
-accents (`8f9256a`, `3338b8e`), and Mac-style reset-text wrapping (`33f3f8a`).
-The signed 0.0.7 trial passed isolated native/repository probes, provider navigation,
-preference restart persistence and synthetic phone/dark/200%-text/wide quota UI
-assertions. This does not close screenshot-based Mac comparison, widget-host,
-TalkBack or physical-device gates. See `TEST.md` for artifact-specific evidence.
+As of `0.0.15-beta-native` the settings, display, pace, alerts, widget,
+multi-account and provider-onboarding surfaces described below are implemented
+in source and host-verified by JVM tests (263 at that baseline), debug lint and
+native compilation. Native Mac alignment remains incomplete and is evaluated
+per feature: source-backed changes are labelled separately from visually
+accepted changes, and matching-version Mac screenshot/runtime comparison,
+widget-host, TalkBack and physical-device gates remain open. See `TEST.md` for
+artifact-specific evidence.
 
 The existing HTML is a historical source reconstruction awaiting correction.
 Native `SettingsSidebarView`, grouped SwiftUI `Form` sections, `MetricRowHeader`

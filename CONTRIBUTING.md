@@ -1,129 +1,147 @@
-# Contributing to CodexBar Android
+# Contributing to Codexbar for Android
 
-## 1. Read the contracts
+Bug reports, feature requests and pull requests are welcome. Please read this
+first; the project has strict provenance and verification rules that shape how
+changes are made.
 
-- [README.md](README.md): usage and build-variant selection.
-- [SPEC.md](SPEC.md): architecture, provider ownership and behavior boundaries.
-- [TEST.md](TEST.md): runnable checks and evidence requirements.
-- [docs/ui.md](docs/ui.md): Mac UI/UX reference and implementation status.
-- [native/README.md](native/README.md): pinned Swift toolchain and native packaging.
-- [AGENTS.md](AGENTS.md): repository and automation working agreement.
+## Development setup
 
-## 2. Development setup
+1. **Prerequisites**
+   - JDK 21
+   - Android SDK with platform 35 (`ANDROID_HOME` or ignored `local.properties`)
+   - Python 3.12+ (native build and test harness scripts)
+   - For rebuilding the native engine: x86_64 Ubuntu 24.04 with the Swift 6.4.0
+     Linux toolchain — see [native/README.md](native/README.md).
 
-The Android app uses Gradle with JDK 21 and Android SDK platform 35. Configure
-`ANDROID_HOME` or an ignored `local.properties`; use the checked-in Gradle wrapper.
+   A clean clone ships **no prebuilt native payloads**. Debug builds run without
+   the native engine (`NATIVE_CLI_ENABLED=false`); native variants need payloads
+   built once via `native/build.py` (staged under `build/native/`) or an
+   operator-supplied verified payload cache. Day-to-day app work does **not**
+   require rebuilding the engine.
 
-```sh
-git clone https://github.com/Lee20171010/CodexBar-android.git
-cd CodexBar-android
-bash ./gradlew :app:testDebugUnitTest --max-workers=2
+2. **Clone and build**
+
+   ```bash
+   git clone https://github.com/Lee20171010/CodexBar-android.git
+   cd CodexBar-android
+   bash ./gradlew :app:assembleDebug --max-workers=2
+   ```
+
+3. **Run tests**
+
+   ```bash
+   bash ./gradlew testDebugUnitTest --max-workers=2
+   bash ./gradlew :app:lintDebug --max-workers=2
+   ```
+
+   Python harness self-checks (no device needed):
+
+   ```bash
+   python3 native/test_setup_toolchain.py
+   python3 native/test_runtime_config.py
+   python3 native/collect_notices.py --check
+   ```
+
+## Project structure
+
+```
+app/src/main/java/com/codexbar/android/
+├── core/
+│   ├── domain/          # Models (AiService, QuotaInfo, Credential), repository interfaces
+│   ├── data/            # Repositories (Kotlin HTTP + native CLI bridges), coordinator
+│   ├── nativecli/       # NativeCodexBarClient: subprocess bridge to the bundled Swift CLI
+│   ├── network/         # Kotlin HTTP clients (claude, codex, copilot, deepseek, gemini)
+│   ├── security/        # EncryptedPrefsManager: Keystore-backed credential + prefs storage
+│   ├── presentation/    # Display options chain, pace, alerts, formatting
+│   ├── widget/          # Glance widgets, tile, prefs, display-chain helpers
+│   ├── workmanager/     # Periodic refresh + token refresh workers
+│   └── util/            # Battery helper, misc
+├── feature/
+│   ├── dashboard/       # Dashboard VM/screens
+│   └── settings/        # Settings VM/screens, onboarding guidance
+└── di/                  # Hilt modules
+app/src/test/            # JVM unit tests (JUnit 4 + Mockito, no device)
+native/                  # Swift Core/CLI build/packaging/acceptance harness — see native/README.md
+docs/                    # providers.md matrix, ui.md design mapping, historical artifacts
 ```
 
-The ordinary `debug` variant can be developed without the native toolchain:
+Ownership boundaries that matter for reviews:
 
-```sh
-bash ./gradlew :app:assembleDebug --max-workers=2
-```
+- The native engine is **upstream code**. Android-side changes to it live only
+  in `native/android.patch` against the pinned revision; edits inside the
+  ignored `upstream-codexbar/` checkout are not deliverables.
+- Credentials belong to the app's encrypted storage. Never introduce concurrent
+  token-refresh writers, plaintext credential logging, or runtime-downloaded
+  executables.
+- Executables are packaged at build time as `lib*.so` and run from
+  `nativeLibraryDir`; non-executable resources are copied to app-private
+  storage.
 
-It does not package the CLI or expose the Go setting. To develop the native path,
-follow the standalone setup and Release recipe in [native/README.md](native/README.md).
-The supported native build host is x86_64 Ubuntu 24.04 with Python 3.12+, Git,
-`tar`, `unzip` and Swift's documented host-library prerequisites.
+## Adding or changing a provider
 
-## 3. Code ownership and changes
+A provider slice is complete only when all of these exist (see any recent
+provider commit as the template):
 
-- Keep provider fetching behind `QuotaRepository`; UI/widgets consume domain models.
-- Reuse the pinned Core/CLI for the native provider path rather than duplicating its HTTP API logic.
-- Treat stdout as untrusted data: validate provider/source, result shape, exit status and output limits.
-- Preserve cancellation and process cleanup. The current native client supports API sources and direct children only.
-- Keep credentials in the encrypted store. Use local configuration or CI secrets for signing and test infrastructure.
-- Put private operator settings in ignored `AGENTS.local.md`; do not publish machine names, network addresses or personal paths.
-- Keep comments and maintained technical documents in English, following the surrounding source style.
+1. `AiService` entry (display name, brand color, base URL, verified
+   `keyPageUrl` or an explicit null with a reason comment).
+2. `Credential` type + `EncryptedPrefsManager` serialization branches.
+3. Native client provider/env mapping and/or Kotlin network client.
+4. Parser mapping from the CLI JSON envelope to `QuotaInfo` (units preserved,
+   unknown kept unknown; no invented windows).
+5. Repository + Hilt module + `AccountQuotaCoordinator` registration +
+   `SettingsViewModel` credential branch + settings UI guidance.
+6. Tests: parser fixtures (success, partial, malformed, error redaction),
+   repository wrong-credential test, storage round-trip row, coordinator
+   registration.
+7. `docs/providers.md` row with honest verification status.
 
-## 4. Updating upstream or the toolchain
+Provider claims must be source-backed: env var names, endpoints, error strings
+and units must match the pinned upstream fetcher, and official key-page URLs
+must be verified against the provider's own site.
 
-The bundled executable is CodexBar Core/CLI, not OpenAI's Codex coding-agent CLI.
-The native source pin (v0.71.0) and Mac UI/UX reference (v0.73.0) are independent.
-Maintenance includes Android-owned OAuth renewal, Kotlin providers, result mapping,
-UI/widgets and scheduling as well as native source/toolchain updates.
+## Updating the pinned engine
 
-`native/build.py` checks the upstream revision before applying `native/android.patch`.
-The reference checkout is ignored. Editing it alone does not update this repository's
-deliverable; export intended changes into the tracked patch and check that it applies
-to the pinned revision.
+1. Update the revision pin in `native/build.py` and `NOTICE.md`, and keep the
+   `CORE_CLI_VERSION` BuildConfig field in `app/build.gradle.kts` in sync with
+   the new engine version.
+2. Rebase `native/android.patch`; record any new Android adaptations there.
+3. Re-verify the JSON contract (`SPEC.md` §JSON-to-domain), credential
+   ownership, and provider acceptance.
+4. Regenerate notices: `native/collect_notices.py --tools "$SWIFT_ANDROID_TOOLS"`,
+   then `--check` passes offline.
 
-For an upstream/toolchain update:
+## Build variants
 
-1. Record the intended source revision or official archive URL/hash and its provenance.
-2. Review the platform adaptations, resources, native dependencies and CLI JSON contract.
-3. Build the relevant ABI/configuration and verify packaged dependencies.
-4. Run focused parser/process checks and the changed provider's App-UID acceptance.
-5. Update specifications, commands and evidence to describe the resulting state.
-
-Do not add downloaded toolchains, reference source trees, native payloads, APKs or
-device logs to source control. Preserve license/attribution requirements when
-changing bundled dependencies or preparing a public binary release.
-
-## 5. Signing and device work
-
-Native variants use an operator-provided signing key through:
-
-```text
-ANDROID_KEYSTORE_PATH
-ANDROID_KEYSTORE_PASSWORD
-ANDROID_KEY_ALIAS
-ANDROID_KEY_PASSWORD
-```
-
-Use the existing signing identity for updates. Do not print credentials or place
-them in tracked configuration. The standard `release` variant retains the upstream
-release workflow. `nativeRelease` and `nativeDebug` share `.native`;
-release-optimized `nativeAcceptance` uses `.native.acceptance`. Use the latter for
-isolated diagnostics alongside the daily app. Never install `nativeDebug` over an
-owner's daily app to obtain test access.
-
-Configure the ADB/session-lock wrappers described in [TEST.md](TEST.md). Hold one
-lock through installation, assertions and cleanup, and build before acquiring it.
-Prefer the optimized single-ABI Release APK for off-LAN devices; explain any need
-for a Debug transfer. Never substitute or reconfigure a shared device without approval.
-
-## 6. Checks, documentation and publication
-
-Run focused checks for the changed behavior, then the relevant broader gates from
-[TEST.md](TEST.md). Reuse valid cached results; do not claim unexecuted physical-device
-or real-account scenarios as passing.
-
-Document changes at their proper boundary:
-
-| Change | Update |
+| Variant | Purpose |
 | --- | --- |
-| User setup or feature availability | `README.md` |
-| Architecture, data flow or behavior contract | `SPEC.md` |
-| Test commands, results or remaining acceptance | `TEST.md` |
-| Developer setup or workflow | `CONTRIBUTING.md` / `native/README.md` |
-| Notable user/developer-facing change | `CHANGELOG.md` under `Unreleased` |
-| Mac UI/UX mapping or implementation status | `docs/ui.md` |
+| `debug` | Development; `NATIVE_CLI_ENABLED=false`, so the native engine is not used even when payloads are staged |
+| `nativeRelease` | Daily delivery: non-debuggable, ARM64, R8-shrunk, signed |
+| `nativeAcceptance` | Same payload + fixed diagnostic probes, separate package |
+| `nativeDebug` | Debugger/`run-as` diagnostics only |
 
-For UI/UX work, first map the Mac setting, feature and interaction to its proposed
-mobile counterpart, with a source reference and data-availability boundary. Review
-the comparison design before implementation. Use Compose accessibility, touch,
-navigation and system-inset conventions for Android adaptation. A mockup does not
-prove implementation or CLI capability. Keep one independently testable feature per
-commit; run its focused checks before committing. Documentation reconciliation can
-be one commit when the files describe the same state change.
+Release signing uses the operator keystore via `ANDROID_KEYSTORE_PATH` plus
+password/alias environment variables; nothing signing-related is committed.
+Full commands: [native/README.md](native/README.md).
 
-Review staged content for credentials, private infrastructure details and generated
-artifacts. Use a public-safe commit identity, such as your verified GitHub noreply
-address. Follow the repository working agreement and maintainer instructions for
-commit structure and publication.
+## Code style
 
-Before publication, inspect each unpublished commit's full diff and message, including
-deleted text, fixtures and binary additions, rather than only the final tree. Retain
-required public license attributions. If sensitive content is found, follow the
-maintainer's history-rewrite authorization and verify remote reachability first;
-adding a later deletion does not remove it from history. Keep scan artifacts private.
+- Match the surrounding code: Compose UI, kotlinx.serialization, Hilt,
+  Kotlin conventions already in the tree.
+- Keep changes minimal and scoped; one logical unit per commit with a concise
+  imperative Conventional Commit subject.
+- Comments state the *why* (upstream source references, adaptation reasons).
+- New user-facing copy ships in both `values/` (English) and `values-zh-rTW/`.
+- Tests accompany new logic; run `testDebugUnitTest` and `lintDebug` before
+  review.
 
-Passing checks is not approval to push or publish. Include scope, checks, limitations
-and any relevant issue/change link when requesting review. Contributions use the
-repository's [MIT license](LICENSE).
+## Verification honesty
+
+Documentation and commit messages must distinguish: compilation, JVM tests,
+synthetic device probes, live-account acceptance, and physical-hardware
+behavior. An error JSON response is not proof of quota retrieval; a synthetic
+fixture pass is not live acceptance. `TEST.md` records artifact-level evidence.
+
+## License
+
+By contributing, you agree that your contributions are licensed under the
+project's MIT license, with upstream notices preserved per `NOTICE.md`.

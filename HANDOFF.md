@@ -1,5 +1,12 @@
 # Handoff: adapt native macOS CodexBar to Android
 
+> **Historical document.** This handoff was written 2026-10-10 against baseline
+> `7c0abb5a` (the 0.0.6 era) and its slice plan has since been executed and
+> superseded through `0.0.15-beta-native`. It is retained as a record of the
+> original plan and rationale, not as live instruction. Current state lives in
+> [README.md](README.md), [SPEC.md](SPEC.md), [TEST.md](TEST.md) and
+> [CHANGELOG.md](CHANGELOG.md).
+
 Prepared 2026-10-10. Implementation baseline: `7c0abb5a40568fedb49b48437dac5a47ce5ae48c`,
 already pushed to `origin/main`. Recheck Git state before starting.
 
@@ -28,11 +35,8 @@ affected Android components, preferences and tests.
   reconstruction, pending native-Mac reconciliation; not an approved visual target.
 - `docs/ui.md`: source mapping and acceptance gaps at the current pinned reference.
 - `SPEC.md`: implemented data/ownership contracts; `TEST.md`: evidence and gaps.
-- `AGENTS.md`: working agreement; ignored `AGENTS.local.md`: operator configuration
-  before signing or device work. Never copy private values into tracked files.
-- `FutureWork.md`: pre-existing untracked historical plan. Preserve it. Its checked
-  boxes mean implementation commits landed, not full live/device/UIUX acceptance.
-  This handoff supersedes its design-phase entry instructions where they differ.
+- `AGENTS.md`: working agreement. Never copy private operator configuration
+  into tracked files.
 
 Serve from the repository root, for example:
 

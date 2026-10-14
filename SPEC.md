@@ -2,132 +2,27 @@
 
 ## Current implementation and design status
 
-The signed `0.0.7-beta-native` trial artifact contains the account, provider, snapshot,
-scheduling, widget, status, recovery, history and display features described here,
-including the Mac-aligned metric rows and card headers (`e114632`). `TEST.md` scopes
-the evidence to that artifact; implementation is not complete live or physical-device
-acceptance. This trial (versionCode 8) includes
-source-backed review fixes: display preferences propagate with explicit per-field
-inheritance and live updates (`a4dc917`, `b7f7dad`), Used-style percentage labels and
-pace ETA units (`8297d87`), a seconds-based default weekly pace duration
-(`ffb975a`), work-day-aware usage alerts that retain overquota receipts (`2536445`),
-native Mac sidebar grouping with individual provider panes (`8f9256a`, `3338b8e`),
-and a declared `en`/`zh-TW` locale list (`1216f0f`). JVM/lint/native compilation,
-signed Release builds and isolated `nativeAcceptance` runtime/UI checks pass.
-The exact daily APK was not installed over the existing app; full visual,
-widget-host and physical-device acceptance remain open.
+The delivered `0.0.15-beta-native` artifact (versionCode 16) contains the account,
+provider, snapshot, scheduling, widget, status, recovery, history and display
+features described here, plus the Mac-aligned settings panes, display-preference
+propagation with per-field inheritance, pace and reset alerts, provider
+onboarding guidance, and fifteen selectable providers (see
+[docs/providers.md](docs/providers.md) for the full matrix and per-provider
+verification status). `TEST.md` scopes the evidence per artifact; implementation
+is not complete live or physical-device acceptance. JVM tests (263 at the 0.0.15
+baseline), debug lint and native Kotlin compilation pass; the signed 0.0.15 ARM64
+Release APK passed battery-flow UI checks on the API 36 emulator's ARM64
+translation path. Live-account acceptance is confirmed only for Codex and
+OpenCode Go; the API-key providers added since 0.0.12 (Venice, Amp, z.ai,
+Factory, Alibaba Coding Plan, Charm Hyper, Kimi, MiniMax) are verified by
+synthetic parser/storage tests only. Full visual, widget-host, TalkBack and
+physical-device acceptance remain open.
 
 Mac UI/UX alignment covers settings, features, display and interactions, not just
 card styling. [docs/ui.md](docs/ui.md) owns the implementation/target distinction.
 The Mac v0.73.0 design reference does not change the native v0.71.0 source pin.
 SwiftUI/AppKit presentation, desktop credential discovery and local usage/spend
 collection are not automatically exposed by the bundled CLI or Android adapters.
-
-## Reported Codex inventory
-
-Native Codex quota preserves optional credit balance, workspace ownership, personal
-credit cap and reset-credit inventory. Credits are units, never assumed currency.
-Unread balance remains unknown; confirmed zero and an empty inventory remain zero.
-Each optional section retains its measurement time; reset items retain provider type,
-status and expiry. Malformed enrichment is omitted without failing valid quota.
-Detail displays this read-only inventory when amounts are enabled. No redemption
-operation is exposed. Kotlin API 26–27 compatibility does not promise this enrichment.
-
-## Display profiles
-
-Account overview preferences use stable window IDs, show-amounts and absolute-reset
-switches. Detail retains every quota window. Hidden windows still participate in
-pace, recovery and risk; near-exhausted hidden metrics show a warning. Each widget
-stores its own per-account profile, independent of dashboard choices. Restore
-Defaults clears only that profile. Individual fields inherit independently along the
-widget → account → global chain, an explicit override replacing only that field, and
-saved changes propagate live to dashboard, detail, widget and settings surfaces
-(`a4dc917`, `b7f7dad`). Disappearing metrics retain their hidden ID;
-renaming/localizing labels does not change selection. Account deletion clears its
-profiles; widget deletion clears only that widget's profile. These preferences never
-alter credentials, ownership, fetch sources or scheduling.
-
-Legacy full-profile settings remain explicit overrides to preserve existing choices.
-Use Restore defaults on that account or widget to resume inheritance, then change
-only the fields that should stay pinned.
-
-## Quota history and pace
-
-History uses the no-backup display cache, keyed by account generation and stable
-principal window ID. Retain at most 48 samples per window, 16 windows per account,
-and 14 days. Only successful fresh readings enter history; duplicate, out-of-order,
-future and legacy readings do not add samples. Changed source, reset, duration,
-increased remaining capacity or a gap over six hours starts a new segment. Account
-deletion removes history and its generation marker. Reads prune expired samples.
-
-One principal-window chart uses epoch-second differences, not floating-point epoch
-timestamps. A linear estimate requires three samples spanning at least 15 minutes,
-with a latest sample no older than six hours. No projection continues past a known
-reset. Unknown duration/reset omits the even-use guide. Estimates are not guarantees.
-
-## Confirmed quota recovery
-
-Recovery alerts are opt-in and default off. A notification requires the same account,
-generation, source, and stable window ID to move from at least 95% used to at most
-80% used in a fresh measurement. The thresholds are uniform across providers;
-provider-specific recovery evidence remains a refinement. Reset timestamps, first cache loads,
-legacy data, stale or future readings, and cache restoration cannot trigger it.
-The durable receipt is written before display and suppresses repeats for the reported
-window duration, or one day when unknown. Notification content is account name,
-window label and remaining percent only.
-
-## Official service status
-
-Android's `usage --status-only` CLI route invokes Core status metadata/fetchers before
-creating any credential or quota context. Codex, Claude and Copilot have official
-sources in the pinned Core; other providers remain unavailable rather than healthy.
-Status cache is provider-scoped, shared by all accounts, throttled to five minutes,
-and considered unknown after thirty minutes or clock rollback. It never changes a
-quota result or infers an incident from quota/auth/network errors. Detail shows
-source and independent check age; overview only surfaces recently reported incidents.
-
-## Widget families
-
-Overview and pinned-account widgets share generation-scoped snapshots and explicit
-stable connection pins. Compact layouts show the most constrained principal window;
-taller pinned widgets show additional principal windows and reset progress. Overview
-capacity grows from one to three accounts with height, disclosing omitted pins.
-Deleted pins remain unavailable until reconfiguration, never selecting a sibling.
-Configuration defaults to cancelled and publishes only on confirmation. A widget's
-refresh enqueues explicit work for its own still-existing pins; opening leads to the
-dashboard. Both families update when account state changes.
-
-## Scheduled refresh ownership
-
-The Application supplies HiltWorkerFactory to on-demand WorkManager initialization.
-Startup, boot and cadence changes use the saved encrypted preference. Manual cancels
-periodic quota work, legacy token work and automatic per-account retries. Explicit
-one-shot refresh remains available. Each account/generation gets unique work with
-network constraints and exponential transient backoff; terminal authentication is
-suppressed until reconnect. Foreground and worker overlaps share one in-flight
-account result; siblings retain independent retry outcomes. Android's 15-minute
-periodic floor and background execution policy remain best-effort constraints.
-
-## Shared measurement snapshots
-
-Dashboard, widgets, persistent notification and tile read connection/generation-scoped
-snapshots. A successful measurement owns its source, stable window IDs, durations,
-model-pool classification and timestamp. A transient failure retains that measurement
-with a typed failure and separate attempt time; authentication rejection removes its
-values. Reconnect never adopts the previous generation's reading. Saved account order
-is stable, and model-only pools do not become notification/widget general headlines.
-
-Readings older than one hour are stale; successful data is retained at most seven
-days. A clock rollback marks data stale, and a timestamp more than five minutes in
-the future is unavailable. A past reset means refresh to confirm, not recovered quota.
-All surfaces use the same remaining-percentage rounding, age and reset semantics.
-
-The existing private widget preferences now store versioned structured snapshots;
-old label-keyed entries are read as legacy/stale until a real refresh replaces them.
-Credentials and account identity are untouched. Downgraded builds may show no cached
-reading until refresh; the cache is disposable and can be repopulated without changing
-accounts. Cloud backup and device-transfer extraction exclude app data, including
-measurement caches. No credentials are stored in snapshots.
 
 ## 1. Purpose and current scope
 
@@ -144,13 +39,14 @@ instructions live in [CONTRIBUTING.md](CONTRIBUTING.md) and the
 | Claude | Existing Kotlin repository / HTTP services | Access token; refresh token for renewal |
 | Codex | Native Swift Core/CLI, explicit OAuth on API 28+ native builds; Kotlin compatibility path otherwise | Android-owned access/refresh pair, optional account ID |
 | Gemini | Existing Kotlin repository / HTTP services | Access token, refresh token, OAuth client ID and secret |
-| OpenCode Go | Native Swift Core/CLI, API source | API key |
-| OpenRouter | Native Swift Core/CLI, API source | API key |
-| GitHub Copilot | Native Swift Core/CLI, API source | GitHub OAuth token with Copilot access |
 | DeepSeek | Kotlin public balance API | API key |
+| OpenCode Go, OpenRouter, GitHub Copilot, Venice, Amp, z.ai / GLM, Factory, Alibaba Coding Plan, Charm Hyper, Kimi, MiniMax | Native Swift Core/CLI, `--source api` | Provider API key / access token |
 
-OpenCode Go, OpenRouter and Copilot are exposed in native-engine build variants. Compiling the complete CLI
+The native providers are exposed in native-engine build variants; the CLI
+supplies the provider fetchers at the pinned revision. Compiling the complete CLI
 does not establish Android support for every upstream provider or desktop source.
+Per-provider verification status and credential nuances live in
+[docs/providers.md](docs/providers.md).
 
 ## 2. Components and ownership
 
@@ -229,7 +125,9 @@ Provider-specific adapters produce the existing `QuotaInfo` model; UI and widget
 code do not parse native stdout. Hilt supplies a singleton native client, while
 ViewModels and workers own the lifetime of their suspending requests.
 
-## 3. OpenCode Go data flow
+## 3. Data flows and credential contracts
+
+### Native API-key flow (example: OpenCode Go)
 
 ```text
 Settings draft / DashboardViewModel / QuotaRefreshWorker
@@ -249,7 +147,7 @@ The upstream fetcher issues an authenticated HTTPS GET to the OpenCode Go usage
 API. `--source api` is explicit: this integration does not use local desktop usage
 estimates, browser-cookie discovery or another tool's saved account.
 
-### Credential contract
+#### Credential contract
 
 - The Settings field is masked and uses the existing encrypted preference store.
 - Surrounding whitespace is trimmed before validation. Blank input is rejected;
@@ -313,8 +211,13 @@ CLI fallback for explicit OAuth without changing other platforms' credential pol
 Normal Settings validation, dashboard and worker refresh share this integration.
 Live native sign-in/quota/renewal acceptance remains separate from synthetic tests.
 
-Copilot device sign-in uses GitHub's device flow, the project's registered public
-`COPILOT_OAUTH_CLIENT_ID`, and `read:user`. It is disabled when that ID is absent.
+### Copilot device sign-in
+
+Copilot device sign-in uses GitHub's device flow and `read:user`. The default
+public client is the Visual Studio Code OAuth app used by the pinned upstream;
+the consent identity is explained before authorization. A build-time
+`COPILOT_OAUTH_CLIENT_ID` override can replace it; an explicit empty override
+disables device sign-in. It is not an OAuth app registered by this Android project.
 The flow enforces the fixed GitHub verification URL, bounded monotonic expiry,
 pending/slow-down/denial handling and cancellable, size-limited HTTPS with redirects
 disabled. A granted token still must pass the same account owner's quota validation
@@ -346,8 +249,13 @@ security sandbox from its host.
 ## 5. JSON-to-domain contract
 
 The Go parser accepts one JSON-array envelope with `provider: "opencodego"` and
-`source: "api"`. A successful reading additionally requires a zero exit code,
-valid usage data and at least one measured window.
+`source: "api"`. The same envelope shape applies to every native API-key
+provider: `provider` carries the upstream provider's raw identifier (which can
+differ from the CLI name, e.g. `alibaba-coding-plan` encodes as `alibaba`), and
+window labels, slot metadata and reported-money handling are mapped per service
+in `NativeQuotaCliParser`. A successful reading additionally requires a zero exit code,
+valid usage data and at least one measured window (or a provider-recognized
+balance/plan-only payload).
 
 | CLI field | Android projection |
 | --- | --- |
@@ -369,7 +277,142 @@ existing rate-limit and unavailable states. Other errors become sanitized generi
 messages. This error classification depends on the pinned CLI's error wording.
 The Go API adapter currently maps usage windows, not Zen prepaid balance or history.
 
-## 6. Packaging and platform contract
+### Reported Codex inventory
+
+Native Codex quota preserves optional credit balance, workspace ownership, personal
+credit cap and reset-credit inventory. Credits are units, never assumed currency.
+Unread balance remains unknown; confirmed zero and an empty inventory remain zero.
+Each optional section retains its measurement time; reset items retain provider type,
+status and expiry. Malformed enrichment is omitted without failing valid quota.
+Detail displays this read-only inventory when amounts are enabled. No redemption
+operation is exposed. Kotlin API 26–27 compatibility does not promise this enrichment.
+
+## 6. Shared measurement snapshots
+
+Dashboard, widgets, persistent notification and tile read connection/generation-scoped
+snapshots. A successful measurement owns its source, stable window IDs, durations,
+model-pool classification and timestamp. A transient failure retains that measurement
+with a typed failure and separate attempt time; authentication rejection removes its
+values. Reconnect never adopts the previous generation's reading. Saved account order
+is stable, and model-only pools do not become notification/widget general headlines.
+
+Readings older than one hour are stale; successful data is retained at most seven
+days. A clock rollback marks data stale, and a timestamp more than five minutes in
+the future is unavailable. A past reset means refresh to confirm, not recovered quota.
+All surfaces use the same remaining-percentage rounding, age and reset semantics.
+
+The existing private widget preferences now store versioned structured snapshots;
+old label-keyed entries are read as legacy/stale until a real refresh replaces them.
+Credentials and account identity are untouched. Downgraded builds may show no cached
+reading until refresh; the cache is disposable and can be repopulated without changing
+accounts. Cloud backup and device-transfer extraction exclude app data, including
+measurement caches. No credentials are stored in snapshots.
+
+## 7. Display preferences and profiles
+
+Account overview preferences use stable window IDs, show-amounts and absolute-reset
+switches. Detail retains every quota window. Hidden windows still participate in
+pace, recovery and risk; near-exhausted hidden metrics show a warning. Each widget
+stores its own per-account profile, independent of dashboard choices. Restore
+Defaults clears only that profile. Individual fields inherit independently along the
+widget → account → global chain, an explicit override replacing only that field, and
+saved changes propagate live to dashboard, detail, widget and settings surfaces
+(`a4dc917`, `b7f7dad`). Disappearing metrics retain their hidden ID;
+renaming/localizing labels does not change selection. Account deletion clears its
+profiles; widget deletion clears only that widget's profile. These preferences never
+alter credentials, ownership, fetch sources or scheduling.
+
+Legacy full-profile settings remain explicit overrides to preserve existing choices.
+Use Restore defaults on that account or widget to resume inheritance, then change
+only the fields that should stay pinned.
+
+## 8. Quota history and pace
+
+History uses the no-backup display cache, keyed by account generation and stable
+principal window ID. Retain at most 48 samples per window, 16 windows per account,
+and 14 days. Only successful fresh readings enter history; duplicate, out-of-order,
+future and legacy readings do not add samples. Changed source, reset, duration,
+increased remaining capacity or a gap over six hours starts a new segment. Account
+deletion removes history and its generation marker. Reads prune expired samples.
+
+One principal-window chart uses epoch-second differences, not floating-point epoch
+timestamps. A linear estimate requires three samples spanning at least 15 minutes,
+with a latest sample no older than six hours. No projection continues past a known
+reset. Unknown duration/reset omits the even-use guide. Estimates are not guarantees.
+
+Pace display (Mac `UsagePace.weekly` port) is limited to the Codex, Claude and
+OpenCode Go window lanes plus Copilot reset-date rules; other providers show usage
+without pace. Predictive-pace alerts fire on Codex and Claude windows only.
+
+## 9. Usage alerts and confirmed recovery
+
+Usage warnings split like Mac — depleted, low (20% remaining), predictive pace —
+each independently toggleable with durable per-window dedup.
+
+Recovery alerts are opt-in and default off. `QuotaRecovery` implements separate
+session and weekly lanes from the Mac reset detector, with account/generation
+ownership and durable receipts. Session recovery uses a crossing from above 1%
+used to at most 1%, with an advancing reset boundary and source-change guards.
+Codex weekly recovery uses a 5% low threshold and boundary/plan checks; a same-boundary
+drop from above 25% can instead start a candidate confirmed after 60–1800 seconds.
+Claude weekly and generic weekly lanes have their own confirmation rules; these
+are not a uniform 95%-to-80% rule. The implementation and its regression tests
+are the authority for lane eligibility and receipt transitions.
+First observations, stale/future or legacy measurements and duplicate timestamps
+cannot independently trigger recovery. Receipts are stored before notifications
+are posted. Notification content contains account name, window label and remaining
+percent, not credentials.
+
+## 10. Official service status
+
+Android's `usage --status-only` CLI route invokes Core status metadata/fetchers before
+creating any credential or quota context. Codex, Claude and Copilot have official
+sources in the pinned Core; other providers remain unavailable rather than healthy.
+Status cache is provider-scoped, shared by all accounts, throttled to five minutes,
+and considered unknown after thirty minutes or clock rollback. It never changes a
+quota result or infers an incident from quota/auth/network errors. Detail shows
+source and independent check age; overview only surfaces recently reported incidents.
+
+## 11. Widget families and tile
+
+Overview and pinned-account widgets share generation-scoped snapshots and explicit
+stable connection pins. Compact layouts show the most constrained principal window;
+taller pinned widgets show additional principal windows and reset progress. Overview
+capacity grows from one to three accounts with height, disclosing omitted pins.
+Deleted pins remain unavailable until reconfiguration, never selecting a sibling.
+Configuration defaults to cancelled and publishes only on confirmation. A widget's
+refresh enqueues explicit work for its own still-existing pins; opening leads to the
+dashboard. Both families update when account state changes.
+
+## 12. Scheduling and refresh ownership
+
+The Application supplies HiltWorkerFactory to on-demand WorkManager initialization.
+Startup, boot and cadence changes use the saved encrypted preference. Manual cancels
+periodic quota work, legacy token work and automatic per-account retries. Explicit
+one-shot refresh remains available. Each account/generation gets unique work with
+network constraints and exponential transient backoff; terminal authentication is
+suppressed until reconnect. Foreground and worker overlaps share one in-flight
+account result; siblings retain independent retry outcomes. Android's 15-minute
+periodic floor and background execution policy remain best-effort constraints.
+
+Foreground refresh returns provider results to the dashboard. The background quota
+worker includes configured accounts through the same repositories, caches successful
+readings for widgets and updates notifications/tile state. Widget cache storage is
+separate from encrypted credentials.
+
+WorkManager schedules require network connectivity and are best-effort rather than
+precise timers. The Settings interval is rescheduled immediately and re-applied at
+app startup. Per-account one-shot work validates the current generation
+and mode before refreshing, so deleted or reconnected accounts cannot publish stale
+results. Scheduling behavior is exercised by JVM tests and the acceptance build's
+cadence persistence probe; long-run device behavior remains an observation target.
+
+The optional battery-optimization exemption is offered once when the user switches
+from manual to periodic refresh, is remembered after either answer, and never gates
+scheduling: WorkManager work is scheduled regardless of the exemption
+(`BatteryOfferTest`).
+
+## 13. Packaging and platform contract
 
 The build pins upstream CodexBar **v0.71.0** at
 `cb5f0cbe88615a441272c6f9e44675bf594a3fa3`. Android changes remain a reviewable patch;
@@ -400,29 +443,16 @@ Native subprocess directory-change actions require API 34 and return `ENOTSUP`
 below it. Native ARM64 hardware, API 28 minimum-device behavior and 16 KiB-page
 devices remain separate validation targets.
 
-## 7. Scheduling and persistence
+## 14. Current limits and acceptance boundary
 
-Foreground refresh returns provider results to the dashboard. The background quota
-worker includes configured Go accounts through the same repository, caches successful
-readings for widgets and updates notifications/tile state. Widget cache storage is
-separate from encrypted credentials.
-
-WorkManager schedules require network connectivity and are best-effort rather than
-precise timers. The Settings interval is rescheduled immediately and re-applied at
-app startup; Manual cancels the periodic and automatic retry work while keeping the
-explicit one-shot refresh. Per-account one-shot work validates the current generation
-and mode before refreshing, so deleted or reconnected accounts cannot publish stale
-results. Scheduling behavior is exercised by JVM tests and the acceptance build's
-cadence persistence probe; long-run device behavior remains an observation target.
-
-## 8. Current limits and acceptance boundary
-
-- Codex (API 28+), OpenCode Go, OpenRouter and Copilot use the native data layer
-  during normal refresh in native builds. Claude, Gemini and DeepSeek use Kotlin;
-  Codex retains the Kotlin compatibility path on API 26/27 and non-native builds.
+- Codex (API 28+) and the eleven API-key providers (OpenCode Go, OpenRouter,
+  Copilot, Venice, Amp, z.ai, Factory, Alibaba Coding Plan, Charm Hyper, Kimi,
+  MiniMax) use the native data layer during normal refresh in native builds.
+  Claude, Gemini and DeepSeek use Kotlin; Codex retains the Kotlin compatibility
+  path on API 26/27 and non-native builds.
 - Runtime acceptance covers an API 36 emulator, including its ARM64 native bridge.
   That is distinct from physical ARM64 hardware verification.
-- Automated Go API/UI checks use an invalid synthetic key. Real-account quota
+- Automated API-key UI checks use invalid synthetic keys. Real-account quota
   accuracy, long-running background behavior and OAuth renewal are not proven by them.
 - The Android version command reads the staged `VERSION` beside the resource bundle
   and reports `CodexBar 0.71.0`; the numeric-version App-UID probe passed.

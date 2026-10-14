@@ -55,6 +55,9 @@ auth.json
 credentials.json
 credentials-*.json
 AGENTS.local.md
+agent.local
+FutureWork.md
+futurework.md
 
 # Upstream reference (not part of this project)
 upstream-codexbar/
