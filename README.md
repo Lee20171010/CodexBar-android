@@ -7,6 +7,14 @@ a Quick Settings tile, an ongoing notification and reset alerts.
 This is an independent port. It is not published, endorsed or supported by the
 macOS CodexBar maintainers or the monitored service providers.
 
+## Screenshots
+
+| Settings | Providers & accounts | Menu & display | About |
+| --- | --- | --- | --- |
+| <img src="docs/images/settings-directory.png" width="200"> | <img src="docs/images/providers-accounts.png" width="200"> | <img src="docs/images/menu-display.png" width="200"> | <img src="docs/images/about.png" width="200"> |
+
+Captured on an emulator, which carries no live account data.
+
 ## Architecture in one paragraph
 
 The quota engine is the real CodexBar **Swift Core/CLI**, cross-compiled and
@@ -67,6 +75,10 @@ against a live account.
 
 ## Features
 
+- **Multiple accounts per provider** — add any number of accounts under the
+  same provider (for example two Codex work accounts); each account signs in
+  and refreshes independently, keeps its own history, and appears as its own
+  card, widget entry and tile row.
 - **Dashboard** — per-account quota cards, headline window, accent colors,
   Detailed/Compact overview layout, multi-account segmented/stacked layouts,
   phone detail sheet and wide detail pane.
