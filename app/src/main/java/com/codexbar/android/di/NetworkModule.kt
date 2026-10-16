@@ -10,6 +10,7 @@ import com.codexbar.android.core.network.codex.CodexTokenRefreshService
 import com.codexbar.android.core.network.gemini.GeminiApiService
 import com.codexbar.android.core.network.gemini.GeminiTokenRefreshService
 import com.codexbar.android.core.network.deepseek.DeepSeekApiService
+import com.codexbar.android.core.update.UpdateRedirectPolicy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,6 +47,10 @@ annotation class CodexTokenClient
 @Retention(AnnotationRetention.BINARY)
 annotation class GeminiTokenClient
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class UpdateClient
+
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
@@ -65,6 +70,18 @@ object NetworkModule {
         coerceInputValues = true
         isLenient = true
     }
+
+    // GitHub release downloads redirect to a signed object host, so this client
+    // follows redirects, but UpdateRedirectPolicy pins every hop to HTTPS on
+    // allowed GitHub hosts (no downgrade, no arbitrary redirect target).
+    @Provides
+    @Singleton
+    @UpdateClient
+    fun provideUpdateOkHttpClient(): OkHttpClient = baseOkHttpBuilder()
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .addNetworkInterceptor(UpdateRedirectPolicy())
+        .build()
 
     private fun baseOkHttpBuilder(): OkHttpClient.Builder {
         val builder = OkHttpClient.Builder()

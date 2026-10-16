@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -75,6 +76,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -435,6 +437,13 @@ private fun SettingsPageContent(
                 ) { Text(stringResource(R.string.about_source)) }
                 TextButton(onClick = onAboutLicenses) {
                     Text(stringResource(R.string.about_licenses))
+                }
+                // Native delivery builds only: the APK they install carries the
+                // native payload; debug/acceptance must never self-update.
+                if (BuildConfig.NATIVE_CLI_ENABLED &&
+                    !BuildConfig.APPLICATION_ID.endsWith(".acceptance")
+                ) {
+                    UpdateSection()
                 }
             }
         }
@@ -1015,6 +1024,88 @@ private fun PrefsSwitchRow(checked: Boolean, title: String, summary: String, onT
  * enabled refresh change) plus a permanent entry to the same system settings.
  * Exemption is optional: scheduling happens regardless of the choice.
  */
+@Composable
+private fun UpdateSection(viewModel: UpdateViewModel = hiltViewModel()) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        when (val current = state) {
+            UpdateUiState.Idle -> OutlinedButton(
+                onClick = { viewModel.check() }, modifier = Modifier.fillMaxWidth()
+            ) { Text(stringResource(R.string.update_check)) }
+
+            UpdateUiState.Checking -> Text(stringResource(R.string.update_checking))
+
+            UpdateUiState.UpToDate -> Text(stringResource(R.string.update_up_to_date))
+
+            is UpdateUiState.Available -> {
+                Text(stringResource(R.string.update_available, current.release.version))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { viewModel.download(current.release) }) {
+                        Text(stringResource(R.string.update_download))
+                    }
+                    TextButton(onClick = { viewModel.cancel() }) {
+                        Text(stringResource(R.string.update_cancel))
+                    }
+                }
+            }
+
+            is UpdateUiState.Downloading -> {
+                val fraction = current.fraction
+                if (fraction != null) {
+                    LinearProgressIndicator(
+                        progress = { fraction }, modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                Text(
+                    if (fraction != null) {
+                        stringResource(R.string.update_downloading_percent, (fraction * 100).toInt())
+                    } else {
+                        stringResource(R.string.update_downloading)
+                    }
+                )
+                TextButton(onClick = { viewModel.cancel() }) {
+                    Text(stringResource(R.string.update_cancel))
+                }
+            }
+
+            UpdateUiState.Verifying -> Text(stringResource(R.string.update_verifying))
+
+            is UpdateUiState.Ready -> {
+                Text(stringResource(R.string.update_ready))
+                if (!viewModel.hasInstallPermission()) {
+                    Text(
+                        stringResource(R.string.update_permission_needed),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Button(onClick = {
+                    if (!viewModel.hasInstallPermission()) {
+                        runCatching { context.startActivity(viewModel.installPermissionIntent()) }
+                    } else {
+                        viewModel.installIntent(current.release)?.let { intent ->
+                            runCatching { context.startActivity(intent) }
+                        }
+                    }
+                }) { Text(stringResource(R.string.update_install)) }
+            }
+
+            is UpdateUiState.Failed -> {
+                Text(
+                    stringResource(R.string.update_failed, current.message),
+                    color = MaterialTheme.colorScheme.error
+                )
+                OutlinedButton(
+                    onClick = { viewModel.check() }, modifier = Modifier.fillMaxWidth()
+                ) { Text(stringResource(R.string.update_retry)) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun BatterySections(
     showOffer: Boolean,
