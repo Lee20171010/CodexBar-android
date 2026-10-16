@@ -1,20 +1,5 @@
-diff --git a/Sources/CodexBarCLI/CLIIO.swift b/Sources/CodexBarCLI/CLIIO.swift
---- a/Sources/CodexBarCLI/CLIIO.swift
-+++ b/Sources/CodexBarCLI/CLIIO.swift
-@@ -139,5 +139,10 @@
-     static func adjacentVersionFileVersion(for executableURL: URL) -> String? {
--        let versionURL = executableURL
-+        var versionURL = executableURL
-             .deletingLastPathComponent()
-             .appendingPathComponent("VERSION")
-+        #if os(Android)
-+        if let bundle = ProcessInfo.processInfo.environment["CODEXBAR_RESOURCE_BUNDLE_PATH"], bundle.hasPrefix("/") {
-+            versionURL = URL(fileURLWithPath: bundle).deletingLastPathComponent().appendingPathComponent("VERSION")
-+        }
-+        #endif
-         guard let raw = try? String(contentsOf: versionURL, encoding: .utf8) else {
 diff --git a/Package.swift b/Package.swift
-index dc07ea1..aa7c3e9 100644
+index d11c2cc65..f1a5d8358 100644
 --- a/Package.swift
 +++ b/Package.swift
 @@ -13,7 +13,7 @@ let sweetCookieKitDependency: Package.Dependency =
@@ -50,7 +35,7 @@ index dc07ea1..aa7c3e9 100644
              // save cycle is atomic. Not shipped; built only as a test dependency.
              .executableTarget(
 diff --git a/Sources/CodexBarCLI/CLICardsRenderer.swift b/Sources/CodexBarCLI/CLICardsRenderer.swift
-index 7014233..a23a3f0 100644
+index 7014233e0..a23a3f0bc 100644
 --- a/Sources/CodexBarCLI/CLICardsRenderer.swift
 +++ b/Sources/CodexBarCLI/CLICardsRenderer.swift
 @@ -2,6 +2,8 @@ import CodexBarCore
@@ -63,7 +48,7 @@ index 7014233..a23a3f0 100644
  import Musl
  #elseif canImport(Darwin)
 diff --git a/Sources/CodexBarCLI/CLIDashboardCommand.swift b/Sources/CodexBarCLI/CLIDashboardCommand.swift
-index 1110fab..6a8c748 100644
+index d78228c22..e7d365187 100644
 --- a/Sources/CodexBarCLI/CLIDashboardCommand.swift
 +++ b/Sources/CodexBarCLI/CLIDashboardCommand.swift
 @@ -2,6 +2,8 @@
@@ -76,7 +61,7 @@ index 1110fab..6a8c748 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCLI/CLIEntry.swift b/Sources/CodexBarCLI/CLIEntry.swift
-index 324f395..ed2f35f 100644
+index e4af4a7cc..7c5032e35 100644
 --- a/Sources/CodexBarCLI/CLIEntry.swift
 +++ b/Sources/CodexBarCLI/CLIEntry.swift
 @@ -7,6 +7,8 @@ import CoreFoundation
@@ -98,7 +83,7 @@ index 324f395..ed2f35f 100644
              Musl.exit(CodexBarCoreResourceSmoke.run())
              #endif
 diff --git a/Sources/CodexBarCLI/CLIHelpers.swift b/Sources/CodexBarCLI/CLIHelpers.swift
-index 99bd472..12ea189 100644
+index 99bd4724f..12ea18928 100644
 --- a/Sources/CodexBarCLI/CLIHelpers.swift
 +++ b/Sources/CodexBarCLI/CLIHelpers.swift
 @@ -7,6 +7,8 @@ import FoundationNetworking
@@ -111,7 +96,7 @@ index 99bd472..12ea189 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCLI/CLIIO.swift b/Sources/CodexBarCLI/CLIIO.swift
-index 0c460ec..597ea0f 100644
+index c53d3b4ed..e74669180 100644
 --- a/Sources/CodexBarCLI/CLIIO.swift
 +++ b/Sources/CodexBarCLI/CLIIO.swift
 @@ -2,6 +2,8 @@
@@ -123,7 +108,23 @@ index 0c460ec..597ea0f 100644
  #elseif canImport(Musl)
  import Musl
  #endif
-@@ -162,6 +164,8 @@ extension CodexBarCLI {
+@@ -156,9 +158,14 @@ extension CodexBarCLI {
+     }
+ 
+     static func adjacentVersionFileVersion(for executableURL: URL) -> String? {
+-        let versionURL = executableURL
++        var versionURL = executableURL
+             .deletingLastPathComponent()
+             .appendingPathComponent("VERSION")
++        #if os(Android)
++        if let bundle = ProcessInfo.processInfo.environment["CODEXBAR_RESOURCE_BUNDLE_PATH"], bundle.hasPrefix("/") {
++            versionURL = URL(fileURLWithPath: bundle).deletingLastPathComponent().appendingPathComponent("VERSION")
++        }
++        #endif
+         guard let raw = try? String(contentsOf: versionURL, encoding: .utf8) else {
+             return nil
+         }
+@@ -183,6 +190,8 @@ extension CodexBarCLI {
          Darwin.exit(code)
          #elseif canImport(Glibc)
          Glibc.exit(code)
@@ -133,7 +134,7 @@ index 0c460ec..597ea0f 100644
          Musl.exit(code)
          #endif
 diff --git a/Sources/CodexBarCLI/CLILocalHTTPServer.swift b/Sources/CodexBarCLI/CLILocalHTTPServer.swift
-index 9be204e..dca464c 100644
+index 9be204eee..dca464ceb 100644
 --- a/Sources/CodexBarCLI/CLILocalHTTPServer.swift
 +++ b/Sources/CodexBarCLI/CLILocalHTTPServer.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -172,8 +173,24 @@ index 9be204e..dca464c 100644
      #elseif canImport(Musl)
      Musl.close(fd)
      #endif
+diff --git a/Sources/CodexBarCLI/CLIOptions.swift b/Sources/CodexBarCLI/CLIOptions.swift
+index 23cfa2423..201018e59 100644
+--- a/Sources/CodexBarCLI/CLIOptions.swift
++++ b/Sources/CodexBarCLI/CLIOptions.swift
+@@ -192,6 +192,11 @@ struct CLIUsageFetchOptions: CommanderParsable {
+     @Flag(name: .long("status"), help: "Fetch and include provider status")
+     var status: Bool = false
+ 
++    #if os(Android)
++    @Flag(name: .long("status-only"), help: "Fetch official provider status without credentials or quota")
++    var statusOnly: Bool = false
++    #endif
++
+     @Flag(name: .long("web"), help: "Alias for --source web")
+     var web: Bool = false
+ 
 diff --git a/Sources/CodexBarCLI/CLIPluginsCommand.swift b/Sources/CodexBarCLI/CLIPluginsCommand.swift
-index de46731..cc085e1 100644
+index de46731b7..cc085e12c 100644
 --- a/Sources/CodexBarCLI/CLIPluginsCommand.swift
 +++ b/Sources/CodexBarCLI/CLIPluginsCommand.swift
 @@ -4,6 +4,8 @@ import Commander
@@ -186,7 +203,7 @@ index de46731..cc085e1 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift b/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift
-index 61dc2f4..1be63a7 100644
+index 61dc2f48b..1be63a7c3 100644
 --- a/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift
 +++ b/Sources/CodexBarCLI/CLITerminationSignalMonitor.swift
 @@ -5,6 +5,8 @@ import Foundation
@@ -216,8 +233,37 @@ index 61dc2f4..1be63a7 100644
          #elseif canImport(Musl)
          _ = Musl.signal(signalNumber, SIG_DFL)
          #endif
+diff --git a/Sources/CodexBarCLI/CLIUsageCommand.swift b/Sources/CodexBarCLI/CLIUsageCommand.swift
+index aec44372f..9040d6de5 100644
+--- a/Sources/CodexBarCLI/CLIUsageCommand.swift
++++ b/Sources/CodexBarCLI/CLIUsageCommand.swift
+@@ -72,6 +72,24 @@ extension CodexBarCLI {
+         let config = Self.loadConfig(output: output)
+         let provider = Self.decodeProvider(from: values, config: config)
+         let providerList = provider.asList
++        #if os(Android)
++        if values.flags.contains("statusOnly") {
++            struct StatusOutput: Encodable {
++                let provider: String
++                let status: ProviderStatusPayload?
++            }
++            var statuses: [StatusOutput] = []
++            for provider in providerList {
++                statuses.append(StatusOutput(provider: provider.rawValue, status: await Self.fetchStatus(for: provider)))
++            }
++            let encoder = JSONEncoder()
++            encoder.dateEncodingStrategy = .iso8601
++            if let data = try? encoder.encode(statuses) {
++                print(String(decoding: data, as: UTF8.self))
++            }
++            return
++        }
++        #endif
+         let setup = Self.usageFetchSetup(values: values, providers: providerList, output: output)
+         let command = setup.command
+         let tokenContext = setup.tokenContext(config: config, output: output)
 diff --git a/Sources/CodexBarCore/AutoreleasePoolCompat.swift b/Sources/CodexBarCore/AutoreleasePoolCompat.swift
-index 7d0d32c..c22f873 100644
+index 7d0d32c4d..c22f87322 100644
 --- a/Sources/CodexBarCore/AutoreleasePoolCompat.swift
 +++ b/Sources/CodexBarCore/AutoreleasePoolCompat.swift
 @@ -1,6 +1,6 @@
@@ -229,7 +275,7 @@ index 7d0d32c..c22f873 100644
  func autoreleasepool<Result>(_ work: () throws -> Result) rethrows -> Result {
      try work()
 diff --git a/Sources/CodexBarCore/CodexBarCoreResources.swift b/Sources/CodexBarCore/CodexBarCoreResources.swift
-index d6cb9f0..827f0a7 100644
+index d6cb9f0c7..827f0a7b5 100644
 --- a/Sources/CodexBarCore/CodexBarCoreResources.swift
 +++ b/Sources/CodexBarCore/CodexBarCoreResources.swift
 @@ -20,6 +20,13 @@ public enum CodexBarCoreResources {
@@ -247,7 +293,7 @@ index d6cb9f0..827f0a7 100644
          let bundleName = "\(name).bundle"
          let swiftPMBundleNames = [bundleName, "\(name).resources"]
 diff --git a/Sources/CodexBarCore/CodexCredentialFileAccess.swift b/Sources/CodexBarCore/CodexCredentialFileAccess.swift
-index 94c3e3d..2a57249 100644
+index 94c3e3d4c..2a57249b4 100644
 --- a/Sources/CodexBarCore/CodexCredentialFileAccess.swift
 +++ b/Sources/CodexBarCore/CodexCredentialFileAccess.swift
 @@ -1,4 +1,7 @@
@@ -268,7 +314,7 @@ index 94c3e3d..2a57249 100644
          }
      }
 diff --git a/Sources/CodexBarCore/Config/CodexBarConfigStore.swift b/Sources/CodexBarCore/Config/CodexBarConfigStore.swift
-index 7a6465f..bae3b51 100644
+index 5bfd58fb0..b872bf00a 100644
 --- a/Sources/CodexBarCore/Config/CodexBarConfigStore.swift
 +++ b/Sources/CodexBarCore/Config/CodexBarConfigStore.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -281,7 +327,7 @@ index 7a6465f..bae3b51 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/CookieHeaderCache.swift b/Sources/CodexBarCore/CookieHeaderCache.swift
-index 2ee08c1..8f907bb 100644
+index a0b2980a5..d734bb7de 100644
 --- a/Sources/CodexBarCore/CookieHeaderCache.swift
 +++ b/Sources/CodexBarCore/CookieHeaderCache.swift
 @@ -6,6 +6,8 @@ import CryptoKit
@@ -294,7 +340,7 @@ index 2ee08c1..8f907bb 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/CredentialFileWriter.swift b/Sources/CodexBarCore/CredentialFileWriter.swift
-index 17db4f2..9cc68e4 100644
+index 17db4f2e4..9cc68e4a7 100644
 --- a/Sources/CodexBarCore/CredentialFileWriter.swift
 +++ b/Sources/CodexBarCore/CredentialFileWriter.swift
 @@ -2,6 +2,8 @@
@@ -307,7 +353,7 @@ index 17db4f2..9cc68e4 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift b/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift
-index f03dd5a..025268b 100644
+index c719a06ad..e7e9ed853 100644
 --- a/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift
 +++ b/Sources/CodexBarCore/Host/PTY/TTYCommandRunner.swift
 @@ -2,6 +2,8 @@
@@ -320,7 +366,7 @@ index f03dd5a..025268b 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift
-index e436a80..d43c44a 100644
+index e436a80d5..d43c44a5a 100644
 --- a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift
 +++ b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCloseFrom.swift
 @@ -2,6 +2,8 @@
@@ -333,7 +379,7 @@ index e436a80..d43c44a 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift
-index 9f3a96a..12c36a7 100644
+index 9f3a96a05..12c36a78f 100644
 --- a/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift
 +++ b/Sources/CodexBarCore/Host/Process/PosixSpawnFileActionsCompatibility.swift
 @@ -2,6 +2,8 @@
@@ -359,7 +405,7 @@ index 9f3a96a..12c36a7 100644
          posix_spawn_file_actions_addchdir_np(&fileActions, path)
          #endif
 diff --git a/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift b/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift
-index ae4b70c..f76d9fc 100644
+index ae4b70c0c..f76d9fc23 100644
 --- a/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift
 +++ b/Sources/CodexBarCore/Host/Process/ProcessOwnershipReaper.swift
 @@ -2,6 +2,8 @@
@@ -372,7 +418,7 @@ index ae4b70c..f76d9fc 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift b/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift
-index 287bd64..d8c4d13 100644
+index 287bd648b..d8c4d1395 100644
 --- a/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift
 +++ b/Sources/CodexBarCore/Host/Process/ProcessPipeCapture.swift
 @@ -1,6 +1,8 @@
@@ -385,7 +431,7 @@ index 287bd64..d8c4d13 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift b/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift
-index 6e6db18..36fdd1b 100644
+index 1697a1d9c..344c28f75 100644
 --- a/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift
 +++ b/Sources/CodexBarCore/Host/Process/SpawnedProcessGroup.swift
 @@ -2,6 +2,8 @@
@@ -482,7 +528,7 @@ index 6e6db18..36fdd1b 100644
          guard spawnResult == 0 else {
              throw LaunchError.spawnFailed(String(cString: strerror(spawnResult)))
 diff --git a/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift b/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift
-index ddd4930..a985508 100644
+index fcd381436..28936eaec 100644
 --- a/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift
 +++ b/Sources/CodexBarCore/Host/Process/SubprocessRunner.swift
 @@ -2,6 +2,8 @@
@@ -495,7 +541,7 @@ index ddd4930..a985508 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift b/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift
-index 2caff24..4dc16b9 100644
+index 2caff2415..4dc16b99b 100644
 --- a/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift
 +++ b/Sources/CodexBarCore/Logging/JSONStderrLogHandler.swift
 @@ -4,6 +4,8 @@ import Logging
@@ -507,8 +553,20 @@ index 2caff24..4dc16b9 100644
  #elseif canImport(Musl)
  import Musl
  #endif
+diff --git a/Sources/CodexBarCore/ManagedCodexAccountLock.swift b/Sources/CodexBarCore/ManagedCodexAccountLock.swift
+index d2ae9016f..9c682c618 100644
+--- a/Sources/CodexBarCore/ManagedCodexAccountLock.swift
++++ b/Sources/CodexBarCore/ManagedCodexAccountLock.swift
+@@ -1,4 +1,7 @@
+ import Foundation
++#if os(Android)
++import Android
++#endif
+ #if canImport(Darwin)
+ import Darwin
+ #elseif canImport(Glibc)
 diff --git a/Sources/CodexBarCore/PathEnvironment.swift b/Sources/CodexBarCore/PathEnvironment.swift
-index 2f2d24b..8c5a239 100644
+index 2f2d24b4c..8c5a23964 100644
 --- a/Sources/CodexBarCore/PathEnvironment.swift
 +++ b/Sources/CodexBarCore/PathEnvironment.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -563,7 +621,7 @@ index 2f2d24b..8c5a239 100644
  
          // Close the write ends in the parent so EOF will arrive on the read ends
 diff --git a/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift b/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift
-index 8c701ec..2a05e27 100644
+index 8c701eccd..2a05e275b 100644
 --- a/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift
 +++ b/Sources/CodexBarCore/Plugins/ProviderPluginStorage.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -576,7 +634,7 @@ index 8c701ec..2a05e27 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/ProviderHTTPClient.swift b/Sources/CodexBarCore/ProviderHTTPClient.swift
-index 43255f3..5adce85 100644
+index 43255f3fe..5adce85f8 100644
 --- a/Sources/CodexBarCore/ProviderHTTPClient.swift
 +++ b/Sources/CodexBarCore/ProviderHTTPClient.swift
 @@ -7,7 +7,7 @@ public protocol ProviderHTTPTransport: Sendable {
@@ -598,7 +656,7 @@ index 43255f3..5adce85 100644
          #endif
          return configuration
 diff --git a/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift b/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift
-index 4acdbd5..e75d8ef 100644
+index 4acdbd5f9..e75d8ef46 100644
 --- a/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift
 +++ b/Sources/CodexBarCore/Providers/Antigravity/AntigravityCLISession.swift
 @@ -2,6 +2,8 @@
@@ -657,7 +715,7 @@ index 4acdbd5..e75d8ef 100644
          }
          guard spawnResult == 0 else {
 diff --git a/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift b/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift
-index 5a372ea..5a238ad 100644
+index 5a372eaf1..5a238ad9f 100644
 --- a/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift
 +++ b/Sources/CodexBarCore/Providers/Antigravity/AntigravityLocalhostSession.swift
 @@ -9,7 +9,7 @@ enum LocalhostTrustPolicy {
@@ -679,7 +737,7 @@ index 5a372ea..5a238ad 100644
          #else
          let protectionSpace = challenge.protectionSpace
 diff --git a/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift b/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift
-index 11ec0d7..b1e3ece 100644
+index 11ec0d78e..b1e3eceae 100644
 --- a/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift
 +++ b/Sources/CodexBarCore/Providers/Antigravity/AntigravityStatusProbe.swift
 @@ -859,7 +859,7 @@ public struct AntigravityStatusProbe: Sendable {
@@ -692,7 +750,7 @@ index 11ec0d7..b1e3ece 100644
          #endif
          return URLSession(configuration: config, delegate: Self.localhostDelegate, delegateQueue: nil)
 diff --git a/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift b/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift
-index 996dcc0..1a3484b 100644
+index 4927fad5d..a764eeb77 100644
 --- a/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift
 +++ b/Sources/CodexBarCore/Providers/Claude/ClaudeCLISession.swift
 @@ -2,6 +2,8 @@
@@ -705,7 +763,7 @@ index 996dcc0..1a3484b 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift
-index a4ae355..3f7e712 100644
+index 7e6a93fe8..7a4937b05 100644
 --- a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift
 +++ b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthCredentials+SecurityCLIReader.swift
 @@ -5,6 +5,8 @@ import Foundation
@@ -718,7 +776,7 @@ index a4ae355..3f7e712 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift
-index edd58bc..dc7f0ae 100644
+index 37b63b1a0..320cbf3cc 100644
 --- a/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift
 +++ b/Sources/CodexBarCore/Providers/Claude/ClaudeOAuth/ClaudeOAuthPendingCacheClearStore.swift
 @@ -2,6 +2,8 @@
@@ -731,7 +789,7 @@ index edd58bc..dc7f0ae 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift b/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift
-index d568723..0957309 100644
+index 97541c806..7a4a91bf6 100644
 --- a/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift
 +++ b/Sources/CodexBarCore/Providers/Codex/CodexCLISession.swift
 @@ -2,6 +2,8 @@
@@ -744,7 +802,7 @@ index d568723..0957309 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift b/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift
-index c2e6607..9747082 100644
+index c2e660755..974708265 100644
 --- a/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift
 +++ b/Sources/CodexBarCore/Providers/Codex/CodexOAuth/CodexOAuthCredentials.swift
 @@ -4,6 +4,8 @@ import Foundation
@@ -756,8 +814,35 @@ index c2e6607..9747082 100644
  #elseif canImport(Musl)
  import Musl
  #endif
+diff --git a/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift b/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
+index 1d6fd6f2f..e29b234c0 100644
+--- a/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
++++ b/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
+@@ -437,6 +437,11 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
+             accessToken: credentials.accessToken,
+             accountId: credentials.accountId,
+             env: context.env)
++        #if os(Android)
++        if let expected = credentials.accountId, let returned = usage.accountId, expected != returned {
++            throw CodexOAuthFetchError.unauthorized
++        }
++        #endif
+         let resetCreditsAttempted = Self.shouldFetchResetCredits(context)
+         let resetCredits = try await Self.fetchResetCreditsIfRequested(
+             context: context,
+@@ -488,6 +493,10 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
+     }
+ 
+     func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
++        #if os(Android)
++        // Android owns renewal; explicit OAuth must never spawn the desktop Codex CLI.
++        if context.sourceMode == .oauth { return false }
++        #endif
+         let isExplicitNativeRefresh = if let credentialsError = error as? CodexOAuthCredentialsError,
+                                          case .nativeRefreshRequired = credentialsError
+         {
 diff --git a/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift b/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift
-index 048e4c7..7d4512f 100644
+index 048e4c7a7..7d4512fa4 100644
 --- a/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift
 +++ b/Sources/CodexBarCore/Providers/Gemini/GeminiStatusProbe.swift
 @@ -6,6 +6,8 @@ import FoundationNetworking
@@ -770,20 +855,20 @@ index 048e4c7..7d4512f 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift b/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift
-index 19629f8..f96b83a 100644
+index 1178e1d63..1de78e8fa 100644
 --- a/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift
 +++ b/Sources/CodexBarCore/Providers/Grok/GrokRPCClient.swift
-@@ -95,7 +95,7 @@ final class GrokRPCClient: @unchecked Sendable {
-             }
-             guard let text = String(data: data, encoding: .utf8), !text.isEmpty else { return }
-             for line in text.split(whereSeparator: \.isNewline) {
--                #if !os(Linux)
-+                #if !os(Linux) && !os(Android)
-                 fputs("[grok stderr] \(line)\n", stderr)
-                 #endif
-             }
+@@ -53,7 +53,7 @@ final class GrokRPCClient: @unchecked Sendable {
+         self.output.start(process: self.process, stdin: self.stdin) {
+             Self.log.warning("Grok RPC line exceeded memory limit; terminating process")
+         } onStderr: { line in
+-            #if !os(Linux)
++            #if !os(Linux) && !os(Android)
+             fputs("[grok stderr] \(line)\n", stderr)
+             #endif
+         }
 diff --git a/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift b/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift
-index 089ec9b..fe802e2 100644
+index 46b536890..7d3b69673 100644
 --- a/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift
 +++ b/Sources/CodexBarCore/Providers/Kiro/KiroStatusProbe.swift
 @@ -6,6 +6,8 @@ import FoundationNetworking
@@ -796,7 +881,7 @@ index 089ec9b..fe802e2 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift
-index 9ac8981..3d0cc51 100644
+index 9ac8981d4..3d0cc51be 100644
 --- a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift
 +++ b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageCache.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -818,7 +903,7 @@ index 9ac8981..3d0cc51 100644
              let changed = info.st_ctim
              #else
 diff --git a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift
-index 0c26e05..fae7b66 100644
+index 0c26e05ca..fae7b66a1 100644
 --- a/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift
 +++ b/Sources/CodexBarCore/Providers/Muse/MuseLocalUsageReader.swift
 @@ -4,6 +4,8 @@ import Foundation
@@ -831,7 +916,7 @@ index 0c26e05..fae7b66 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift b/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift
-index 5f8c751..70f5fee 100644
+index 2aecdccd5..81e94c89b 100644
 --- a/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift
 +++ b/Sources/CodexBarCore/Providers/ProviderVersionDetector.swift
 @@ -2,6 +2,8 @@
@@ -843,8 +928,20 @@ index 5f8c751..70f5fee 100644
  #elseif canImport(Musl)
  import Musl
  #endif
+diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeArtifactWriter.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeArtifactWriter.swift
+index bbe1e41c9..447312b45 100644
+--- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeArtifactWriter.swift
++++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeArtifactWriter.swift
+@@ -1,4 +1,7 @@
+ import Foundation
++#if os(Android)
++import Android
++#endif
+ 
+ /// Builds a replacement artifact without rewriting unchanged blocks on clone-capable volumes.
+ /// Only the private temporary file is modified; the caller still commits by atomic rename.
 diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift
-index 8d3ce10..9a4d6ee 100644
+index e2b86fad1..152760858 100644
 --- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift
 +++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageClaudeCache.swift
 @@ -1,5 +1,8 @@
@@ -866,7 +963,7 @@ index 8d3ce10..9a4d6ee 100644
          #else
          let modifiedTime = info.st_mtimespec
 diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift
-index 55e1451..bea3a60 100644
+index 55e1451f2..bea3a607a 100644
 --- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift
 +++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageJsonl.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -879,7 +976,7 @@ index 55e1451..bea3a60 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift
-index 0a57412..dcbfb57 100644
+index d3e35275c..2f2505903 100644
 --- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift
 +++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+CacheHelpers.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -891,7 +988,7 @@ index 0a57412..dcbfb57 100644
  #else
  import Darwin
  #endif
-@@ -663,7 +665,7 @@ extension CostUsageScanner {
+@@ -436,7 +438,7 @@ extension CostUsageScanner {
          guard path.withCString({ fstatat(AT_FDCWD, $0, &info, 0) }) == 0 else {
              return CodexFileMetadata(path: path, mtimeUnixMs: 0, size: 0, fileId: nil)
          }
@@ -901,7 +998,7 @@ index 0a57412..dcbfb57 100644
          let modifiedNanoseconds = Int64(info.st_mtim.tv_nsec)
          #else
 diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift
-index a494a6b..026fed6 100644
+index 1d9b1ed33..8a9b3404c 100644
 --- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift
 +++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner+Claude.swift
 @@ -3,6 +3,8 @@ import Foundation
@@ -914,10 +1011,10 @@ index a494a6b..026fed6 100644
  import Musl
  #endif
 diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift
-index 5e33706..c35eaed 100644
+index b7ebac41f..ed4e84f42 100644
 --- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift
 +++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageScanner.swift
-@@ -9,6 +9,8 @@ import Foundation
+@@ -10,6 +10,8 @@ import Foundation
  import Darwin
  #elseif canImport(Glibc)
  import Glibc
@@ -926,7 +1023,7 @@ index 5e33706..c35eaed 100644
  #endif
  
  // swiftlint:disable type_body_length file_length
-@@ -2564,7 +2566,7 @@ enum CostUsageScanner {
+@@ -2660,7 +2662,7 @@ enum CostUsageScanner {
          }
      }
  
@@ -936,7 +1033,7 @@ index 5e33706..c35eaed 100644
      #else
      private typealias CodexDirectoryHandle = UnsafeMutablePointer<DIR>
 diff --git a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift
-index 121f4c3..a9805a0 100644
+index 121f4c3e5..a9805a055 100644
 --- a/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift
 +++ b/Sources/CodexBarCore/Vendored/CostUsage/CostUsageStoreCrashHarness.swift
 @@ -4,6 +4,8 @@ import Foundation
@@ -949,7 +1046,7 @@ index 121f4c3..a9805a0 100644
  
  /// Crash-safety harness for the SQLite cost store. The `CodexBarCostStoreCrashProbe`
 diff --git a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift
-index c024338..43940a4 100644
+index c02433809..43940a47a 100644
 --- a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift
 +++ b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageParser.swift
 @@ -2,6 +2,8 @@
@@ -961,70 +1058,8 @@ index c024338..43940a4 100644
  #elseif canImport(Musl)
  import Musl
  #endif
-diff --git a/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift b/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
---- a/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
-+++ b/Sources/CodexBarCore/Providers/Codex/CodexProviderDescriptor.swift
-@@ -436,6 +436,11 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
-             accessToken: credentials.accessToken,
-             accountId: credentials.accountId,
-             env: context.env)
-+        #if os(Android)
-+        if let expected = credentials.accountId, let returned = usage.accountId, expected != returned {
-+            throw CodexOAuthFetchError.unauthorized
-+        }
-+        #endif
-         let resetCreditsAttempted = Self.shouldFetchResetCredits(context)
-         let resetCredits = try await Self.fetchResetCreditsIfRequested(
-             context: context,
-@@ -489,4 +494,8 @@ struct CodexOAuthFetchStrategy: ProviderFetchStrategy {
-     func shouldFallback(on error: Error, context: ProviderFetchContext) -> Bool {
-+        #if os(Android)
-+        // Android owns renewal; explicit OAuth must never spawn the desktop Codex CLI.
-+        if context.sourceMode == .oauth { return false }
-+        #endif
-         let isExplicitNativeRefresh = if let credentialsError = error as? CodexOAuthCredentialsError,
-                                          case .nativeRefreshRequired = credentialsError
-         {
-diff --git a/Sources/CodexBarCLI/CLIOptions.swift b/Sources/CodexBarCLI/CLIOptions.swift
---- a/Sources/CodexBarCLI/CLIOptions.swift
-+++ b/Sources/CodexBarCLI/CLIOptions.swift
-@@ -186,4 +186,9 @@
-     var status: Bool = false
--
-+
-+    #if os(Android)
-+    @Flag(name: .long("status-only"), help: "Fetch official provider status without credentials or quota")
-+    var statusOnly: Bool = false
-+    #endif
-+
-     @Flag(name: .long("web"), help: "Alias for --source web")
-     var web: Bool = false
-diff --git a/Sources/CodexBarCLI/CLIUsageCommand.swift b/Sources/CodexBarCLI/CLIUsageCommand.swift
---- a/Sources/CodexBarCLI/CLIUsageCommand.swift
-+++ b/Sources/CodexBarCLI/CLIUsageCommand.swift
-@@ -74,2 +74,20 @@
-         let providerList = provider.asList
-+        #if os(Android)
-+        if values.flags.contains("statusOnly") {
-+            struct StatusOutput: Encodable {
-+                let provider: String
-+                let status: ProviderStatusPayload?
-+            }
-+            var statuses: [StatusOutput] = []
-+            for provider in providerList {
-+                statuses.append(StatusOutput(provider: provider.rawValue, status: await Self.fetchStatus(for: provider)))
-+            }
-+            let encoder = JSONEncoder()
-+            encoder.dateEncodingStrategy = .iso8601
-+            if let data = try? encoder.encode(statuses) {
-+                print(String(decoding: data, as: UTF8.self))
-+            }
-+            return
-+        }
-+        #endif
-         let setup = Self.usageFetchSetup(values: values, providers: providerList, output: output)
 diff --git a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
-index 7b7dcaf..54670b6 100644
+index 7b7dcafb6..54670b6d0 100644
 --- a/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
 +++ b/Sources/CodexBarCore/Vendored/OpenCodexUsage/OpenCodexUsageStore.swift
 @@ -12,6 +12,8 @@ import Crypto

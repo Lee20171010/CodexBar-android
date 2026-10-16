@@ -20,7 +20,7 @@ physical-device acceptance remain open.
 
 Mac UI/UX alignment covers settings, features, display and interactions, not just
 card styling. [docs/ui.md](docs/ui.md) owns the implementation/target distinction.
-The Mac v0.73.0 design reference does not change the native v0.71.0 source pin.
+The Mac v0.73.0 design reference does not change the native v0.76.0 source pin.
 SwiftUI/AppKit presentation, desktop credential discovery and local usage/spend
 collection are not automatically exposed by the bundled CLI or Android adapters.
 
@@ -414,8 +414,8 @@ scheduling: WorkManager work is scheduled regardless of the exemption
 
 ## 13. Packaging and platform contract
 
-The build pins upstream CodexBar **v0.71.0** at
-`cb5f0cbe88615a441272c6f9e44675bf594a3fa3`. Android changes remain a reviewable patch;
+The build pins upstream CodexBar **v0.76.0** at
+`2d8b1409a1649dce60f3610ebe4eab52b92545de`. Android changes remain a reviewable patch;
 downloaded source, compilers and generated binaries are excluded from Git.
 
 The executable targets Android/Bionic using the official Swift Android SDK. Swift
@@ -443,7 +443,39 @@ Native subprocess directory-change actions require API 34 and return `ENOTSUP`
 below it. Native ARM64 hardware, API 28 minimum-device behavior and 16 KiB-page
 devices remain separate validation targets.
 
-## 14. Current limits and acceptance boundary
+## 14. Manual in-app updater (pending acceptance)
+
+Implemented at source level in `core/update/` plus `feature/settings/UpdateViewModel`;
+shown only in native delivery builds (`NATIVE_CLI_ENABLED`, acceptance package
+excluded). Behavior contract:
+
+- Explicit user action only. No startup check, no background fetch, no
+  auto-install. The check reads GitHub `releases/latest` for this fork
+  (`Lee20171010/CodexBar-android`), never the upstream repository, with no
+  credential headers.
+- Release acceptance is strict: stable SemVer tag only (`v?X.Y.Z`, prerelease
+  and build suffixes rejected), `draft`/`prerelease` booleans rejected, response
+  body bounded to 1 MiB, and the asset must be exactly
+  `Codexbar-Android-<version>.apk` at the exact owner/repo/tag download path.
+  A GitHub `sha256:<hex>` asset digest is honored when present; a present but
+  malformed digest fails closed.
+- Downloads stream to `files/updates/` as `.part` then rename; every network
+  hop (including redirects) is pinned to HTTPS on GitHub asset hosts with no
+  userinfo or custom ports. Size and SHA-256 are verified before the file is
+  offered for install.
+- Pre-install validation requires the APK to target this exact applicationId,
+  carry a strictly higher versionCode, and present signing certificates that
+  exactly match the installed app's signer set (partial overlap on multi-signer
+  APKs is rejected). The verified file is handed to the system installer via a
+  restricted non-exported FileProvider URI with per-install read grants;
+  missing "install unknown apps" permission routes to the system settings
+  screen and the user retries after granting.
+- Status: JVM unit tests cover parsing, version comparison, URL/redirect
+  policy, digest/size failure modes and signer-set equality. The Gradle gate
+  passed. The exact Release APK's manual GitHub check passed on the emulator;
+  full download-and-install device acceptance remains open.
+
+## 15. Current limits and acceptance boundary
 
 - Codex (API 28+) and the eleven API-key providers (OpenCode Go, OpenRouter,
   Copilot, Venice, Amp, z.ai, Factory, Alibaba Coding Plan, Charm Hyper, Kimi,
@@ -454,8 +486,9 @@ devices remain separate validation targets.
   That is distinct from physical ARM64 hardware verification.
 - Automated API-key UI checks use invalid synthetic keys. Real-account quota
   accuracy, long-running background behavior and OAuth renewal are not proven by them.
-- The Android version command reads the staged `VERSION` beside the resource bundle
-  and reports `CodexBar 0.71.0`; the numeric-version App-UID probe passed.
+- The 0.0.15-era version command read the staged `VERSION` beside the resource
+  bundle and reports `CodexBar 0.76.0`; the numeric-version App-UID probe
+  passed against the v0.76.0 payload on the API 36 ARM64-bridge emulator.
 - Claude refresh-token failures reported by the Android upstream are not resolved
   by this native integration.
 

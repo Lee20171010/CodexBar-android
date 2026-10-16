@@ -1,7 +1,7 @@
 {
   "About.txt": {
     "source": "NOTICE.md",
-    "sha256": "7cf9d9f5b09c9787c41579faafe5f57bf45692c2ae459a02002f08fae747b54f"
+    "sha256": "8fdfc3d8188b8a3e603bcb24fe3691afb1b3d5117e2a2c145e3ad60421f5ad7c"
   },
   "Android-origin.txt": {
     "source": "LICENSE",
@@ -12,7 +12,7 @@
     "sha256": "60bd7c54856bf9387221bde5ab55d516d7cea15870d0fed69406bcd1c8ec7c9d"
   },
   "CodexBar-Core-CLI.txt": {
-    "source": "https://github.com/steipete/CodexBar/blob/cb5f0cbe88615a441272c6f9e44675bf594a3fa3/LICENSE",
+    "source": "https://github.com/steipete/CodexBar/blob/2d8b1409a1649dce60f3610ebe4eab52b92545de/LICENSE",
     "sha256": "14293556b79940745123d0160c71d27ed0e9fe9b8a848093f3ed78f4853caafe"
   },
   "Commander-LICENSE.txt": {
@@ -28,7 +28,7 @@
     "sha256": "f96f763beb66a7ba7a667647fc64c0226ace875e590c831fdd9579ec1c1d91e1"
   },
   "QuickJS.txt": {
-    "source": "https://github.com/steipete/CodexBar/blob/cb5f0cbe88615a441272c6f9e44675bf594a3fa3/Sources/CQuickJS/LICENSE",
+    "source": "https://github.com/steipete/CodexBar/blob/2d8b1409a1649dce60f3610ebe4eab52b92545de/Sources/CQuickJS/LICENSE",
     "sha256": "96f73f9d2a16c21a36b418f06073be26e7d6d5e7c1bc99756b21a4f2c74ef171"
   },
   "SQLite.txt": {
@@ -36,7 +36,7 @@
     "sha256": "85806d613cfda5901f848b3b5b4b04396c8c64e89c97c0af3706c42b0c44bb47"
   },
   "SweetCookieKit-LICENSE.txt": {
-    "source": "https://github.com/steipete/SweetCookieKit/blob/b118aa1ddec43f3883b72771b94657e3fbf55e27/LICENSE",
+    "source": "https://github.com/steipete/SweetCookieKit/blob/95ee9806fefd502fe7b69f1660b438c35f1048ce/LICENSE",
     "sha256": "14293556b79940745123d0160c71d27ed0e9fe9b8a848093f3ed78f4853caafe"
   },
   "Swift-runtime.txt": {

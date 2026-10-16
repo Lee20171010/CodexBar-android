@@ -15,13 +15,13 @@ android {
         applicationId = "com.codexbar.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
-        versionName = "0.0.15-beta"
+        versionCode = 17
+        versionName = "0.0.16"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "false")
-        // Display-only engine version; keep in sync with the v0.71.0 pin in native/build.py.
-        buildConfigField("String", "CORE_CLI_VERSION", "\"0.71.0\"")
+        // Display-only engine version; keep in sync with the pin in native/build.py.
+        buildConfigField("String", "CORE_CLI_VERSION", "\"0.76.0\"")
         // Default is the public VS Code OAuth App client pinned by upstream CodexBar
         // (upstream-codexbar CopilotDeviceFlow.swift:9). Set COPILOT_OAUTH_CLIENT_ID="" to disable device sign-in.
         val copilotClientId = providers.environmentVariable("COPILOT_OAUTH_CLIENT_ID").getOrElse("Iv1.b507a08c87ecfe98")
@@ -66,7 +66,6 @@ android {
             signingConfig = signingConfigs.getByName("nativeAcceptance")
             matchingFallbacks += "release"
             ndk.abiFilters += "arm64-v8a"
-            versionNameSuffix = "-native"
             buildConfigField("Boolean", "NATIVE_CLI_ENABLED", "true")
         }
         create("nativeAcceptance") {

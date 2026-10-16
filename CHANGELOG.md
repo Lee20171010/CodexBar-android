@@ -19,8 +19,29 @@ and per-release verification narratives are in
 
 ## [Unreleased]
 
+## [0.0.16] - 2026-10-16
+
+### Added
+
+- Manual in-app updater in Settings → About (native delivery builds only):
+  explicit **Check updates** queries this fork's latest stable GitHub release
+  (strict stable SemVer tag, non-draft, exact `Codexbar-Android-x.y.z.apk`
+  asset URL), downloads it to app-private storage with progress and cancel,
+  verifies size, the GitHub `sha256` digest when supplied, package identity, a higher
+  versionCode and matching signing certificates, then hands the file to the
+  Android system installer over a restricted FileProvider URI. Nothing runs at
+  startup and nothing auto-installs. The exact Release APK passed the manual
+  GitHub check on the emulator; full download-to-installer acceptance remains open.
+
 ### Changed
 
+- Native engine pin upgraded from v0.71.0 (`cb5f0cbe`) to v0.76.0
+  (`2d8b1409a1649dce60f3610ebe4eab52b92545de`), with `CORE_CLI_VERSION` kept in
+  sync. Native ARM64 compilation, 278 JVM tests, lint, signed assembly and six
+  isolated runtime/scheduling probes passed. A subsequent general UI harness
+  step timed out; full provider/live-account acceptance is not claimed.
+- App versions now use plain SemVer (`0.0.16`); the previous
+  0.0.15 artifact keeps its delivered `0.0.15-beta-native` label.
 - Documentation rewritten to reflect the delivered app: README as a user
   guide, SPEC/TEST restructured, provider setup guidance consolidated into
   `docs/providers.md`, changelog rebaselined, and historical verification

@@ -17,6 +17,22 @@ one-time optional offer on switching to periodic refresh, dismissal, repeated
 enable and the permanent settings entry. This is not physical ARM64 hardware
 proof, a background-timing guarantee, or full visual Mac parity.
 
+### Pending work (Unreleased)
+
+The native engine pin moved from v0.71.0 to **v0.76.0**
+(`2d8b1409a1649dce60f3610ebe4eab52b92545de`). Native ARM64 Release compilation
+**passed** (924 s, 2026-10-16). The Gradle gate passed 278 JVM tests, debug lint,
+native Kotlin compilation and signed Release/Acceptance assembly. Updater fixtures
+cover parsing, version comparison, download bounds, digest/size failures and signer
+validation. Six isolated API 36 ARM64-bridge probes passed, including the actual
+`CodexBar 0.76.0` version output, resources, configuration, status-only routing,
+missing-credential handling and Manual scheduling persistence. The overall harness
+run failed on a subsequent UI back-key timeout; it is not a full acceptance pass.
+The exact 0.0.16 Release APK passed its manual GitHub update check on the same
+emulator: About → Check updates correctly reports the installed version as current
+relative to the published 0.0.15 release. Full download-to-installer acceptance
+remains open because no newer production release is available to this build.
+
 Live-account acceptance is confirmed only for Codex and OpenCode Go. Copilot
 phone sign-in and the API-key providers added since 0.0.12 (Venice, Amp, z.ai,
 Factory, Alibaba Coding Plan, Charm Hyper, Kimi, MiniMax) are covered by

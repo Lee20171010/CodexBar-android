@@ -10,7 +10,7 @@ import urllib.request
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-REVISION = "cb5f0cbe88615a441272c6f9e44675bf594a3fa3"  # v0.71.0
+REVISION = "2d8b1409a1649dce60f3610ebe4eab52b92545de"  # v0.76.0
 SQLITE_VERSION = "3500400"
 SQLITE_SHA256 = "1d3049dd0f830a025a53105fc79fd2ab9431aea99e137809d064d8ee8356b032"
 
@@ -61,7 +61,7 @@ def main():
             parser.error(f"Missing toolchain component: {required}")
     source = ROOT / "upstream-codexbar"
     if not source.exists():
-        subprocess.run(["git", "clone", "--depth", "1", "--branch", "v0.71.0",
+        subprocess.run(["git", "clone", "--depth", "1", "--branch", "v0.76.0",
                         "https://github.com/steipete/CodexBar.git", str(source)], check=True)
     revision = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
     if revision != REVISION:
@@ -109,7 +109,7 @@ def main():
     if bundle.exists():
         shutil.rmtree(bundle)
     shutil.copytree(product / "CodexBar_CodexBarCore.bundle", bundle)
-    (assets / "VERSION").write_text("0.71.0\n")
+    (assets / "VERSION").write_text("0.76.0\n")
     print(f"Native payload: {package}")
 
 

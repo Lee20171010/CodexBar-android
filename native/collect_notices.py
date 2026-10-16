@@ -9,7 +9,7 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "app/src/main/assets/licenses"
-REVISION = "cb5f0cbe88615a441272c6f9e44675bf594a3fa3"
+REVISION = "2d8b1409a1649dce60f3610ebe4eab52b92545de"
 
 
 def main():

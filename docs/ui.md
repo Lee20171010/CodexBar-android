@@ -5,7 +5,7 @@ and interactions, rendered with Compose and Android touch/accessibility conventi
 The current reference is [steipete/CodexBar at 98d84b8](https://github.com/steipete/CodexBar/tree/98d84b8a06957e193a9a8e58b40590736c94bf70),
 including `docs/ui.md`, `MenuCardMetricRow.swift`, `UsageProgressBar.swift`,
 `MetricRowHeader` and `UsageMenuCardLayout.swift`. Android fork layouts are not the
-design authority. The native engine remains pinned independently to v0.71.0.
+design authority. The native engine remains pinned independently to v0.76.0.
 
 ## Status and design workflow
 

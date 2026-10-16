@@ -7,8 +7,8 @@ OpenCode Go usage, start with [README.md](../README.md).
 
 ## Pinned source and tools
 
-- Upstream: `steipete/CodexBar` v0.71.0,
-  commit `cb5f0cbe88615a441272c6f9e44675bf594a3fa3`.
+- Upstream: `steipete/CodexBar` v0.76.0,
+  commit `2d8b1409a1649dce60f3610ebe4eab52b92545de`.
 - Official Swift 6.4.0 Ubuntu 24.04 host compiler and matching Android SDK.
 - Android NDK r30; the native CLI currently targets API 28 because upstream uses
   `posix_spawn`. The existing Android app still targets minimum API 26; the native

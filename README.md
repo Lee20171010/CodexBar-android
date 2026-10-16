@@ -10,8 +10,8 @@ macOS CodexBar maintainers or the monitored service providers.
 ## Architecture in one paragraph
 
 The quota engine is the real CodexBar **Swift Core/CLI**, cross-compiled and
-bundled to run **on-device** — pinned to upstream `steipete/CodexBar` v0.71.0
-(commit `cb5f0cbe`) with a recorded Android patch set (`native/android.patch`).
+bundled to run **on-device** — pinned to upstream `steipete/CodexBar` v0.76.0
+(commit `2d8b1409`) with a recorded Android patch set (`native/android.patch`).
 On top of that engine this port adds the Android-specific layers: device-flow
 sign-in, encrypted credential storage (Android Keystore), Compose UI, widgets,
 WorkManager scheduling and notifications. This engine is CodexBar's quota
@@ -84,9 +84,16 @@ against a live account.
 - **Scheduled refresh** — periodic WorkManager refresh (15, 30 or 60 minutes,
   or manual), optional refresh-on-dashboard-open, one-time optional
   battery-optimization exemption with a permanent settings entry.
-- **Privacy** — credentials in app-private encrypted storage; requests go only
-  to the official provider quota and status endpoints for the providers you
-  enable; licenses are viewable offline in Settings → About & licenses.
+- **Manual updates** — Settings → About offers an explicit **Check updates**
+  action (native delivery builds only): it queries this fork's latest stable
+  GitHub release, downloads the matching `Codexbar-Android-x.y.z.apk` with
+  progress and cancel, verifies size, the GitHub `sha256` digest, package,
+  versionCode and signing certificate, then hands the file to the Android
+  system installer. Nothing checks or installs automatically.
+- **Privacy** — credentials in app-private encrypted storage; quota and status
+  requests go only to the official provider endpoints for the providers you
+  enable, and the manual update check contacts GitHub's release API only when
+  you tap it; licenses are viewable offline in Settings → About & licenses.
 
 ## Settings map
 
@@ -101,7 +108,8 @@ Settings mirrors the Mac sidebar: app panes plus one destination per provider.
 - **Usage & Spend** — placeholder: this port has no spend ledger data source,
   and balances or quota history are never converted into daily costs.
 - **Advanced** — delete all credentials (with confirmation).
-- **About & licenses** — version, offline license bundle.
+- **About & licenses** — version, offline license bundle, manual update check
+  (native delivery builds only).
 - **Provider destinations** — per-provider add/reconnect/rename/delete,
   per-account display overrides, sign-in guidance.
 
@@ -118,6 +126,8 @@ Settings mirrors the Mac sidebar: app panes plus one destination per provider.
   Keychain, local CLI files) are not implemented.
 - Several acceptance gates (physical ARM64 hardware, TalkBack, screenshot
   parity) remain open; see [TEST.md](TEST.md) for what is and is not verified.
+- The in-app updater is implemented and unit-tested at source level only; the
+  real download-and-install flow has not been exercised on a device yet.
 
 ## Documentation
 

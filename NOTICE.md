@@ -11,8 +11,8 @@ Product names identify their respective owners; attribution grants no trademark 
   hyunnnchoi, MIT. Baseline: `1811d1fe032fd4a80240fd6bc5d04cee649a0afb`.
   https://github.com/hyunnnchoi/CodexBar-android
 - **steipete/CodexBar** — Android builds of Swift Core/CLI, bundled provider
-  resources and original launcher artwork. Copyright (c) 2026 Peter Steinberger, MIT. Version 0.71.0,
-  revision `cb5f0cbe88615a441272c6f9e44675bf594a3fa3`.
+  resources and original launcher artwork. Copyright (c) 2026 Peter Steinberger, MIT. Version 0.76.0,
+  revision `2d8b1409a1649dce60f3610ebe4eab52b92545de`.
   Android adaptations are recorded in `native/android.patch`.
   https://github.com/steipete/CodexBar
 
